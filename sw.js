@@ -1,4 +1,4 @@
-const CACHE = 'wt-v1';
+const CACHE = 'wt-v2';
 const ASSETS = ['.', 'index.html', 'manifest.json', 'icon.svg'];
 
 self.addEventListener('install', e => {
