@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#111827"/>
+  <g fill="#22c55e">
+    <!-- bar -->
+    <rect x="56" y="88" width="80" height="16" rx="4"/>
+    <!-- left weight -->
+    <rect x="36" y="72" width="20" height="48" rx="6"/>
+    <rect x="26" y="80" width="10" height="32" rx="4"/>
+    <!-- right weight -->
+    <rect x="136" y="72" width="20" height="48" rx="6"/>
+    <rect x="156" y="80" width="10" height="32" rx="4"/>
+  </g>
+</svg>
