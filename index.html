@@ -504,6 +504,7 @@
     <span class="header-title">Workout</span>
     <button class="unit-toggle" id="unitToggle">lbs</button>
     <button class="fuel-pill" id="fuelBtn">&#128138; Fuel</button>
+    <button class="fuel-pill" id="progressBtn">&#128200; Progress</button>
   </div>
   <div class="week-nav">
     <button class="week-btn" id="prevWeek">&#8249;</button>
@@ -556,6 +557,16 @@
         &#9654; Search on YouTube
       </a>
     </div>
+  </div>
+</div>
+
+<!-- Progress overlay -->
+<div class="overlay" id="progressOverlay">
+  <div class="form-sheet" id="progressSheet">
+    <div class="form-sheet-handle"></div>
+    <div class="form-sheet-title">&#128200; Progress</div>
+    <div class="form-sheet-subtitle">Best weight logged per exercise, by week.</div>
+    <div id="progressBody"></div>
   </div>
 </div>
 
@@ -1967,6 +1978,83 @@ document.getElementById('fuelBtn').addEventListener('click', openFuelSheet);
 document.getElementById('fuelOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('fuelOverlay'))
     document.getElementById('fuelOverlay').classList.remove('show');
+});
+
+// ─── Progress ─────────────────────────────────────────────────────────────────
+function openProgressSheet() {
+  // Collect all wt_ keys from localStorage
+  const weeks = {}; // weekKey → {dow → exerciseIdx → bestWeight}
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const m = key && key.match(/^wt_(\d{4}-\d{2}-\d{2})_(\d)$/);
+    if (!m) continue;
+    const [, wk, dowStr] = m;
+    const dow = +dowStr;
+    const r = ROUTINE[dow];
+    if (!r || r.type !== 'strength') continue;
+    let d;
+    try { d = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    if (!d || !Array.isArray(d.exercises)) continue;
+    if (!weeks[wk]) weeks[wk] = {};
+    r.items.forEach((ex, ei) => {
+      if (ex.track === false) return;
+      const sets = d.exercises[ei]?.sets;
+      if (!sets) return;
+      const best = sets.reduce((max, s) => {
+        const w = parseFloat(s.w);
+        return s.done && !isNaN(w) ? Math.max(max, w) : max;
+      }, 0);
+      if (best <= 0) return;
+      const name = ex.name;
+      if (!weeks[wk][name] || best > weeks[wk][name]) weeks[wk][name] = best;
+    });
+  }
+
+  // Sort weeks descending
+  const sortedWeeks = Object.keys(weeks).sort().reverse();
+
+  // Collect all exercise names that appear in any week
+  const allExercises = [];
+  ROUTINE.forEach(r => {
+    if (r.type !== 'strength') return;
+    r.items.forEach(ex => {
+      if (ex.track !== false && !allExercises.includes(ex.name)) allExercises.push(ex.name);
+    });
+  });
+
+  if (sortedWeeks.length === 0) {
+    document.getElementById('progressBody').innerHTML =
+      '<p style="color:var(--text-muted);font-size:14px;margin-top:12px">No data yet — log some sets and come back!</p>';
+  } else {
+    const unit = unitPref;
+    let html = '';
+    allExercises.forEach(name => {
+      const entries = sortedWeeks.filter(wk => weeks[wk][name]);
+      if (!entries.length) return;
+      html += `<div class="form-section">
+        <div class="form-section-label">${name}</div>`;
+      entries.forEach(wk => {
+        const d = new Date(wk + 'T12:00:00');
+        const label = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        const w = weeks[wk][name];
+        const display = unit === 'kg' ? (w / 2.2046).toFixed(1) : w;
+        html += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:14px;">
+          <span style="color:var(--text-muted)">Week of ${label}</span>
+          <span style="font-weight:600">${display} ${unit}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    document.getElementById('progressBody').innerHTML = html;
+  }
+
+  document.getElementById('progressOverlay').classList.add('show');
+  document.getElementById('progressSheet').scrollTop = 0;
+}
+document.getElementById('progressBtn').addEventListener('click', openProgressSheet);
+document.getElementById('progressOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('progressOverlay'))
+    document.getElementById('progressOverlay').classList.remove('show');
 });
 
 // ─── Timer ────────────────────────────────────────────────────────────────────
