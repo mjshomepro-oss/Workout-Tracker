@@ -1780,6 +1780,7 @@ function itemDone(r, ei, data) {
 }
 
 function renderContent() {
+  const scrollY = window.scrollY;
   const r = ROUTINE[currentDay];
   const data = loadData(currentDay);
   let h = `<div class="day-header"><h2>${r.day} — ${r.label}</h2></div>`;
@@ -1834,6 +1835,7 @@ function renderContent() {
 
   document.getElementById('content').innerHTML = h;
   attachListeners(data);
+  window.scrollTo(0, scrollY);
 }
 
 function attachListeners(data) {
