@@ -1835,7 +1835,7 @@ function renderContent() {
 
   document.getElementById('content').innerHTML = h;
   attachListeners(data);
-  window.scrollTo(0, scrollY);
+  requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 
 function attachListeners(data) {
