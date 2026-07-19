@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#16262e" />
+<title>Stockholm Time</title>
+<style>
+  :root {
+    --bg-top: #eef3f4;
+    --bg-bottom: #dfe9ea;
+    --card: #ffffff;
+    --ink: #16222b;
+    --ink-dim: #5b6b73;
+    --line: #d3dee0;
+    --accent: #c8862a;
+    --accent-ink: #5c3d10;
+    --teal: #2f7d76;
+    --seg-off: #d3dee0;
+    --shadow: 0 1px 2px rgba(22,34,43,0.04), 0 8px 24px rgba(22,34,43,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-top: #0e1a22;
+      --bg-bottom: #142b31;
+      --card: #16262e;
+      --ink: #eaf1f2;
+      --ink-dim: #93a7ac;
+      --line: #24393f;
+      --accent: #e7ac52;
+      --accent-ink: #2a1c08;
+      --teal: #5fb3aa;
+      --seg-off: #24393f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px;
+    background: radial-gradient(120% 100% at 50% 0%, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+  }
+
+  .widget {
+    width: 100%;
+    max-width: 360px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 26px 24px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .locale-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .locale {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+
+  .zone-abbr {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .clock {
+    font-size: clamp(2.7rem, 13vw, 3.5rem);
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .clock .meridiem {
+    font-size: 0.32em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-dim);
+    margin-left: 0.18em;
+    vertical-align: 0.55em;
+  }
+
+  .date {
+    margin-top: -8px;
+    font-size: 0.98rem;
+    color: var(--ink-dim);
+    font-weight: 500;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--line);
+    border: none;
+    margin: 0;
+  }
+
+  .compare-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .compare-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  .compare-time {
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .offset-pill {
+    align-self: flex-start;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent-ink);
+    background: var(--accent);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .trip-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .trip-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  .trip-day {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--teal);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .now-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .now-tag {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+
+  .now-tag.hi {
+    color: var(--accent-ink);
+    background: var(--accent);
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    width: fit-content;
+  }
+
+  .now-title {
+    font-size: 1.28rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .now-sub {
+    font-size: 0.88rem;
+    color: var(--ink-dim);
+    line-height: 1.35;
+  }
+
+  .next-line {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .next-line strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .segments {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 4px;
+    margin-top: 14px;
+  }
+
+  .seg {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--seg-off);
+  }
+
+  .seg.done {
+    background: var(--teal);
+  }
+
+  .seg.today {
+    background: var(--accent);
+  }
+
+  .trip-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+  }
+
+  .trip-footer strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .clock { transition: opacity 0.15s ease; }
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="locale-row">
+    <span class="locale">Stockholm, Sweden</span>
+    <span class="zone-abbr" id="zoneAbbr">—</span>
+  </div>
+
+  <div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date" id="date">—</div>
+  </div>
+
+  <hr class="divider" />
+
+  <div>
+    <div class="compare-row">
+      <span class="compare-label" id="homeLabel">Your time</span>
+      <span class="compare-time" id="homeClock">--:--</span>
+    </div>
+    <div class="offset-pill" id="offsetPill" style="margin-top:8px;">—</div>
+  </div>
+
+  <hr class="divider" />
+
+  <div>
+    <div class="trip-header" style="margin-bottom:12px;">
+      <span class="trip-label">IFK Maryland · Sweden Tour</span>
+      <span class="trip-day" id="tripDay">Day — of 11</span>
+    </div>
+
+    <div class="now-card">
+      <span class="now-tag" id="nowTag">—</span>
+      <div class="now-title" id="nowTitle">—</div>
+      <div class="now-sub" id="nowSub">—</div>
+    </div>
+
+    <div class="next-line">
+      <span>Next</span>
+      <span id="nextInfo"><strong>—</strong></span>
+    </div>
+
+    <div class="segments" id="segments"></div>
+    <div class="trip-footer" style="margin-top:10px;">
+      <span id="tripRange">Jul 19 – Jul 29, 2026</span>
+      <span id="tripCountdown"><strong>—</strong></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  var STOCKHOLM_TZ = "Europe/Stockholm";
+  var TRIP_DAYS = 11; // Jul 19 - Jul 29, 2026
+  var homeTz = Intl.DateTimeFormat().resolvedOptions().timeZone || STOCKHOLM_TZ;
+
+  // Times below come straight off the tour itinerary. Each is stored as its own
+  // local wall-clock time converted to UTC, since the tour crosses three zones:
+  // ET = Washington Dulles, IS = Reykjavik (no DST), SE = Stockholm/Umea (CEST).
+  var EVENTS = [
+    { day: 1, start: "2026-07-20T00:20:00Z", when: "8:20 PM ET", cat: "TRAVEL",
+      title: "Meeting at Dulles Airport", sub: "Team check-in & briefing · Icelandair desk, IAD" },
+    { day: 1, start: "2026-07-20T03:20:00Z", when: "11:20 PM ET", cat: "TRAVEL",
+      title: "In flight to Iceland", sub: "Flight FI648 · IAD → Reykjavík (KEF)" },
+
+    { day: 2, start: "2026-07-20T09:10:00Z", when: "9:10 AM IS", cat: "TRAVEL",
+      title: "Layover in Reykjavík", sub: "Between flights at Keflavík Airport" },
+    { day: 2, start: "2026-07-20T11:00:00Z", when: "11:00 AM IS", cat: "TRAVEL",
+      title: "In flight to Stockholm", sub: "Flight FI308 · KEF → Stockholm (ARN)" },
+    { day: 2, start: "2026-07-20T14:10:00Z", when: "4:10 PM SE", cat: "TRAVEL",
+      title: "Landed in Stockholm", sub: "Arrived at Arlanda Airport" },
+    { day: 2, start: "2026-07-20T15:10:00Z", when: "5:10 PM SE", cat: "TRAVEL",
+      title: "On the road to Umeå", sub: "Coach bus, ~7.5 hr drive with a food/stretch break" },
+
+    { day: 3, start: "2026-07-20T23:30:00Z", when: "1:30 AM SE", cat: "HOTEL",
+      title: "Arrived in Umeå", sub: "Checking in at First Hotel Dragonen" },
+    { day: 3, start: "2026-07-21T06:00:00Z", when: "8:00 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 3, start: "2026-07-21T08:00:00Z", when: "10:00 AM SE", cat: "FREE",
+      title: "Travel Recovery Session", sub: "Rest and reset after the overnight flights" },
+    { day: 3, start: "2026-07-21T10:30:00Z", when: "12:30 PM SE", cat: "FREE",
+      title: "Walking Tour of Umeå Centrum", sub: "Downtown tour, ending with lunch" },
+    { day: 3, start: "2026-07-21T15:30:00Z", when: "5:30 PM SE", cat: "MEAL",
+      title: "Team Dinner", sub: "First Hotel Dragonen" },
+    { day: 3, start: "2026-07-21T17:00:00Z", when: "7:00 PM SE", cat: "TRAINING",
+      title: "Training Match", sub: "vs Ersboda SK" },
+
+    { day: 4, start: "2026-07-22T06:00:00Z", when: "8:00 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 4, start: "2026-07-22T08:00:00Z", when: "10:00 AM SE", cat: "TRAINING",
+      title: "Team Training", sub: "10:00 – 11:30 AM" },
+    { day: 4, start: "2026-07-22T10:00:00Z", when: "12:00 PM SE", cat: "MEAL",
+      title: "Lunch", sub: "12:00 – 12:45 PM" },
+    { day: 4, start: "2026-07-22T11:00:00Z", when: "1:00 PM SE", cat: "FREE",
+      title: "Västerbotten Museum Tour", sub: "Depart 1:00 PM" },
+    { day: 4, start: "2026-07-22T15:00:00Z", when: "5:00 PM SE", cat: "TRAINING",
+      title: "Training with UEFA Pro Coach", sub: "Swedish coach-led session" },
+    { day: 4, start: "2026-07-22T17:30:00Z", when: "7:30 PM SE", cat: "MEAL",
+      title: "Team Dinner", sub: "First Hotel Dragonen" },
+
+    { day: 5, start: "2026-07-23T04:30:00Z", when: "6:30 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 5, start: "2026-07-23T06:00:00Z", when: "8:00 AM SE", cat: "MATCH",
+      title: "Heading to Match — 18U", sub: "vs IFK Umeå · kickoff 9:00 AM" },
+    { day: 5, start: "2026-07-23T09:00:00Z", when: "11:00 AM SE", cat: "MATCH",
+      title: "Heading to Match — 16U", sub: "vs Lira BK · kickoff 12:00 PM" },
+    { day: 5, start: "2026-07-23T10:00:00Z", when: "12:00 PM SE", cat: "MATCH",
+      title: "Heading to Match — 18U", sub: "vs Gimonäs IF · kickoff 1:00 PM" },
+    { day: 5, start: "2026-07-23T12:30:00Z", when: "2:30 PM SE", cat: "MEAL",
+      title: "Team Lunch", sub: "First Hotel Dragonen" },
+    { day: 5, start: "2026-07-23T15:30:00Z", when: "5:30 PM SE", cat: "MEAL",
+      title: "Team Dinner", sub: "First Hotel Dragonen" },
+    { day: 5, start: "2026-07-23T17:00:00Z", when: "7:00 PM SE", cat: "CEREMONY",
+      title: "Tournament Opening Ceremony", sub: "Depart 7:00 PM" },
+
+    { day: 6, start: "2026-07-24T04:30:00Z", when: "6:30 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 6, start: "2026-07-24T05:55:00Z", when: "7:55 AM SE", cat: "MATCH",
+      title: "Heading to Match — 18U", sub: "vs Gimonäs IF · kickoff 8:55 AM" },
+    { day: 6, start: "2026-07-24T07:45:00Z", when: "9:45 AM SE", cat: "MATCH",
+      title: "Heading to Match — 16U", sub: "vs Tvärrelvdalen IL (Norway) · kickoff 10:45 AM" },
+    { day: 6, start: "2026-07-24T11:30:00Z", when: "1:30 PM SE", cat: "MEAL",
+      title: "Team Lunch", sub: "First Hotel Dragonen" },
+    { day: 6, start: "2026-07-24T14:10:00Z", when: "4:10 PM SE", cat: "MATCH",
+      title: "Heading to Match — 16U & 18U", sub: "16U vs Matfors IK · 18U vs IFK Umeå · kickoff 5:10 PM" },
+    { day: 6, start: "2026-07-24T17:30:00Z", when: "7:30 PM SE", cat: "MEAL",
+      title: "Team Dinner", sub: "First Hotel Dragonen" },
+
+    { day: 7, start: "2026-07-25T06:00:00Z", when: "8:00 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 7, start: "2026-07-25T08:50:00Z", when: "10:50 AM SE", cat: "MATCH",
+      title: "Heading to Match — 16U", sub: "vs Olderskog (Norway) · kickoff 11:50 AM" },
+    { day: 7, start: "2026-07-25T11:00:00Z", when: "1:00 PM SE", cat: "FREE",
+      title: "Afternoon — schedule TBD", sub: "Depends on how the tournament bracket flows" },
+
+    { day: 8, start: "2026-07-26T07:00:00Z", when: "9:00 AM SE", cat: "MATCH",
+      title: "Finals Day — schedule TBD", sub: "Times & opponents announced after group stages · meals/transport via team chat" },
+
+    { day: 9, start: "2026-07-27T06:00:00Z", when: "8:00 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 9, start: "2026-07-27T08:30:00Z", when: "10:30 AM SE", cat: "FREE",
+      title: "Beach Day in Holmsund", sub: "Team outing" },
+    { day: 9, start: "2026-07-27T15:00:00Z", when: "5:00 PM SE", cat: "TRAINING",
+      title: "Training with UEFA Pro Coach", sub: "Swedish coach-led session" },
+    { day: 9, start: "2026-07-27T17:30:00Z", when: "7:30 PM SE", cat: "MEAL",
+      title: "Team Dinner & Night Out", sub: "In Umeå" },
+
+    { day: 10, start: "2026-07-28T06:00:00Z", when: "8:00 AM SE", cat: "MEAL",
+      title: "Team Breakfast", sub: "First Hotel Dragonen" },
+    { day: 10, start: "2026-07-28T07:00:00Z", when: "9:00 AM SE", cat: "FREE",
+      title: "Free Day in Umeå", sub: "Shopping and exploring Umeå Centrum, all day" },
+    { day: 10, start: "2026-07-28T17:00:00Z", when: "7:00 PM SE", cat: "MEAL",
+      title: "Final Team Dinner", sub: "First Hotel Dragonen" },
+
+    { day: 11, start: "2026-07-29T01:00:00Z", when: "3:00 AM SE", cat: "HOTEL",
+      title: "Rise and Shine", sub: "Early wake-up call" },
+    { day: 11, start: "2026-07-29T02:00:00Z", when: "4:00 AM SE", cat: "TRAVEL",
+      title: "Checking out, heading to Arlanda", sub: "Depart First Hotel Dragonen for Stockholm" },
+    { day: 11, start: "2026-07-29T15:10:00Z", when: "5:10 PM SE", cat: "TRAVEL",
+      title: "In flight to Iceland", sub: "Flight FI309 · ARN → Reykjavík (KEF)" },
+    { day: 11, start: "2026-07-29T18:25:00Z", when: "6:25 PM IS", cat: "TRAVEL",
+      title: "Layover in Reykjavík", sub: "Between flights at Keflavík Airport" },
+    { day: 11, start: "2026-07-29T19:50:00Z", when: "7:50 PM IS", cat: "TRAVEL",
+      title: "In flight home", sub: "Flight FI649 · KEF → Washington Dulles (IAD)" },
+    { day: 11, start: "2026-07-30T02:15:00Z", when: "10:15 PM ET", cat: "TRAVEL",
+      title: "Landed at Dulles", sub: "Welcome home!" }
+  ];
+  EVENTS.forEach(function (e) { e.startDate = new Date(e.start); });
+
+  var segWrap = document.getElementById("segments");
+  var segEls = [];
+  for (var i = 0; i < TRIP_DAYS; i++) {
+    var s = document.createElement("div");
+    s.className = "seg";
+    segWrap.appendChild(s);
+    segEls.push(s);
+  }
+
+  function offsetMinutes(date, tz) {
+    var f = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" });
+    var part = f.formatToParts(date).find(function (p) { return p.type === "timeZoneName"; });
+    var m = part && part.value.match(/GMT([+-]\d+)(?::(\d+))?/);
+    if (!m) return 0;
+    var h = parseInt(m[1], 10);
+    var mins = m[2] ? parseInt(m[2], 10) : 0;
+    return h * 60 + (h < 0 ? -mins : mins);
+  }
+
+  function zoneAbbrev(date, tz) {
+    var f = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" });
+    var part = f.formatToParts(date).find(function (p) { return p.type === "timeZoneName"; });
+    return part ? part.value : tz;
+  }
+
+  function cityLabel(tz) {
+    var last = tz.split("/").pop() || tz;
+    return last.replace(/_/g, " ");
+  }
+  document.getElementById("homeLabel").textContent = cityLabel(homeTz) + " time";
+
+  var CAT_LABEL = {
+    TRAVEL: "TRAVEL", MEAL: "MEAL", TRAINING: "TRAINING", MATCH: "MATCH DAY",
+    CEREMONY: "CEREMONY", FREE: "FREE TIME", HOTEL: "AT THE HOTEL"
+  };
+  var HI_CATS = { MATCH: true, CEREMONY: true };
+
+  function renderNow(now) {
+    var idx = -1;
+    for (var i = 0; i < EVENTS.length; i++) {
+      if (EVENTS[i].startDate.getTime() <= now.getTime()) idx = i; else break;
+    }
+
+    var tag = document.getElementById("nowTag");
+    var title = document.getElementById("nowTitle");
+    var sub = document.getElementById("nowSub");
+    var nextInfo = document.getElementById("nextInfo");
+    var tripDay = document.getElementById("tripDay");
+
+    var current, next, dayNum;
+
+    if (idx === -1) {
+      current = null;
+      next = EVENTS[0];
+      dayNum = 1;
+    } else if (idx === EVENTS.length - 1) {
+      current = EVENTS[idx];
+      next = null;
+      dayNum = TRIP_DAYS;
+    } else {
+      current = EVENTS[idx];
+      next = EVENTS[idx + 1];
+      dayNum = current.day;
+    }
+
+    if (!current) {
+      tag.textContent = "TOUR STARTS SOON";
+      tag.className = "now-tag";
+      title.textContent = "Not departed yet";
+      sub.textContent = "First stop: " + next.title + " · " + next.when;
+    } else if (!next) {
+      tag.textContent = "TRIP COMPLETE";
+      tag.className = "now-tag";
+      title.textContent = current.title;
+      sub.textContent = current.sub;
+    } else {
+      tag.textContent = CAT_LABEL[current.cat] || current.cat;
+      tag.className = "now-tag" + (HI_CATS[current.cat] ? " hi" : "");
+      title.textContent = current.title;
+      sub.textContent = current.sub;
+    }
+
+    if (next) {
+      nextInfo.innerHTML = "<strong>" + next.title + "</strong> · " + next.when;
+    } else {
+      nextInfo.innerHTML = "<strong>Nothing scheduled</strong>";
+    }
+
+    tripDay.textContent = "Day " + dayNum + " of " + TRIP_DAYS;
+
+    segEls.forEach(function (el, i) {
+      var n = i + 1;
+      el.className = "seg" + (n < dayNum ? " done" : n === dayNum ? " today" : "");
+    });
+
+    var countdown = document.getElementById("tripCountdown");
+    if (!next) {
+      countdown.innerHTML = "<strong>Welcome home!</strong>";
+    } else if (dayNum >= TRIP_DAYS) {
+      countdown.innerHTML = "<strong>Traveling home today</strong>";
+    } else {
+      var daysLeft = TRIP_DAYS - dayNum;
+      countdown.innerHTML = "Home in <strong>" + daysLeft + (daysLeft === 1 ? " day" : " days") + "</strong>";
+    }
+  }
+
+  function tick() {
+    var now = new Date();
+
+    var timeParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: STOCKHOLM_TZ, hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true
+    }).formatToParts(now);
+    var meridiem = "";
+    var timeStr = "";
+    timeParts.forEach(function (p) {
+      if (p.type === "dayPeriod") meridiem = p.value;
+      else timeStr += p.value;
+    });
+    document.getElementById("clock").innerHTML = timeStr.trim() + '<span class="meridiem">' + meridiem + "</span>";
+
+    document.getElementById("date").textContent = new Intl.DateTimeFormat("en-US", {
+      timeZone: STOCKHOLM_TZ, weekday: "long", month: "long", day: "numeric"
+    }).format(now);
+
+    document.getElementById("zoneAbbr").textContent = zoneAbbrev(now, STOCKHOLM_TZ);
+
+    var homeTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: homeTz, hour: "numeric", minute: "2-digit", hour12: true
+    }).format(now);
+    document.getElementById("homeClock").textContent = homeTime;
+
+    var diffMin = offsetMinutes(now, STOCKHOLM_TZ) - offsetMinutes(now, homeTz);
+    var diffH = diffMin / 60;
+    var pill = document.getElementById("offsetPill");
+    if (diffH === 0) {
+      pill.textContent = "Same time as you";
+    } else {
+      var whole = Math.trunc(diffH);
+      var frac = Math.abs(diffH - whole);
+      var label = Math.abs(whole) + (frac ? ":30" : "") + "h";
+      pill.textContent = diffH > 0 ? "Stockholm is " + label + " ahead" : "Stockholm is " + label + " behind";
+    }
+
+    renderNow(now);
+  }
+
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
