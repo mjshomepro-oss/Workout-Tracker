@@ -206,6 +206,41 @@ body {
 .num-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .ai-badge { font-size: 10px; color: var(--accent); font-weight: 700; float: right; letter-spacing: 0.3px; }
 
+/* Recent meals */
+.recent-sect { margin-bottom: 14px; }
+.recent-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); display: block; margin-bottom: 7px; }
+.recent-scroll { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.recent-scroll::-webkit-scrollbar { display: none; }
+.recent-chip {
+  flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: border-color 0.12s;
+  text-align: left; max-width: 160px;
+}
+.recent-chip:active { border-color: var(--accent); }
+.rc-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-mac { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* Input method toggle */
+.input-toggle { display: flex; gap: 0; margin-bottom: 12px; background: var(--surface2); border-radius: 9px; padding: 3px; }
+.it-btn {
+  flex: 1; padding: 8px; background: none; border: none; border-radius: 7px;
+  color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s;
+}
+.it-btn.on { background: var(--surface); color: var(--text); }
+
+/* Description textarea */
+.desc-area {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--text); font-size: 14px; padding: 11px 12px;
+  resize: none; font-family: inherit; line-height: 1.5; min-height: 80px;
+}
+.desc-area:focus { outline: none; border-color: var(--accent); }
+.desc-analyze {
+  width: 100%; padding: 10px; background: var(--blue); color: #000;
+  font-size: 13px; font-weight: 700; border: none; border-radius: 9px; cursor: pointer; margin-top: 8px;
+}
+.desc-analyze:disabled { opacity: 0.5; }
+
 .save-btn { width: 100%; background: var(--accent); color: #000; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; padding: 14px; cursor: pointer; margin-top: 14px; }
 .save-btn:disabled { opacity: 0.5; }
 .cancel-btn { width: 100%; background: transparent; color: var(--muted); font-size: 13px; border: none; padding: 10px; cursor: pointer; margin-top: 4px; }
@@ -288,16 +323,38 @@ body {
   <div class="sheet-drag"></div>
   <div class="sheet-title">Log Food</div>
 
-  <!-- Photo section -->
-  <div id="photo-grid" class="photo-grid"></div>
-  <div class="photo-add" onclick="document.getElementById('cam-input').click()">
-    <div class="photo-add-icon">📷</div>
-    <div class="photo-add-text">
-      <strong id="photo-label">Add a Photo</strong>
-      <span id="photo-sub">Take multiple shots of each part of your meal</span>
+  <!-- Recent meals -->
+  <div class="recent-sect">
+    <span class="recent-lbl">Recent</span>
+    <div class="recent-scroll" id="recent-scroll">
+      <div style="font-size:12px;color:var(--muted);padding:6px 0">Loading…</div>
     </div>
   </div>
-  <button class="analyze-btn" id="analyze-btn" onclick="analyzePhotos()">Analyze Photos</button>
+
+  <!-- Input method toggle -->
+  <div class="input-toggle">
+    <button class="it-btn on" id="it-photo" onclick="setInputMode('photo')">📷 Photo</button>
+    <button class="it-btn" id="it-desc" onclick="setInputMode('desc')">✏️ Describe</button>
+  </div>
+
+  <!-- Photo section -->
+  <div id="photo-section">
+    <div id="photo-grid" class="photo-grid"></div>
+    <div class="photo-add" onclick="document.getElementById('cam-input').click()">
+      <div class="photo-add-icon">📷</div>
+      <div class="photo-add-text">
+        <strong id="photo-label">Add a Photo</strong>
+        <span id="photo-sub">Take multiple shots of each part of your meal</span>
+      </div>
+    </div>
+    <button class="analyze-btn" id="analyze-btn" onclick="analyzePhotos()">Analyze Photos</button>
+  </div>
+
+  <!-- Description section -->
+  <div id="desc-section" style="display:none">
+    <textarea class="desc-area" id="f-desc" placeholder="e.g. grilled chicken breast, half cup brown rice, side salad with ranch dressing, medium apple"></textarea>
+    <button class="desc-analyze" id="desc-analyze-btn" onclick="analyzeText()">Analyze Description</button>
+  </div>
 
   <!-- Analyzing state -->
   <div class="analyzing" id="analyzing">
@@ -306,7 +363,7 @@ body {
   </div>
 
   <!-- Meal -->
-  <div class="fl">
+  <div class="fl" style="margin-top:12px">
     <label class="fl-lbl">Meal</label>
     <div class="meal-btns" id="meal-btns">
       <button class="m-btn on" onclick="pickMeal(this,'Morning')">Morning</button>
@@ -608,6 +665,7 @@ async function refreshFoods() {
 function openSheet() {
   document.getElementById('overlay').classList.add('open');
   document.getElementById('sheet').classList.add('open');
+  loadRecentMeals();
 }
 function closeSheet() {
   document.getElementById('overlay').classList.remove('open');
@@ -625,6 +683,8 @@ function closeSheet() {
   document.getElementById('photo-sub').textContent = 'Take multiple shots of each part of your meal';
   document.getElementById('photo-grid').innerHTML = '';
   document.getElementById('analyze-btn').style.display = 'none';
+  document.getElementById('f-desc').value = '';
+  setInputMode('photo');
   pendingFiles = []; aiResult = false;
   formMeal = 'Morning';
   document.querySelectorAll('.m-btn').forEach((b,i) => b.classList.toggle('on', i===0));
@@ -752,6 +812,79 @@ async function saveFood() {
     foods = await sbGet('food_log', {log_date:`eq.${TODAY}`, order:'created_at'});
   }
   render();
+}
+
+// ── Input mode (photo vs describe) ───────────────────────
+let inputMode = 'photo';
+function setInputMode(mode) {
+  inputMode = mode;
+  document.getElementById('photo-section').style.display = mode === 'photo' ? '' : 'none';
+  document.getElementById('desc-section').style.display  = mode === 'desc'  ? '' : 'none';
+  document.getElementById('it-photo').classList.toggle('on', mode === 'photo');
+  document.getElementById('it-desc').classList.toggle('on',  mode === 'desc');
+}
+
+// ── Recent meals ──────────────────────────────────────────
+async function loadRecentMeals() {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 21);
+  const ds = cutoff.toISOString().split('T')[0];
+  const rows = await sbGet('food_log', {
+    'log_date': `gte.${ds}`,
+    'food_name': 'neq.Historical Import',
+    'order': 'created_at.desc',
+    'limit': '60',
+  });
+  const seen = new Set();
+  const unique = rows.filter(r => {
+    if (seen.has(r.food_name)) return false;
+    seen.add(r.food_name); return true;
+  }).slice(0, 15);
+
+  const el = document.getElementById('recent-scroll');
+  if (!unique.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0">None yet</div>'; return; }
+  el.innerHTML = unique.map(r => `
+    <button class="recent-chip" onclick="relogItem(${JSON.stringify(r.food_name).replace(/"/g,'&quot;')},${r.calories},${r.protein_g},${r.added_sugar_g})">
+      <div class="rc-name">${r.food_name}</div>
+      <div class="rc-mac">${r.calories} cal · ${parseFloat(r.protein_g).toFixed(0)}g P · ${parseFloat(r.added_sugar_g).toFixed(0)}g S</div>
+    </button>`).join('');
+}
+
+function relogItem(name, cal, prot, sugar) {
+  const fill = (id, v) => { const el = document.getElementById(id); el.value = v; el.classList.add('ai-filled'); };
+  fill('f-name', name); fill('f-cal', cal); fill('f-prot', prot); fill('f-sugar', sugar);
+  document.getElementById('ai-badge').style.display = 'inline';
+}
+
+// ── Text description analysis ──────────────────────────────
+async function analyzeText() {
+  const desc = document.getElementById('f-desc').value.trim();
+  if (!desc) { document.getElementById('f-desc').focus(); return; }
+  const btn = document.getElementById('desc-analyze-btn');
+  btn.disabled = true;
+  document.getElementById('analyzing').classList.add('show');
+  document.getElementById('analyzing-txt').textContent = 'Analyzing description…';
+  try {
+    const resp = await fetch(FN_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ description: desc, meal_hint: formMeal }),
+    });
+    const data = await resp.json();
+    document.getElementById('analyzing').classList.remove('show');
+    if (data.error) throw new Error(data.error);
+    const fill = (id, v) => { const el = document.getElementById(id); el.value = v ?? ''; el.classList.add('ai-filled'); };
+    fill('f-name', data.name); fill('f-cal', data.calories);
+    fill('f-prot', data.protein_g); fill('f-sugar', data.added_sugar_g);
+    if (data.meal_time && ['Morning','Lunch','Afternoon','Evening'].includes(data.meal_time)) {
+      formMeal = data.meal_time;
+      document.querySelectorAll('.m-btn').forEach(b => b.classList.toggle('on', b.textContent === data.meal_time));
+    }
+    document.getElementById('ai-badge').style.display = 'inline';
+  } catch(err) {
+    document.getElementById('analyzing').classList.remove('show');
+    document.getElementById('f-desc').placeholder = '⚠ ' + (err.message || 'Analysis failed — try again');
+  }
+  btn.disabled = false;
 }
 
 // ── Tab switching ─────────────────────────────────────────
