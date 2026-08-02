@@ -156,22 +156,32 @@ body {
 .sheet-drag { width: 36px; height: 4px; background: var(--surface2); border-radius: 2px; margin: 12px auto 18px; }
 .sheet-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
 
-/* Photo row */
-.photo-row {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
-  padding: 12px; background: var(--surface2); border-radius: 10px;
+/* Photo section */
+.photo-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.photo-item { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.photo-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+.photo-item-del {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--red); color: #fff; border: none;
+  font-size: 13px; line-height: 20px; text-align: center;
+  cursor: pointer; padding: 0;
+}
+.photo-add {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  padding: 11px 13px; background: var(--surface2); border-radius: 10px;
   border: 1px dashed var(--border); cursor: pointer; transition: border-color 0.12s;
 }
-.photo-row:active { border-color: var(--accent); }
-.photo-row.has-photo { border-style: solid; border-color: var(--acc-b); background: var(--acc-d); }
-.photo-icon { font-size: 22px; flex-shrink: 0; }
-.photo-text { flex: 1; }
-.photo-text strong { font-size: 13px; font-weight: 600; display: block; }
-.photo-text span { font-size: 11px; color: var(--muted); }
-.photo-thumb {
-  width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: none;
+.photo-add:active { border-color: var(--accent); }
+.photo-add-icon { font-size: 20px; flex-shrink: 0; }
+.photo-add-text strong { font-size: 13px; font-weight: 600; display: block; }
+.photo-add-text span { font-size: 11px; color: var(--muted); }
+.analyze-btn {
+  width: 100%; padding: 11px; background: var(--blue); color: #000;
+  font-size: 13px; font-weight: 700; border: none; border-radius: 10px;
+  cursor: pointer; margin-bottom: 12px; display: none;
 }
-.photo-thumb.show { display: block; }
+.analyze-btn:disabled { opacity: 0.5; }
 
 /* Analyzing spinner */
 .analyzing {
@@ -216,20 +226,21 @@ body {
   <div class="sheet-drag"></div>
   <div class="sheet-title">Log Food</div>
 
-  <!-- Photo button -->
-  <div class="photo-row" id="photo-row" onclick="document.getElementById('cam-input').click()">
-    <div class="photo-icon">📷</div>
-    <div class="photo-text">
-      <strong id="photo-label">Take a Photo</strong>
-      <span id="photo-sub">Claude will identify and calculate macros</span>
+  <!-- Photo section -->
+  <div id="photo-grid" class="photo-grid"></div>
+  <div class="photo-add" onclick="document.getElementById('cam-input').click()">
+    <div class="photo-add-icon">📷</div>
+    <div class="photo-add-text">
+      <strong id="photo-label">Add a Photo</strong>
+      <span id="photo-sub">Take multiple shots of each part of your meal</span>
     </div>
-    <img class="photo-thumb" id="photo-thumb" alt="">
   </div>
+  <button class="analyze-btn" id="analyze-btn" onclick="analyzePhotos()">Analyze Photos</button>
 
   <!-- Analyzing state -->
   <div class="analyzing" id="analyzing">
     <div class="spin"></div>
-    <span>Analyzing photo…</span>
+    <span id="analyzing-txt">Analyzing…</span>
   </div>
 
   <!-- Meal -->
@@ -296,10 +307,11 @@ const now   = new Date();
 const TODAY = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 const DOW   = now.getDay();
 
-let daily    = null;
-let foods    = [];
-let formMeal = 'Morning';
-let aiResult = false;
+let daily       = null;
+let foods       = [];
+let formMeal    = 'Morning';
+let aiResult    = false;
+let pendingFiles = [];  // File objects waiting to be analyzed
 
 document.getElementById('h-date').textContent =
   now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
@@ -526,21 +538,21 @@ function openSheet() {
 function closeSheet() {
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
-  // reset form
   ['f-name','f-cal','f-prot','f-sugar'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
     el.classList.remove('ai-filled');
   });
   document.getElementById('ai-badge').style.display = 'none';
-  document.getElementById('photo-thumb').classList.remove('show');
-  document.getElementById('photo-row').classList.remove('has-photo');
-  document.getElementById('photo-label').textContent = 'Take a Photo';
-  document.getElementById('photo-sub').textContent = 'Claude will identify and calculate macros';
   document.getElementById('analyzing').classList.remove('show');
   document.getElementById('cam-input').value = '';
   document.getElementById('save-btn').disabled = false;
-  formMeal = 'Morning'; aiResult = false;
+  document.getElementById('photo-label').textContent = 'Add a Photo';
+  document.getElementById('photo-sub').textContent = 'Take multiple shots of each part of your meal';
+  document.getElementById('photo-grid').innerHTML = '';
+  document.getElementById('analyze-btn').style.display = 'none';
+  pendingFiles = []; aiResult = false;
+  formMeal = 'Morning';
   document.querySelectorAll('.m-btn').forEach((b,i) => b.classList.toggle('on', i===0));
 }
 function pickMeal(btn, meal) {
@@ -565,68 +577,80 @@ function compressImage(file, maxPx = 900, quality = 0.88) {
   });
 }
 
-document.getElementById('cam-input').addEventListener('change', async (e) => {
+function updatePhotoGrid() {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = pendingFiles.map((f, i) => `
+    <div class="photo-item">
+      <img src="${URL.createObjectURL(f)}" alt="Photo ${i+1}">
+      <button class="photo-item-del" onclick="removePhoto(${i})">×</button>
+    </div>`).join('');
+  const n = pendingFiles.length;
+  const btn = document.getElementById('analyze-btn');
+  btn.style.display = n > 0 ? 'block' : 'none';
+  btn.textContent = n === 1 ? 'Analyze 1 Photo' : `Analyze ${n} Photos`;
+  document.getElementById('photo-label').textContent = n > 0 ? 'Add Another Photo' : 'Add a Photo';
+  document.getElementById('photo-sub').textContent = n > 0
+    ? `${n} photo${n>1?'s':''} queued — add more or tap Analyze`
+    : 'Take multiple shots of each part of your meal';
+}
+
+function removePhoto(i) {
+  pendingFiles.splice(i, 1);
+  updatePhotoGrid();
+}
+
+document.getElementById('cam-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  pendingFiles.push(file);
+  document.getElementById('cam-input').value = '';
+  updatePhotoGrid();
+});
 
-  // Show thumbnail
-  const thumb = document.getElementById('photo-thumb');
-  thumb.src = URL.createObjectURL(file);
-  thumb.classList.add('show');
-  document.getElementById('photo-row').classList.add('has-photo');
-  document.getElementById('photo-label').textContent = 'Photo selected';
-  document.getElementById('photo-sub').textContent = 'Tap to change';
+async function analyzePhotos() {
+  if (!pendingFiles.length) return;
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
   document.getElementById('analyzing').classList.add('show');
-  document.getElementById('save-btn').disabled = true;
+  document.getElementById('analyzing-txt').textContent =
+    `Analyzing ${pendingFiles.length} photo${pendingFiles.length>1?'s':''}…`;
 
   try {
-    const b64 = await compressImage(file);
+    const images = await Promise.all(
+      pendingFiles.map(async f => ({ data: await compressImage(f), media_type: 'image/jpeg' }))
+    );
     const resp = await fetch(FN_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({image_base64: b64, media_type: 'image/jpeg', meal_hint: formMeal}),
+      body: JSON.stringify({ images, meal_hint: formMeal }),
     });
     const data = await resp.json();
-
     document.getElementById('analyzing').classList.remove('show');
-
     if (data.error) throw new Error(data.error);
 
-    // Fill form
-    const nm = document.getElementById('f-name');
-    nm.value = data.name || '';
-    nm.classList.add('ai-filled');
+    const fill = (id, val) => {
+      const el = document.getElementById(id);
+      el.value = val ?? '';
+      el.classList.add('ai-filled');
+    };
+    fill('f-name',  data.name);
+    fill('f-cal',   data.calories);
+    fill('f-prot',  data.protein_g);
+    fill('f-sugar', data.added_sugar_g);
 
-    const cal = document.getElementById('f-cal');
-    cal.value = data.calories || '';
-    cal.classList.add('ai-filled');
-
-    const prot = document.getElementById('f-prot');
-    prot.value = data.protein_g || '';
-    prot.classList.add('ai-filled');
-
-    const sugar = document.getElementById('f-sugar');
-    sugar.value = data.added_sugar_g || '';
-    sugar.classList.add('ai-filled');
-
-    // Set meal time from AI suggestion if valid
     if (data.meal_time && ['Morning','Lunch','Afternoon','Evening'].includes(data.meal_time)) {
       formMeal = data.meal_time;
-      document.querySelectorAll('.m-btn').forEach(b => {
-        b.classList.toggle('on', b.textContent === data.meal_time);
-      });
+      document.querySelectorAll('.m-btn').forEach(b =>
+        b.classList.toggle('on', b.textContent === data.meal_time));
     }
-
     document.getElementById('ai-badge').style.display = 'inline';
     aiResult = true;
   } catch(err) {
     document.getElementById('analyzing').classList.remove('show');
-    document.getElementById('photo-label').textContent = 'Analysis failed';
-    document.getElementById('photo-sub').textContent = err.message || 'Try again or enter manually';
+    document.getElementById('photo-sub').textContent = '⚠ ' + (err.message || 'Analysis failed — try again');
   }
-
-  document.getElementById('save-btn').disabled = false;
-});
+  btn.disabled = false;
+}
 
 // ── Save food ─────────────────────────────────────────────
 async function saveFood() {
