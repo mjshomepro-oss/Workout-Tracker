@@ -213,6 +213,68 @@ body {
 /* Status */
 .s-loading { text-align: center; color: var(--muted); padding: 50px 16px; font-size: 13px; }
 .s-err { margin: 12px; padding: 12px 14px; background: var(--red-d); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; color: var(--red); font-size: 13px; line-height: 1.5; }
+
+/* Tab bar */
+.tab-bar {
+  display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 62px; z-index: 49;
+}
+.tab-btn {
+  flex: 1; padding: 11px 0; background: none; border: none; color: var(--muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.12s;
+}
+.tab-btn.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Insights */
+.insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ins {
+  background: var(--surface2); border-radius: 10px; padding: 12px;
+  border-left: 3px solid var(--border);
+}
+.ins.ok  { border-left-color: var(--accent); }
+.ins.warn{ border-left-color: var(--yellow); }
+.ins.bad { border-left-color: var(--red); }
+.ins-val { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ins-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; }
+.ins-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* History table */
+.hist-dl {
+  display: flex; justify-content: flex-end; padding: 0 14px 10px;
+}
+.dl-btn {
+  background: var(--surface2); border: none; color: var(--blue);
+  font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+}
+.week-hd {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--muted); padding: 12px 14px 4px; background: var(--bg);
+}
+.hist-row {
+  display: grid; grid-template-columns: 54px 1fr auto auto auto 28px 54px;
+  align-items: center; gap: 6px;
+  padding: 9px 14px; border-bottom: 1px solid var(--surface2); font-size: 12px;
+}
+.hist-row:last-child { border-bottom: none; }
+.hr-date { font-weight: 700; font-size: 11px; line-height: 1.2; }
+.hr-date span { display: block; font-weight: 400; color: var(--muted); font-size: 10px; }
+.hr-session { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hr-cal { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; text-align: right; }
+.hr-prot { font-variant-numeric: tabular-nums; text-align: right; }
+.hr-sugar { font-variant-numeric: tabular-nums; text-align: right; }
+.hr-wo { text-align: center; font-size: 14px; }
+.hr-supps { display: flex; gap: 2px; justify-content: flex-end; }
+.supp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--surface2); }
+.supp-dot.on { background: var(--accent); }
+.hist-hdr {
+  display: grid; grid-template-columns: 54px 1fr auto auto auto 28px 54px;
+  gap: 6px; padding: 6px 14px; background: var(--surface2);
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);
+}
+.hist-hdr span { text-align: right; }
+.hist-hdr span:first-child { text-align: left; }
+.hist-hdr span:nth-child(2) { text-align: left; }
 </style>
 </head>
 <body>
@@ -288,8 +350,20 @@ body {
   </div>
   <div class="hdr-session" id="h-session"></div>
 </div>
-<div id="root"><div class="s-loading">Loading…</div></div>
-<button class="fab" onclick="openSheet()">+ Log Food</button>
+<div class="tab-bar">
+  <button class="tab-btn on" id="tab-today" onclick="switchTab('today')">Today</button>
+  <button class="tab-btn" id="tab-history" onclick="switchTab('history')">History</button>
+</div>
+
+<div id="today-view">
+  <div id="root"><div class="s-loading">Loading…</div></div>
+</div>
+
+<div id="history-view" style="display:none">
+  <div id="hist-root"><div class="s-loading">Loading history…</div></div>
+</div>
+
+<button class="fab" id="fab" onclick="openSheet()">+ Log Food</button>
 
 <script>
 // ── Config ────────────────────────────────────────────────
@@ -678,6 +752,200 @@ async function saveFood() {
     foods = await sbGet('food_log', {log_date:`eq.${TODAY}`, order:'created_at'});
   }
   render();
+}
+
+// ── Tab switching ─────────────────────────────────────────
+let histLoaded = false;
+function switchTab(tab) {
+  const isToday = tab === 'today';
+  document.getElementById('today-view').style.display  = isToday ? '' : 'none';
+  document.getElementById('history-view').style.display = isToday ? 'none' : '';
+  document.getElementById('fab').style.display          = isToday ? '' : 'none';
+  document.getElementById('tab-today').classList.toggle('on', isToday);
+  document.getElementById('tab-history').classList.toggle('on', !isToday);
+  if (!isToday && !histLoaded) { histLoaded = true; loadHistory(); }
+}
+
+// ── History ───────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const rows = await sbGet('daily_summary', {order: 'log_date.desc', limit: 120});
+    renderHistory(rows);
+  } catch(e) {
+    document.getElementById('hist-root').innerHTML =
+      `<div class="s-err">⚠ ${e.message}</div>`;
+  }
+}
+
+function isoWeek(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const thu = new Date(d);
+  thu.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 3);
+  const yr = new Date(thu.getFullYear(), 0, 4);
+  return Math.ceil(((thu - yr) / 86400000 + yr.getDay() + 1) / 7);
+}
+
+function weekLabel(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = dt => dt.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  return `Week of ${fmt(mon)} – ${fmt(sun)}`;
+}
+
+function renderHistory(rows) {
+  if (!rows.length) {
+    document.getElementById('hist-root').innerHTML =
+      '<div class="food-empty">No history yet.</div>';
+    return;
+  }
+
+  // ── Insights (last 30 days with data) ──
+  const recent = rows.filter(r => r.total_calories > 0).slice(0, 30);
+  const n = recent.length || 1;
+  const avg = key => (recent.reduce((s,r) => s + parseFloat(r[key]||0), 0) / n);
+  const avgCal   = Math.round(avg('total_calories'));
+  const avgProt  = avg('total_protein_g').toFixed(0);
+  const avgSugar = avg('total_added_sugar_g').toFixed(1);
+  const woComp   = Math.round(recent.filter(r => r.workout_done).length / n * 100);
+  const o3Comp   = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
+  const d3Comp   = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
+  const mgComp   = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
+  const daysOverSugar  = recent.filter(r => parseFloat(r.total_added_sugar_g) > 36).length;
+  const daysLowProt    = recent.filter(r => parseFloat(r.total_protein_g) < 150 && r.total_calories > 0).length;
+
+  // Flags / recommendations
+  const flags = [];
+  if (parseFloat(avgProt)  < 140) flags.push('⚠ Avg protein below 150g — prioritize protein at each meal');
+  if (parseFloat(avgSugar) > 30)  flags.push('⚠ Avg added sugar trending high — watch sauces, dressings, drinks');
+  if (daysOverSugar > 5)          flags.push(`⚠ Sugar limit exceeded ${daysOverSugar} of last ${n} days`);
+  if (daysLowProt   > 7)          flags.push(`⚠ Protein under target ${daysLowProt} of last ${n} days`);
+  if (mgComp < 60)                flags.push('⚠ Magnesium compliance low — affects sleep and recovery');
+  if (o3Comp < 60)                flags.push('⚠ Omega-3 compliance low — take with any meal');
+  if (woComp >= 80)               flags.push('✓ Strong workout consistency — keep it up');
+
+  const insClr = (val, good, bad, higher) => {
+    if (higher) return val >= good ? 'ok' : val >= bad ? 'warn' : 'bad';
+    return val <= good ? 'ok' : val <= bad ? 'warn' : 'bad';
+  };
+
+  const insightsHTML = `
+    <div class="card">
+      <div class="card-lbl">30-Day Averages</div>
+      <div class="card-body">
+        <div class="insight-grid">
+          <div class="ins ${insClr(avgCal, 2300, 1700, false)}">
+            <div class="ins-val">${avgCal.toLocaleString()}</div>
+            <div class="ins-lbl">Avg Calories</div>
+            <div class="ins-sub">target ~${CAL_BASE[new Date().getDay()]}</div>
+          </div>
+          <div class="ins ${insClr(parseFloat(avgProt), 150, 130, true)}">
+            <div class="ins-val">${avgProt}g</div>
+            <div class="ins-lbl">Avg Protein</div>
+            <div class="ins-sub">target ≥ 150g</div>
+          </div>
+          <div class="ins ${insClr(parseFloat(avgSugar), 25, 36, false)}">
+            <div class="ins-val">${avgSugar}g</div>
+            <div class="ins-lbl">Avg Added Sugar</div>
+            <div class="ins-sub">limit 36g · ${daysOverSugar} days over</div>
+          </div>
+          <div class="ins ${insClr(woComp, 75, 50, true)}">
+            <div class="ins-val">${woComp}%</div>
+            <div class="ins-lbl">Workout Rate</div>
+            <div class="ins-sub">Ω ${o3Comp}% · D3 ${d3Comp}% · Mg ${mgComp}%</div>
+          </div>
+        </div>
+        ${flags.length ? `<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
+          ${flags.map(f => `<div style="font-size:12px;color:${f.startsWith('✓')?'var(--accent)':'var(--yellow)'};line-height:1.4">${f}</div>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  // ── Daily table grouped by week ──
+  let tableHTML = `
+    <div class="card" style="margin-bottom:80px">
+      <div class="card-lbl-row">
+        <div class="card-lbl">Daily Log</div>
+        <button class="dl-btn" onclick="downloadCSV()">↓ Export CSV</button>
+      </div>
+      <div class="hist-hdr">
+        <span>Date</span><span>Session</span>
+        <span>Cal</span><span>Pro</span><span>Sugar</span>
+        <span>WO</span><span>Supps</span>
+      </div>`;
+
+  let lastWeek = null;
+  for (const r of rows) {
+    const wk = isoWeek(r.log_date);
+    if (wk !== lastWeek) {
+      lastWeek = wk;
+      tableHTML += `<div class="week-hd">${weekLabel(r.log_date)}</div>`;
+    }
+    const d     = new Date(r.log_date + 'T12:00:00');
+    const cal   = r.total_calories;
+    const tg    = r.calorie_target;
+    const prot  = parseFloat(r.total_protein_g);
+    const sugar = parseFloat(r.total_added_sugar_g);
+    const hasData = cal > 0;
+
+    const calClr   = !hasData ? 'var(--muted)' : cal > tg  ? 'var(--red)'    : cal < tg - 300 ? 'var(--yellow)' : 'var(--blue)';
+    const protClr  = !hasData ? 'var(--muted)' : prot >= 150 ? 'var(--accent)' : prot < 130     ? 'var(--red)'   : 'var(--yellow)';
+    const sugarClr = !hasData ? 'var(--muted)' : sugar > 36  ? 'var(--red)'   : 'var(--accent)';
+
+    const mo = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const dy = d.toLocaleDateString('en-US',{weekday:'short'});
+
+    tableHTML += `
+      <div class="hist-row">
+        <div class="hr-date">${mo}<span>${dy}</span></div>
+        <div class="hr-session">${r.session_type}</div>
+        <div class="hr-cal" style="color:${calClr}">${hasData ? cal.toLocaleString() : '—'}</div>
+        <div class="hr-prot" style="color:${protClr}">${hasData ? prot.toFixed(0)+'g' : '—'}</div>
+        <div class="hr-sugar" style="color:${sugarClr}">${hasData ? sugar.toFixed(0)+'g' : '—'}</div>
+        <div class="hr-wo">${r.workout_done ? '✓' : ''}</div>
+        <div class="hr-supps">
+          <div class="supp-dot ${r.omega3_taken?'on':''}" title="Omega-3"></div>
+          <div class="supp-dot ${r.d3_k2_taken?'on':''}" title="D3+K2"></div>
+          <div class="supp-dot ${r.magnesium_taken?'on':''}" title="Magnesium"></div>
+        </div>
+      </div>`;
+  }
+  tableHTML += '</div>';
+
+  document.getElementById('hist-root').innerHTML = insightsHTML + tableHTML;
+  window._histRows = rows;
+}
+
+// ── CSV Export ────────────────────────────────────────────
+async function downloadCSV() {
+  const rows = window._histRows || [];
+  const hdr = ['Date','Day','Session','Labor','Cal Target','Calories','Protein (g)',
+                'Added Sugar (g)','Workout','Omega-3','D3+K2','Magnesium','Food Entries'];
+  const lines = [hdr.join(',')];
+  for (const r of [...rows].reverse()) {
+    const d = new Date(r.log_date + 'T12:00:00');
+    lines.push([
+      r.log_date,
+      d.toLocaleDateString('en-US',{weekday:'long'}),
+      `"${r.session_type}"`,
+      r.labor_level,
+      r.calorie_target,
+      r.total_calories,
+      r.total_protein_g,
+      r.total_added_sugar_g,
+      r.workout_done ? 'Yes' : 'No',
+      r.omega3_taken ? 'Yes' : 'No',
+      r.d3_k2_taken  ? 'Yes' : 'No',
+      r.magnesium_taken ? 'Yes' : 'No',
+      r.food_entries,
+    ].join(','));
+  }
+  const blob = new Blob([lines.join('\n')], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fitness-log-${TODAY}.csv`;
+  a.click();
 }
 
 // ── Init ──────────────────────────────────────────────────
