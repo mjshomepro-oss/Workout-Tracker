@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>MSHI Fitness</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #111827;
+  --surface:  #1f2937;
+  --surface2: #374151;
+  --border:   #374151;
+  --text:     #f9fafb;
+  --muted:    #9ca3af;
+  --accent:   #22c55e;
+  --acc-d:    rgba(34,197,94,0.14);
+  --acc-b:    rgba(34,197,94,0.35);
+  --blue:     #60a5fa;
+  --yellow:   #fbbf24;
+  --red:      #f87171;
+  --red-d:    rgba(248,113,113,0.14);
+  --radius:   12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 90px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Header */
+.hdr {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 10px;
+  position: sticky; top: 0; z-index: 50;
+}
+.hdr-row { display: flex; justify-content: space-between; align-items: center; }
+.hdr-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.hdr-date { font-size: 12px; color: var(--muted); }
+.hdr-session { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 3px; }
+
+/* Card */
+.card { margin: 10px 12px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.card-lbl {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--muted); padding: 12px 14px 0;
+}
+.card-lbl-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px 0;
+}
+.card-lbl-row .card-lbl { padding: 0; }
+.refresh-btn {
+  background: none; border: none; color: var(--muted); font-size: 13px;
+  cursor: pointer; padding: 2px 4px; border-radius: 6px;
+}
+.refresh-btn:active { color: var(--accent); }
+.card-body { padding: 10px 14px 14px; }
+
+/* Labor */
+.labor-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+.lbr {
+  padding: 10px 4px; background: var(--surface2); border: 1px solid transparent;
+  border-radius: 9px; color: var(--muted); font-size: 13px; font-weight: 600;
+  text-align: center; cursor: pointer; transition: all 0.12s; line-height: 1.3;
+}
+.lbr span { display: block; font-size: 11px; font-weight: 400; }
+.lbr.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
+
+/* Progress */
+.prog { margin-bottom: 12px; }
+.prog:last-child { margin-bottom: 0; }
+.prog-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.prog-lbl { font-size: 13px; font-weight: 600; }
+.prog-val { font-size: 12px; font-variant-numeric: tabular-nums; }
+.prog-track { height: 7px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+/* Supplements */
+.supp-list { display: flex; flex-direction: column; gap: 7px; }
+.supp {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 12px; background: var(--surface2);
+  border: 1px solid transparent; border-radius: 10px; cursor: pointer; transition: all 0.12s;
+}
+.supp.on { background: var(--acc-d); border-color: var(--acc-b); }
+.supp-box {
+  width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border);
+  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 13px; transition: all 0.12s;
+}
+.supp.on .supp-box { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+.supp-name { font-size: 13px; font-weight: 600; }
+.supp-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* Workout */
+.wo-btn {
+  width: 100%; padding: 12px; background: var(--surface2);
+  border: 1px solid transparent; border-radius: 10px; color: var(--text);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.12s;
+}
+.wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
+
+/* Food list */
+.meal-grp { }
+.meal-hd {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--muted); padding: 8px 14px 4px;
+}
+.food-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-bottom: 1px solid var(--surface2);
+}
+.food-row:last-child { border-bottom: none; }
+.food-info { flex: 1; min-width: 0; }
+.food-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food-mac { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.food-cal { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--blue); flex-shrink: 0; }
+.food-del { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+.food-del:active { color: var(--red); }
+.food-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 14px; background: var(--surface2); font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.food-empty { padding: 20px 14px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: #000; font-size: 15px; font-weight: 700;
+  border: none; border-radius: 50px; padding: 14px 36px; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(34,197,94,0.45); z-index: 40; white-space: nowrap;
+}
+
+/* Sheet */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 60; }
+.overlay.open { display: block; }
+.sheet {
+  display: none; position: fixed; bottom: 0;
+  left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 0 16px 40px; z-index: 70; max-height: 94vh; overflow-y: auto;
+}
+.sheet.open { display: block; }
+.sheet-drag { width: 36px; height: 4px; background: var(--surface2); border-radius: 2px; margin: 12px auto 18px; }
+.sheet-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+
+/* Photo row */
+.photo-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  padding: 12px; background: var(--surface2); border-radius: 10px;
+  border: 1px dashed var(--border); cursor: pointer; transition: border-color 0.12s;
+}
+.photo-row:active { border-color: var(--accent); }
+.photo-row.has-photo { border-style: solid; border-color: var(--acc-b); background: var(--acc-d); }
+.photo-icon { font-size: 22px; flex-shrink: 0; }
+.photo-text { flex: 1; }
+.photo-text strong { font-size: 13px; font-weight: 600; display: block; }
+.photo-text span { font-size: 11px; color: var(--muted); }
+.photo-thumb {
+  width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: none;
+}
+.photo-thumb.show { display: block; }
+
+/* Analyzing spinner */
+.analyzing {
+  display: none; align-items: center; gap: 10px;
+  padding: 12px 14px; background: var(--acc-d);
+  border: 1px solid var(--acc-b); border-radius: 10px; margin-bottom: 14px;
+  font-size: 13px; color: var(--accent); font-weight: 600;
+}
+.analyzing.show { display: flex; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--acc-b); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Form */
+.fl { margin-bottom: 12px; }
+.fl-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); display: block; margin-bottom: 6px; }
+.fi { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 15px; padding: 11px 12px; }
+.fi:focus { outline: none; border-color: var(--accent); }
+.fi.ai-filled { border-color: var(--acc-b); background: var(--acc-d); }
+.meal-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.m-btn { padding: 7px 13px; background: var(--surface2); border: 1px solid transparent; border-radius: 20px; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+.m-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
+.num-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.ai-badge { font-size: 10px; color: var(--accent); font-weight: 700; float: right; letter-spacing: 0.3px; }
+
+.save-btn { width: 100%; background: var(--accent); color: #000; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; padding: 14px; cursor: pointer; margin-top: 14px; }
+.save-btn:disabled { opacity: 0.5; }
+.cancel-btn { width: 100%; background: transparent; color: var(--muted); font-size: 13px; border: none; padding: 10px; cursor: pointer; margin-top: 4px; }
+
+/* Status */
+.s-loading { text-align: center; color: var(--muted); padding: 50px 16px; font-size: 13px; }
+.s-err { margin: 12px; padding: 12px 14px; background: var(--red-d); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; color: var(--red); font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- Hidden file input -->
+<input type="file" id="cam-input" accept="image/*" style="display:none">
+
+<!-- Overlay + sheet -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">Log Food</div>
+
+  <!-- Photo button -->
+  <div class="photo-row" id="photo-row" onclick="document.getElementById('cam-input').click()">
+    <div class="photo-icon">📷</div>
+    <div class="photo-text">
+      <strong id="photo-label">Take a Photo</strong>
+      <span id="photo-sub">Claude will identify and calculate macros</span>
+    </div>
+    <img class="photo-thumb" id="photo-thumb" alt="">
+  </div>
+
+  <!-- Analyzing state -->
+  <div class="analyzing" id="analyzing">
+    <div class="spin"></div>
+    <span>Analyzing photo…</span>
+  </div>
+
+  <!-- Meal -->
+  <div class="fl">
+    <label class="fl-lbl">Meal</label>
+    <div class="meal-btns" id="meal-btns">
+      <button class="m-btn on" onclick="pickMeal(this,'Morning')">Morning</button>
+      <button class="m-btn" onclick="pickMeal(this,'Lunch')">Lunch</button>
+      <button class="m-btn" onclick="pickMeal(this,'Afternoon')">Afternoon</button>
+      <button class="m-btn" onclick="pickMeal(this,'Evening')">Evening</button>
+    </div>
+  </div>
+
+  <!-- Name -->
+  <div class="fl">
+    <label class="fl-lbl">Food Name <span class="ai-badge" id="ai-badge" style="display:none">✦ AI</span></label>
+    <input class="fi" id="f-name" type="text" placeholder="e.g. Post-workout shake">
+  </div>
+
+  <!-- Macros -->
+  <div class="num-row">
+    <div>
+      <label class="fl-lbl">Calories</label>
+      <input class="fi" id="f-cal" type="number" inputmode="numeric" placeholder="0">
+    </div>
+    <div>
+      <label class="fl-lbl">Protein (g)</label>
+      <input class="fi" id="f-prot" type="number" inputmode="decimal" placeholder="0">
+    </div>
+    <div>
+      <label class="fl-lbl">Added Sugar (g)</label>
+      <input class="fi" id="f-sugar" type="number" inputmode="decimal" placeholder="0">
+    </div>
+  </div>
+
+  <button class="save-btn" id="save-btn" onclick="saveFood()">Save Entry</button>
+  <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
+</div>
+
+<!-- App shell -->
+<div class="hdr">
+  <div class="hdr-row">
+    <span class="hdr-title">MSHI Fitness</span>
+    <span class="hdr-date" id="h-date"></span>
+  </div>
+  <div class="hdr-session" id="h-session"></div>
+</div>
+<div id="root"><div class="s-loading">Loading…</div></div>
+<button class="fab" onclick="openSheet()">+ Log Food</button>
+
+<script>
+// ── Config ────────────────────────────────────────────────
+const SB_URL  = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
+const FN_URL  = `${SB_URL}/functions/v1/analyze-food`;
+
+const CAL_BASE  = [1750,2050,2200,1900,2050,2200,2000];
+const LABOR_ADD = {light:0, moderate:250, heavy:500};
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core'];
+const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
+
+const now   = new Date();
+const TODAY = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+const DOW   = now.getDay();
+
+let daily    = null;
+let foods    = [];
+let formMeal = 'Morning';
+let aiResult = false;
+
+document.getElementById('h-date').textContent =
+  now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+document.getElementById('h-session').textContent =
+  `${DAY_NAMES[DOW]} · ${SESSIONS[DOW]}`;
+
+// ── Supabase REST ─────────────────────────────────────────
+const H = {
+  'apikey': SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Content-Type': 'application/json',
+};
+
+async function sbGet(table, qs = {}) {
+  const url = new URL(`${SB_URL}/rest/v1/${table}`);
+  Object.entries(qs).forEach(([k,v]) => url.searchParams.set(k,v));
+  const r = await fetch(url, {headers: H});
+  return r.json();
+}
+
+async function sbPost(table, data, upsert = false) {
+  const h = {...H};
+  h['Prefer'] = upsert
+    ? 'resolution=merge-duplicates,return=representation'
+    : 'return=representation';
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method:'POST', headers:h, body:JSON.stringify(data)
+  });
+  return r.json();
+}
+
+async function sbPatch(table, match, data) {
+  const url = new URL(`${SB_URL}/rest/v1/${table}`);
+  Object.entries(match).forEach(([k,v]) => url.searchParams.set(k,`eq.${v}`));
+  const h = {...H, 'Prefer':'return=representation'};
+  const r = await fetch(url, {method:'PATCH', headers:h, body:JSON.stringify(data)});
+  return r.json();
+}
+
+async function sbDelete(table, match) {
+  const url = new URL(`${SB_URL}/rest/v1/${table}`);
+  Object.entries(match).forEach(([k,v]) => url.searchParams.set(k,`eq.${v}`));
+  await fetch(url, {method:'DELETE', headers:H});
+}
+
+// ── Load ──────────────────────────────────────────────────
+async function load() {
+  try {
+    await sbPost('daily_log', {log_date: TODAY}, true);
+    const [dl, fe] = await Promise.all([
+      sbGet('daily_log', {'log_date': `eq.${TODAY}`}),
+      sbGet('food_log',  {'log_date': `eq.${TODAY}`, 'order': 'created_at'}),
+    ]);
+    daily = dl[0] || {labor_level:'light',omega3_taken:false,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
+    foods = fe;
+    render();
+  } catch(e) {
+    document.getElementById('root').innerHTML =
+      `<div class="s-err">⚠ Could not connect to Supabase: ${e.message}</div>`;
+  }
+}
+
+// ── Totals / target ───────────────────────────────────────
+function totals() {
+  return foods.reduce((a,e) => ({
+    cal:   a.cal   + (e.calories||0),
+    prot:  a.prot  + parseFloat(e.protein_g||0),
+    sugar: a.sugar + parseFloat(e.added_sugar_g||0),
+  }), {cal:0, prot:0, sugar:0});
+}
+function target() { return CAL_BASE[DOW] + (LABOR_ADD[daily?.labor_level||'light']||0); }
+function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
+
+// ── Render ────────────────────────────────────────────────
+function render() {
+  const t  = totals();
+  const tg = target();
+  const lab = daily?.labor_level || 'light';
+
+  const calClr   = t.cal   > tg  ? 'var(--red)'    : 'var(--blue)';
+  const protClr  = t.prot  >= 150 ? 'var(--accent)' : 'var(--yellow)';
+  const sugarClr = t.sugar > 36  ? 'var(--red)'    : 'var(--accent)';
+
+  const grouped = {};
+  MEALS.forEach(m => { grouped[m] = []; });
+  foods.forEach(e => { (grouped[e.meal_time] = grouped[e.meal_time]||[]).push(e); });
+
+  const foodHTML = Object.entries(grouped)
+    .filter(([,r]) => r.length)
+    .map(([meal,rows]) => `
+      <div class="meal-grp">
+        <div class="meal-hd">${meal}</div>
+        ${rows.map(e => `
+          <div class="food-row">
+            <div class="food-info">
+              <div class="food-name">${e.food_name}</div>
+              <div class="food-mac">${parseFloat(e.protein_g||0).toFixed(0)}g protein · ${parseFloat(e.added_sugar_g||0).toFixed(0)}g sugar</div>
+            </div>
+            <div class="food-cal">${(e.calories||0).toLocaleString()}</div>
+            <button class="food-del" onclick="delFood('${e.id}')">×</button>
+          </div>`).join('')}
+      </div>`).join('');
+
+  document.getElementById('root').innerHTML = `
+
+    <div class="card">
+      <div class="card-lbl">Labor Today</div>
+      <div class="card-body">
+        <div class="labor-grid">
+          <button class="lbr ${lab==='light'?'on':''}" onclick="setLabor('light')">Light<span>+0 cal</span></button>
+          <button class="lbr ${lab==='moderate'?'on':''}" onclick="setLabor('moderate')">Moderate<span>+250 cal</span></button>
+          <button class="lbr ${lab==='heavy'?'on':''}" onclick="setLabor('heavy')">Heavy<span>+500 cal</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-lbl">Today's Targets</div>
+      <div class="card-body">
+        <div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Calories</span>
+            <span class="prog-val" style="color:${calClr}">${t.cal.toLocaleString()} / ${tg.toLocaleString()}</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.cal,tg)}%;background:${calClr}"></div></div>
+        </div>
+        <div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Protein</span>
+            <span class="prog-val" style="color:${protClr}">${t.prot.toFixed(0)}g / 150g</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.prot,150)}%;background:${protClr}"></div></div>
+        </div>
+        <div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Added Sugar</span>
+            <span class="prog-val" style="color:${sugarClr}">${t.sugar.toFixed(0)}g / 36g</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sugar,36)}%;background:${sugarClr}"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-lbl">Supplements</div>
+      <div class="card-body">
+        <div class="supp-list">
+          <div class="supp ${daily?.omega3_taken?'on':''}" onclick="toggleSupp('omega3_taken')">
+            <div class="supp-box">${daily?.omega3_taken?'✓':''}</div>
+            <div>
+              <div class="supp-name">Omega-3 · Fish Oil</div>
+              <div class="supp-desc">1–2g EPA+DHA · with a meal</div>
+            </div>
+          </div>
+          <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
+            <div class="supp-box">${daily?.d3_k2_taken?'✓':''}</div>
+            <div>
+              <div class="supp-name">D3 + K2</div>
+              <div class="supp-desc">2,000–5,000 IU · with a meal</div>
+            </div>
+          </div>
+          <div class="supp ${daily?.magnesium_taken?'on':''}" onclick="toggleSupp('magnesium_taken')">
+            <div class="supp-box">${daily?.magnesium_taken?'✓':''}</div>
+            <div>
+              <div class="supp-name">Magnesium Glycinate</div>
+              <div class="supp-desc">200–400mg · before bed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-lbl">Workout</div>
+      <div class="card-body">
+        <button class="wo-btn ${daily?.workout_done?'on':''}" onclick="toggleWo()">
+          ${daily?.workout_done ? '✓ &nbsp;Workout Complete' : `${SESSIONS[DOW]} — Mark Done`}
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-lbl-row">
+        <div class="card-lbl">Food Log</div>
+        <button class="refresh-btn" onclick="refreshFoods()" title="Refresh">↻ Refresh</button>
+      </div>
+      ${foods.length ? `
+        ${foodHTML}
+        <div class="food-total">
+          <span>Total</span>
+          <span>${t.cal.toLocaleString()} cal &nbsp;·&nbsp; ${t.prot.toFixed(0)}g protein &nbsp;·&nbsp; ${t.sugar.toFixed(0)}g sugar</span>
+        </div>` :
+        '<div class="food-empty">No food logged yet — tap + Log Food to start</div>'}
+    </div>`;
+}
+
+// ── Actions ───────────────────────────────────────────────
+async function setLabor(lv) {
+  daily.labor_level = lv; render();
+  await sbPatch('daily_log', {log_date: TODAY}, {labor_level: lv});
+}
+async function toggleSupp(field) {
+  const v = !daily[field]; daily[field] = v; render();
+  await sbPatch('daily_log', {log_date: TODAY}, {[field]: v});
+}
+async function toggleWo() {
+  const v = !daily.workout_done; daily.workout_done = v; render();
+  await sbPatch('daily_log', {log_date: TODAY}, {workout_done: v});
+}
+async function delFood(id) {
+  foods = foods.filter(e => e.id !== id); render();
+  await sbDelete('food_log', {id});
+}
+async function refreshFoods() {
+  foods = await sbGet('food_log', {log_date: `eq.${TODAY}`, order: 'created_at'});
+  render();
+}
+
+// ── Sheet ─────────────────────────────────────────────────
+function openSheet() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+  // reset form
+  ['f-name','f-cal','f-prot','f-sugar'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.classList.remove('ai-filled');
+  });
+  document.getElementById('ai-badge').style.display = 'none';
+  document.getElementById('photo-thumb').classList.remove('show');
+  document.getElementById('photo-row').classList.remove('has-photo');
+  document.getElementById('photo-label').textContent = 'Take a Photo';
+  document.getElementById('photo-sub').textContent = 'Claude will identify and calculate macros';
+  document.getElementById('analyzing').classList.remove('show');
+  document.getElementById('cam-input').value = '';
+  document.getElementById('save-btn').disabled = false;
+  formMeal = 'Morning'; aiResult = false;
+  document.querySelectorAll('.m-btn').forEach((b,i) => b.classList.toggle('on', i===0));
+}
+function pickMeal(btn, meal) {
+  formMeal = meal;
+  document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ── Photo / AI ────────────────────────────────────────────
+function compressImage(file, maxPx = 900, quality = 0.88) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width  = Math.round(img.width  * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', quality).split(',')[1]);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+document.getElementById('cam-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Show thumbnail
+  const thumb = document.getElementById('photo-thumb');
+  thumb.src = URL.createObjectURL(file);
+  thumb.classList.add('show');
+  document.getElementById('photo-row').classList.add('has-photo');
+  document.getElementById('photo-label').textContent = 'Photo selected';
+  document.getElementById('photo-sub').textContent = 'Tap to change';
+  document.getElementById('analyzing').classList.add('show');
+  document.getElementById('save-btn').disabled = true;
+
+  try {
+    const b64 = await compressImage(file);
+    const resp = await fetch(FN_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({image_base64: b64, media_type: 'image/jpeg', meal_hint: formMeal}),
+    });
+    const data = await resp.json();
+
+    document.getElementById('analyzing').classList.remove('show');
+
+    if (data.error) throw new Error(data.error);
+
+    // Fill form
+    const nm = document.getElementById('f-name');
+    nm.value = data.name || '';
+    nm.classList.add('ai-filled');
+
+    const cal = document.getElementById('f-cal');
+    cal.value = data.calories || '';
+    cal.classList.add('ai-filled');
+
+    const prot = document.getElementById('f-prot');
+    prot.value = data.protein_g || '';
+    prot.classList.add('ai-filled');
+
+    const sugar = document.getElementById('f-sugar');
+    sugar.value = data.added_sugar_g || '';
+    sugar.classList.add('ai-filled');
+
+    // Set meal time from AI suggestion if valid
+    if (data.meal_time && ['Morning','Lunch','Afternoon','Evening'].includes(data.meal_time)) {
+      formMeal = data.meal_time;
+      document.querySelectorAll('.m-btn').forEach(b => {
+        b.classList.toggle('on', b.textContent === data.meal_time);
+      });
+    }
+
+    document.getElementById('ai-badge').style.display = 'inline';
+    aiResult = true;
+  } catch(err) {
+    document.getElementById('analyzing').classList.remove('show');
+    document.getElementById('photo-label').textContent = 'Analysis failed';
+    document.getElementById('photo-sub').textContent = err.message || 'Try again or enter manually';
+  }
+
+  document.getElementById('save-btn').disabled = false;
+});
+
+// ── Save food ─────────────────────────────────────────────
+async function saveFood() {
+  const name  = document.getElementById('f-name').value.trim();
+  const cal   = parseInt(document.getElementById('f-cal').value)    || 0;
+  const prot  = parseFloat(document.getElementById('f-prot').value) || 0;
+  const sugar = parseFloat(document.getElementById('f-sugar').value)|| 0;
+  if (!name) { document.getElementById('f-name').focus(); return; }
+
+  document.getElementById('save-btn').disabled = true;
+  closeSheet();
+
+  const rows = await sbPost('food_log', {
+    log_date:      TODAY,
+    meal_time:     formMeal,
+    food_name:     name,
+    calories:      cal,
+    protein_g:     prot,
+    added_sugar_g: sugar,
+  });
+
+  if (Array.isArray(rows) && rows[0]) {
+    foods.push(rows[0]);
+  } else {
+    foods = await sbGet('food_log', {log_date:`eq.${TODAY}`, order:'created_at'});
+  }
+  render();
+}
+
+// ── Init ──────────────────────────────────────────────────
+load();
+</script>
+</body>
+</html>
