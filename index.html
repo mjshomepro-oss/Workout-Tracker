@@ -1062,13 +1062,21 @@ function pickStapleFraction(i) {
   document.getElementById('staple-picker-name').textContent = pendingStaple.name;
   document.getElementById('stapleOverlay').classList.add('show');
 }
-function applyStapleFraction(frac) {
+async function applyStapleFraction(frac) {
   document.getElementById('stapleOverlay').classList.remove('show');
   if (!pendingStaple) return;
-  const s = pendingStaple;
+  const s = pendingStaple; pendingStaple = null;
   const r = v => Math.round(v * frac * 10) / 10;
-  relogItem(s.name, r(s.cal), r(s.prot), r(s.sugar), r(s.fat), r(s.carbs), r(s.fiber), Math.round(s.sodium * frac), Math.round(s.potassium * frac));
-  pendingStaple = null;
+  closeSheet();
+  const row = await sbPost('food_log', {
+    log_date: ntDateStr(), meal_time: formMeal,
+    food_name: s.name, calories: r(s.cal), protein_g: r(s.prot), added_sugar_g: r(s.sugar),
+    fat_g: r(s.fat), carbs_g: r(s.carbs), fiber_g: r(s.fiber),
+    sodium_mg: Math.round(s.sodium * frac), potassium_mg: Math.round(s.potassium * frac),
+  });
+  if (Array.isArray(row) && row[0]) foods.push(row[0]);
+  else foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'});
+  render();
 }
 
 // ── Lyfta Links ───────────────────────────────────────
