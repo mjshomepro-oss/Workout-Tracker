@@ -365,23 +365,25 @@ body {
 .wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
 /* ── Food List ───────────────────────────────────────── */
+.meal-grp { margin-bottom: 6px; }
 .meal-hd {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.6px; color: var(--muted); padding: 8px 14px 4px;
+  letter-spacing: 0.6px; color: var(--muted); padding: 10px 14px 4px;
+  border-top: 1px solid var(--border);
 }
+.meal-grp:first-child .meal-hd { border-top: none; padding-top: 6px; }
 .food-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 14px; border-bottom: 1px solid var(--surface2);
+  padding: 7px 14px;
 }
-.food-row:last-child { border-bottom: none; }
 .food-info { flex: 1; min-width: 0; }
 .food-name-tx { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .food-mac { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .food-cal { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--blue); flex-shrink: 0; }
 .food-del { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1; }
 .food-del:active { color: var(--red); }
-.meal-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--surface2); border: none; border-radius: 5px; padding: 2px 5px; cursor: pointer; flex-shrink: 0; }
-.meal-badge:active { background: var(--acc-d); color: var(--accent); }
+.meal-badge { font-size: 12px; color: var(--muted); background: none; border: none; padding: 0 2px; cursor: pointer; flex-shrink: 0; opacity: 0.5; }
+.meal-badge:active { opacity: 1; color: var(--accent); }
 .food-total {
   display: flex; justify-content: space-between; align-items: center;
   padding: 9px 14px; background: var(--surface2); font-size: 12px; font-weight: 700; color: var(--muted);
@@ -2749,7 +2751,7 @@ function render() {
               <div class="food-mac">${parseFloat(e.protein_g||0).toFixed(0)}g P &middot; ${parseFloat(e.added_sugar_g||0).toFixed(0)}g S${parseFloat(e.fat_g||0) ? ` &middot; ${parseFloat(e.fat_g).toFixed(0)}g F` : ''}${parseFloat(e.carbs_g||0) ? ` &middot; ${parseFloat(e.carbs_g).toFixed(0)}g C` : ''}${parseFloat(e.fiber_g||0) ? ` &middot; ${parseFloat(e.fiber_g).toFixed(0)}g Fb` : ''}${parseInt(e.sodium_mg||0) ? ` &middot; ${parseInt(e.sodium_mg)}mg Na` : ''}${parseInt(e.potassium_mg||0) ? ` &middot; ${parseInt(e.potassium_mg)}mg K` : ''}</div>
             </div>
             <div class="food-cal">${(e.calories||0).toLocaleString()}</div>
-            <button class="meal-badge" onclick="cycleMealTime('${e.id}','${e.meal_time}')">${e.meal_time||'?'}</button>
+            <button class="meal-badge" onclick="cycleMealTime('${e.id}','${e.meal_time}')" title="Change meal">&#9998;</button>
             <button class="food-del" onclick="delFood('${e.id}')">&#215;</button>
           </div>`).join('')}
       </div>`).join('');
