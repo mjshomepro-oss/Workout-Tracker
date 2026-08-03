@@ -431,13 +431,17 @@ body {
   letter-spacing: 0.5px; padding: 10px 14px 4px; background: var(--bg);
 }
 .mi-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-bottom: 1px solid var(--surface2); font-size: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 9px 14px; border-bottom: 1px solid var(--surface2); font-size: 12px;
 }
 .mi-row:last-child { border-bottom: none; }
-.mi-meal { font-size: 10px; color: var(--muted); min-width: 66px; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
-.mi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mi-nums { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.mi-meal { font-size: 10px; color: var(--muted); min-width: 34px; font-weight: 700; text-transform: uppercase; flex-shrink: 0; padding-top: 1px; letter-spacing: 0.3px; }
+.mi-name { flex: 1; min-width: 0; white-space: normal; line-height: 1.45; word-break: break-word; }
+.mi-nums { display: flex; gap: 0; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); flex-shrink: 0; padding-top: 1px; }
+.mi-nums span { display: inline-block; text-align: right; }
+.mi-nums .mn-cal  { min-width: 48px; }
+.mi-nums .mn-prot { min-width: 40px; }
+.mi-nums .mn-sug  { min-width: 36px; }
 
 /* ── Workout: set count control + add-lift ───────────── */
 .set-ctrl {
@@ -2975,14 +2979,16 @@ async function loadMealItems() {
           &nbsp;·&nbsp;${tot.sugar.toFixed(0)}g S
         </span>
       </div>`;
+      const mealAbbr = { Morning:'AM', Afternoon:'Aft', Evening:'Eve', Lunch:'Lnch' };
       rows.forEach(i => {
+        const abbr = mealAbbr[i.meal_time] || i.meal_time;
         html += `<div class="mi-row">
-          <div class="mi-meal">${i.meal_time}</div>
+          <div class="mi-meal">${abbr}</div>
           <div class="mi-name">${i.food_name}</div>
           <div class="mi-nums">
-            <span>${(i.calories||0).toLocaleString()}</span>
-            <span>${parseFloat(i.protein_g||0).toFixed(0)}g P</span>
-            <span>${parseFloat(i.added_sugar_g||0).toFixed(0)}g S</span>
+            <span class="mn-cal">${(i.calories||0).toLocaleString()}</span>
+            <span class="mn-prot">${parseFloat(i.protein_g||0).toFixed(0)}g P</span>
+            <span class="mn-sug">${parseFloat(i.added_sugar_g||0).toFixed(0)}g S</span>
           </div>
         </div>`;
       });
