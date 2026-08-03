@@ -2726,6 +2726,9 @@ async function toggleWo() {
   await sbPatch('daily_log', {log_date: ntDateStr()}, {workout_done: v});
 }
 async function delFood(id) {
+  const entry = foods.find(e => e.id === id);
+  const name = entry ? entry.food_name : 'this item';
+  if (!confirm(`Remove "${name}"?`)) return;
   foods = foods.filter(e => e.id !== id); render();
   await sbDelete('food_log', {id});
 }
