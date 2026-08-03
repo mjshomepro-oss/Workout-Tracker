@@ -1815,15 +1815,17 @@ function ntDateObj() {
   d.setDate(d.getDate() + ntDayOffset);
   return d;
 }
+function realTodayStr() {
+  const r = new Date();
+  return `${r.getFullYear()}-${String(r.getMonth()+1).padStart(2,'0')}-${String(r.getDate()).padStart(2,'0')}`;
+}
 function updateNtHeader() {
   const d = ntDateObj();
-  const isToday = ntDayOffset === 0;
-  document.getElementById('h-date').textContent = isToday
-    ? d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
-    : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const isToday = ntDateStr() === realTodayStr();
+  document.getElementById('h-date').textContent = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   const dow = d.getDay();
   document.getElementById('h-session').textContent = `${DAY_NAMES[dow]} · ${SESSIONS[dow]}`;
-  document.getElementById('ntNextDay').disabled = ntDayOffset >= 0;
+  document.getElementById('ntNextDay').disabled = ntDateStr() >= realTodayStr();
   // FAB: only show on today
   const fab = document.getElementById('fab');
   if (isToday) fab.classList.add('visible');
