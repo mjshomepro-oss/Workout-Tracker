@@ -809,6 +809,21 @@ body {
 
 <!-- ══ OVERLAYS ════════════════════════════════════════ -->
 
+<!-- Staple Fraction Picker -->
+<div class="overlay" id="stapleOverlay">
+  <div class="form-sheet" style="text-align:center">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="staple-picker-name" style="margin-bottom:6px"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px">How much?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+      <button class="tbtn primary" onclick="applyStapleFraction(1)">Full</button>
+      <button class="tbtn primary" onclick="applyStapleFraction(0.5)">Half</button>
+      <button class="tbtn primary" onclick="applyStapleFraction(0.25)">Quarter</button>
+    </div>
+    <button class="overlay-close" onclick="document.getElementById('stapleOverlay').classList.remove('show')">Cancel</button>
+  </div>
+</div>
+
 <!-- Rest Timer -->
 <div class="overlay" id="timerOverlay">
   <div class="form-sheet" style="text-align:center">
@@ -1033,12 +1048,26 @@ const STAPLES = [
 ];
 const STAPLE_NAMES = new Set(STAPLES.map(s => s.name));
 
+let pendingStaple = null;
 function renderStaples() {
-  document.getElementById('staples-scroll').innerHTML = STAPLES.map(s =>
-    `<button class="recent-chip staple-chip" onclick="relogItem(${JSON.stringify(s.name).replace(/"/g,'&quot;')},${s.cal},${s.prot},${s.sugar},${s.fat},${s.carbs},${s.fiber},${s.sodium},${s.potassium})">
+  document.getElementById('staples-scroll').innerHTML = STAPLES.map((s, i) =>
+    `<button class="recent-chip staple-chip" onclick="pickStapleFraction(${i})">
       <div class="rc-name">${s.name}</div>
       <div class="rc-mac">${s.cal} cal &middot; ${s.prot}g P</div>
     </button>`).join('');
+}
+function pickStapleFraction(i) {
+  pendingStaple = STAPLES[i];
+  document.getElementById('staple-picker-name').textContent = pendingStaple.name;
+  document.getElementById('stapleOverlay').classList.add('show');
+}
+function applyStapleFraction(frac) {
+  document.getElementById('stapleOverlay').classList.remove('show');
+  if (!pendingStaple) return;
+  const s = pendingStaple;
+  const r = v => Math.round(v * frac * 10) / 10;
+  relogItem(s.name, r(s.cal), r(s.prot), r(s.sugar), r(s.fat), r(s.carbs), r(s.fiber), Math.round(s.sodium * frac), Math.round(s.potassium * frac));
+  pendingStaple = null;
 }
 
 // ── Lyfta Links ───────────────────────────────────────
