@@ -660,6 +660,10 @@ body {
 .m-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 .num-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .num-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.salt-btns { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+.salt-btn { padding: 8px 4px; background: var(--surface2); border: 1px solid transparent; border-radius: 9px; color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; line-height: 1.3; }
+.salt-btn span { display: block; font-size: 10px; font-weight: 400; }
+.salt-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 .ai-badge { font-size: 10px; color: var(--accent); font-weight: 700; float: right; letter-spacing: 0.3px; }
 
 /* Recent meals */
@@ -976,6 +980,16 @@ body {
       <div>
         <label class="fl-lbl">Potassium (mg)</label>
         <input class="fi" id="f-potassium" type="number" inputmode="numeric" placeholder="0">
+      </div>
+    </div>
+
+    <div class="fl">
+      <label class="fl-lbl">Salt Added</label>
+      <div class="salt-btns">
+        <button class="salt-btn on" onclick="pickSalt(this,'none')">None</button>
+        <button class="salt-btn" onclick="pickSalt(this,'light')">Light <span>+250mg</span></button>
+        <button class="salt-btn" onclick="pickSalt(this,'med')">Med <span>+500mg</span></button>
+        <button class="salt-btn" onclick="pickSalt(this,'heavy')">Heavy <span>+800mg</span></button>
       </div>
     </div>
 
@@ -1782,6 +1796,13 @@ let formMeal   = 'Morning';
 let aiResult   = false;
 let pendingFiles = [];
 let inputMode  = 'photo';
+let saltLevel  = 'none';
+const SALT_MG  = {none:0, light:250, med:500, heavy:800};
+function pickSalt(btn, level) {
+  saltLevel = level;
+  document.querySelectorAll('.salt-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
 let histLoaded = false;
 
 function ntDateStr(offset) {
@@ -2825,8 +2846,9 @@ function closeSheet() {
   document.getElementById('f-desc').value = '';
   setInputMode('photo');
   pendingFiles = []; aiResult = false;
-  formMeal = 'Morning';
+  formMeal = 'Morning'; saltLevel = 'none';
   document.querySelectorAll('.m-btn').forEach((b,i) => b.classList.toggle('on', i===0));
+  document.querySelectorAll('.salt-btn').forEach((b,i) => b.classList.toggle('on', i===0));
 }
 document.getElementById('foodOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('foodOverlay')) closeSheet();
@@ -2967,7 +2989,7 @@ async function saveFood() {
   const fat       = parseFloat(document.getElementById('f-fat').value)       || 0;
   const carbs     = parseFloat(document.getElementById('f-carbs').value)     || 0;
   const fiber     = parseFloat(document.getElementById('f-fiber').value)     || 0;
-  const sodium    = parseInt(document.getElementById('f-sodium').value)      || 0;
+  const sodium    = (parseInt(document.getElementById('f-sodium').value) || 0) + SALT_MG[saltLevel];
   const potassium = parseInt(document.getElementById('f-potassium').value)   || 0;
   if (!name) { document.getElementById('f-name').focus(); return; }
   document.getElementById('save-btn').disabled = true;
