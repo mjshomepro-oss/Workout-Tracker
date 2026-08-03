@@ -42,7 +42,7 @@ body {
   line-height: 1.5;
 }
 
-/* â”€â”€ Bottom Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Bottom Nav ──────────────────────────────────────── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%;
   transform: translateX(-50%);
@@ -61,11 +61,11 @@ body {
 .nav-btn.active { color: var(--accent); }
 .nav-ico { font-size: 20px; line-height: 1; }
 
-/* â”€â”€ Tab Views â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tab Views ───────────────────────────────────────── */
 .tab-view { display: none; padding-bottom: calc(var(--nav-h) + 16px); min-height: 100vh; }
 .tab-view.active { display: block; }
 
-/* â”€â”€ Workout Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Workout Header ──────────────────────────────────── */
 .wt-hdr {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -95,7 +95,7 @@ body {
   font-size: 15px; display: flex; align-items: center; justify-content: center;
 }
 
-/* â”€â”€ Day Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Day Tabs ────────────────────────────────────────── */
 .day-tabs {
   background: var(--surface); display: flex;
   overflow-x: auto; scrollbar-width: none;
@@ -116,7 +116,7 @@ body {
   background: var(--accent); margin-left: 4px; vertical-align: middle; margin-bottom: 1px;
 }
 
-/* â”€â”€ Workout Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Workout Content ─────────────────────────────────── */
 .content { padding: 14px 14px 8px; }
 .day-header { margin-bottom: 14px; }
 .day-header h2 { font-size: 19px; font-weight: 700; }
@@ -132,7 +132,7 @@ body {
 .fuel-banner .fuel-ico { flex-shrink: 0; }
 .rules-fuel { color: var(--accent); font-weight: 700; white-space: nowrap; }
 
-/* â”€â”€ Exercise Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Exercise Card ───────────────────────────────────── */
 .exercise-card {
   background: var(--surface); border-radius: var(--radius);
   margin-bottom: 10px; overflow: hidden;
@@ -165,7 +165,7 @@ body {
 .last-best { font-size: 11px; color: var(--muted); padding: 0 14px 8px; font-style: italic; }
 .item-detail { font-size: 12px; color: var(--muted); line-height: 1.45; margin-top: 5px; }
 
-/* â”€â”€ Set Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Set Table ───────────────────────────────────────── */
 .sets-table { border-top: 1px solid var(--border); }
 .set-header {
   display: grid; grid-template-columns: 34px 1fr 1fr 44px;
@@ -197,7 +197,7 @@ body {
 }
 .set-done-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 900; }
 
-/* â”€â”€ Log Items (warmup / cardio / mobility) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Log Items (warmup / cardio / mobility) ──────────── */
 .log-item {
   background: var(--surface); border-radius: var(--radius);
   margin-bottom: 10px; padding: 14px;
@@ -228,7 +228,7 @@ body {
 .log-input::placeholder { color: var(--muted); }
 .note-item { border-style: dashed; }
 
-/* â”€â”€ Kind Pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Kind Pills ──────────────────────────────────────── */
 .kind-pill {
   display: inline-block; font-size: 9px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.05em;
@@ -240,7 +240,7 @@ body {
 .kp-cardio   { background: rgba(96,165,250,0.18); color: var(--blue); }
 .kp-mobility { background: rgba(148,163,184,0.18); color: #cbd5e1; }
 
-/* â”€â”€ Collapsible Group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Collapsible Group ───────────────────────────────── */
 .group-header {
   display: flex; align-items: center; gap: 10px;
   background: var(--surface); border: 1px solid var(--border);
@@ -259,7 +259,7 @@ body {
 .group-header .gh-check { color: var(--accent); }
 .group-body.collapsed { display: none; }
 
-/* â”€â”€ Rules Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Rules Card ──────────────────────────────────────── */
 .rules-card {
   background: var(--surface); border-radius: var(--radius);
   padding: 14px; margin-top: 6px; border: 1px solid var(--border);
@@ -273,9 +273,9 @@ body {
   font-size: 13px; color: var(--muted); line-height: 1.6;
   padding-left: 14px; position: relative; margin-bottom: 3px;
 }
-.rules-card li::before { content: 'â€¢'; position: absolute; left: 0; color: var(--accent); }
+.rules-card li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
 
-/* â”€â”€ Timer Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Timer Pill ──────────────────────────────────────── */
 .timer-pill {
   position: fixed; bottom: calc(var(--nav-h) + 10px);
   left: 50%; transform: translateX(-50%);
@@ -289,7 +289,7 @@ body {
 .timer-pill.running { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 .timer-pill.visible { display: flex; }
 
-/* â”€â”€ Nutrition Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Nutrition Header ────────────────────────────────── */
 .nt-hdr, .hist-tab-hdr {
   background: var(--surface); border-bottom: 1px solid var(--border);
   padding: 14px 16px 10px; position: sticky; top: 0; z-index: 50;
@@ -299,7 +299,7 @@ body {
 .hdr-date { font-size: 12px; color: var(--muted); }
 .hdr-session { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 3px; }
 
-/* â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Card ────────────────────────────────────────────── */
 .card { margin: 10px 12px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
 .card-lbl {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -316,7 +316,7 @@ body {
 .refresh-btn:active { color: var(--accent); }
 .card-body { padding: 10px 14px 14px; }
 
-/* â”€â”€ Labor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Labor ───────────────────────────────────────────── */
 .labor-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
 .lbr {
   padding: 10px 4px; background: var(--surface2); border: 1px solid transparent;
@@ -326,7 +326,7 @@ body {
 .lbr span { display: block; font-size: 11px; font-weight: 400; }
 .lbr.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
-/* â”€â”€ Progress Bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Progress Bars ───────────────────────────────────── */
 .prog { margin-bottom: 12px; }
 .prog:last-child { margin-bottom: 0; }
 .prog-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
@@ -335,7 +335,7 @@ body {
 .prog-track { height: 7px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
 .prog-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
 
-/* â”€â”€ Supplements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Supplements ─────────────────────────────────────── */
 .supp-list { display: flex; flex-direction: column; gap: 7px; }
 .supp {
   display: flex; align-items: center; gap: 11px;
@@ -352,7 +352,7 @@ body {
 .supp-name { font-size: 13px; font-weight: 600; }
 .supp-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-/* â”€â”€ Workout Done Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Workout Done Button ─────────────────────────────── */
 .wo-btn {
   width: 100%; padding: 12px; background: var(--surface2);
   border: 1px solid transparent; border-radius: 10px; color: var(--text);
@@ -361,7 +361,7 @@ body {
 }
 .wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
-/* â”€â”€ Food List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Food List ───────────────────────────────────────── */
 .meal-hd {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.6px; color: var(--muted); padding: 8px 14px 4px;
@@ -383,7 +383,7 @@ body {
 }
 .food-empty { padding: 20px 14px; text-align: center; color: var(--muted); font-size: 13px; }
 
-/* â”€â”€ FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── FAB ─────────────────────────────────────────────── */
 .fab {
   position: fixed; bottom: calc(var(--nav-h) + 12px);
   left: 50%; transform: translateX(-50%);
@@ -394,7 +394,7 @@ body {
 }
 .fab.visible { display: block; }
 
-/* â”€â”€ Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Status ──────────────────────────────────────────── */
 .s-loading { text-align: center; color: var(--muted); padding: 50px 16px; font-size: 13px; }
 .s-err {
   margin: 12px; padding: 12px 14px; background: var(--red-d);
@@ -402,7 +402,7 @@ body {
   color: var(--red); font-size: 13px; line-height: 1.5;
 }
 
-/* â”€â”€ History Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── History Tab ─────────────────────────────────────── */
 .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ins {
   background: var(--surface2); border-radius: 10px; padding: 12px;
@@ -446,7 +446,7 @@ body {
 .hist-hdr span { text-align: right; }
 .hist-hdr span:first-child, .hist-hdr span:nth-child(2) { text-align: left; }
 
-/* â”€â”€ Overlay (unified) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Overlay (unified) ───────────────────────────────── */
 .overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.75); z-index: 200;
@@ -454,7 +454,7 @@ body {
 }
 .overlay.show { display: flex; }
 
-/* â”€â”€ Form / Fuel / Progress Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Form / Fuel / Progress Sheet ───────────────────── */
 .form-sheet {
   background: var(--surface); border-radius: 20px 20px 0 0;
   padding: 20px 20px 40px;
@@ -480,7 +480,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .form-cues li:last-child { border-bottom: none; }
-.form-cues li::before { content: 'â†’'; position: absolute; left: 0; color: var(--accent); font-size: 12px; top: 8px; }
+.form-cues li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-size: 12px; top: 8px; }
 .form-watch-out {
   background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
   border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
@@ -500,7 +500,7 @@ body {
   text-decoration: none; font-size: 13px; font-weight: 600;
 }
 
-/* â”€â”€ Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Timer ───────────────────────────────────────────── */
 .timer-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
 .timer-display {
   font-size: 72px; font-weight: 800; font-variant-numeric: tabular-nums;
@@ -521,7 +521,7 @@ body {
 .tbtn.secondary { background: var(--surface2); color: var(--text); }
 .overlay-close { display: block; background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; text-decoration: underline; margin: 0 auto; }
 
-/* â”€â”€ Food Log Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Food Log Sheet ──────────────────────────────────── */
 .food-sheet {
   background: var(--surface); border-radius: 18px 18px 0 0;
   padding: 0 16px 40px;
@@ -656,28 +656,28 @@ body {
 <!-- Hidden camera input -->
 <input type="file" id="cam-input" accept="image/*" style="display:none">
 
-<!-- â”€â”€ Bottom Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Bottom Navigation ─────────────────────────────── -->
 <nav class="bottom-nav">
   <button class="nav-btn active" data-tab="workout" onclick="switchMainTab('workout')">
-    <span class="nav-ico">ðŸ’ª</span><span>Workout</span>
+    <span class="nav-ico">💪</span><span>Workout</span>
   </button>
   <button class="nav-btn" data-tab="nutrition" onclick="switchMainTab('nutrition')">
-    <span class="nav-ico">ðŸŽ</span><span>Nutrition</span>
+    <span class="nav-ico">🍎</span><span>Nutrition</span>
   </button>
   <button class="nav-btn" data-tab="history" onclick="switchMainTab('history')">
-    <span class="nav-ico">ðŸ“Š</span><span>History</span>
+    <span class="nav-ico">📊</span><span>History</span>
   </button>
 </nav>
 
-<!-- â”€â”€ WORKOUT TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── WORKOUT TAB ─────────────────────────────────── -->
 <div id="workout-view" class="tab-view active">
   <div class="wt-hdr">
     <div class="wt-hdr-row">
       <div class="header-left">
-        <span class="header-title">ðŸ’ª Workout</span>
+        <span class="header-title">💪 Workout</span>
         <button class="unit-toggle" id="unitToggle">lbs</button>
-        <button class="fuel-pill" id="fuelBtn">ðŸ§ª Fuel</button>
-        <button class="fuel-pill" id="progressBtn">ðŸ“ˆ Progress</button>
+        <button class="fuel-pill" id="fuelBtn">🧪 Fuel</button>
+        <button class="fuel-pill" id="progressBtn">📈 Progress</button>
       </div>
       <div class="week-nav">
         <button class="week-btn" id="prevWeek">&#8249;</button>
@@ -696,33 +696,33 @@ body {
   <span id="pillLabel">Rest Timer</span>
 </button>
 
-<!-- â”€â”€ NUTRITION TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── NUTRITION TAB ───────────────────────────────── -->
 <div id="nutrition-view" class="tab-view" style="display:none">
   <div class="nt-hdr">
     <div class="hdr-row">
-      <span class="hdr-title">ðŸŽ Nutrition</span>
+      <span class="hdr-title">🍎 Nutrition</span>
       <span class="hdr-date" id="h-date"></span>
     </div>
     <div class="hdr-session" id="h-session"></div>
   </div>
-  <div id="nutrition-root"><div class="s-loading">Loadingâ€¦</div></div>
+  <div id="nutrition-root"><div class="s-loading">Loading…</div></div>
 </div>
 
-<!-- FAB â€” Log Food (shown only on nutrition tab) -->
+<!-- FAB — Log Food (shown only on nutrition tab) -->
 <button class="fab" id="fab" onclick="openSheet()">+ Log Food</button>
 
-<!-- â”€â”€ HISTORY TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── HISTORY TAB ─────────────────────────────────── -->
 <div id="history-view" class="tab-view" style="display:none">
   <div class="hist-tab-hdr">
     <div class="hdr-row">
-      <span class="hdr-title">ðŸ“Š History</span>
+      <span class="hdr-title">📊 History</span>
       <button class="dl-btn" onclick="downloadCSV()">&#8595; CSV</button>
     </div>
   </div>
-  <div id="history-root"><div class="s-loading">Loading historyâ€¦</div></div>
+  <div id="history-root"><div class="s-loading">Loading history…</div></div>
 </div>
 
-<!-- â•â• OVERLAYS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══ OVERLAYS ════════════════════════════════════════ -->
 
 <!-- Rest Timer -->
 <div class="overlay" id="timerOverlay">
@@ -772,7 +772,7 @@ body {
   <div class="form-sheet" id="fuelSheet">
     <div class="sheet-handle"></div>
     <div class="form-sheet-title">&#129514; Creatine &amp; Protein Plan</div>
-    <div class="form-sheet-subtitle">Take creatine every day â€” including rest days.</div>
+    <div class="form-sheet-subtitle">Take creatine every day — including rest days.</div>
     <div id="fuelBody"></div>
   </div>
 </div>
@@ -786,7 +786,7 @@ body {
     <div class="recent-sect">
       <span class="recent-lbl">Recent</span>
       <div class="recent-scroll" id="recent-scroll">
-        <div style="font-size:12px;color:var(--muted);padding:6px 0">Loadingâ€¦</div>
+        <div style="font-size:12px;color:var(--muted);padding:6px 0">Loading…</div>
       </div>
     </div>
 
@@ -814,7 +814,7 @@ body {
 
     <div class="analyzing" id="analyzing">
       <div class="spin"></div>
-      <span id="analyzing-txt">Analyzingâ€¦</span>
+      <span id="analyzing-txt">Analyzing…</span>
     </div>
 
     <div class="fl" style="margin-top:12px">
@@ -853,21 +853,21 @@ body {
 </div>
 
 <script>
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ────────────────────────────────────────────
 const SB_URL = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
 const FN_URL = `${SB_URL}/functions/v1/analyze-food`;
 const CAL_BASE  = [1750,2050,2200,1900,2050,2200,2000];
 const LABOR_ADD = {light:0, moderate:250, heavy:500};
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A â€” Squat + Core','Easy Cardio','Upper Body B','Lower B â€” Hinge + Core','Intervals + Core'];
+const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core'];
 const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
 
 const nowD  = new Date();
 const TODAY = `${nowD.getFullYear()}-${String(nowD.getMonth()+1).padStart(2,'0')}-${String(nowD.getDate()).padStart(2,'0')}`;
 const DOW   = nowD.getDay();
 
-// â”€â”€ Lyfta Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Lyfta Links ───────────────────────────────────────
 const LYFTA = {
   'Barbell bench press':             'https://www.lyfta.app/exercise/barbell-bench-press-6i3',
   'Barbell row':                     'https://www.lyfta.app/exercise/barbell-bent-over-row-6hj',
@@ -905,58 +905,58 @@ const LYFTA = {
   'KB halo':                         'https://www.lyfta.app/exercise/kettlebell-halo-7z5',
 };
 
-// â”€â”€ Form Guides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Form Guides ───────────────────────────────────────
 const FORM = {
   'Barbell bench press': {
     cues: [
       'Lie flat, feet planted, 5-point contact (head, traps, butt, two feet)',
       'Grip just outside shoulder width; wrists stacked over elbows',
       'Pinch the shoulder blades together and down before unracking',
-      'Lower the bar to the lower chest with control â€” slight pause, no bounce',
+      'Lower the bar to the lower chest with control — slight pause, no bounce',
       'Press back up to the start, squeezing the chest; keep the back arched naturally',
-      '1â€“2 reps in reserve â€” stop before form breaks with no spotter'
+      '1–2 reps in reserve — stop before form breaks with no spotter'
     ],
-    watchOut: 'Without a spotter, stop 1â€“2 reps short of failure. Flared elbows stress the shoulder â€” keep them ~45â€“60Â° from the torso. Wrists stay neutral (not bent back).'
+    watchOut: 'Without a spotter, stop 1–2 reps short of failure. Flared elbows stress the shoulder — keep them ~45–60° from the torso. Wrists stay neutral (not bent back).'
   },
   'Barbell row': {
     cues: [
-      'Hinge to ~45Â° with a flat back, knees soft',
+      'Hinge to ~45° with a flat back, knees soft',
       'Grip just outside shoulder width, overhand',
-      'Pull the bar to the lower ribs â€” lead with the elbows',
+      'Pull the bar to the lower ribs — lead with the elbows',
       'Hold the squeeze at the top for a beat, then lower under control',
-      'Keep the hips still â€” no hitching or jerking to get the weight up'
+      'Keep the hips still — no hitching or jerking to get the weight up'
     ],
     watchOut: 'Rounding the lower back under load is the main injury risk. If you can\'t keep a flat back, drop the weight or switch to a chest-supported row.'
   },
   'Inverted row': {
     cues: [
       'Set the converter bar across the bench (or use a sturdy table edge)',
-      'Hang below the bar, arms straight, body in a plank â€” heels on the floor',
+      'Hang below the bar, arms straight, body in a plank — heels on the floor',
       'Pull your chest to the bar, leading with the elbows',
       'Hold at the top, then lower under control',
       'To make it harder: elevate the feet; easier: bend the knees'
     ],
-    watchOut: 'Keep the hips up and the body in a straight line â€” don\'t let the butt sag. Flaring the elbows wide shifts the load away from the lats.'
+    watchOut: 'Keep the hips up and the body in a straight line — don\'t let the butt sag. Flaring the elbows wide shifts the load away from the lats.'
   },
   'Incline DB press': {
     cues: [
-      'Set the bench 30â€“45Â°; higher angles shift focus to the front delt',
+      'Set the bench 30–45°; higher angles shift focus to the front delt',
       'Start with DBs at shoulder height, palms forward',
       'Press up and slightly in; don\'t bang them at the top',
       'Lower with control to a deep stretch at the bottom',
       'Keep the shoulder blades pinched back throughout'
     ],
-    watchOut: 'Too-steep an incline (above 60Â°) turns it into a shoulder press. Keep the elbows from flaring straight out â€” a slight tuck protects the shoulder.'
+    watchOut: 'Too-steep an incline (above 60°) turns it into a shoulder press. Keep the elbows from flaring straight out — a slight tuck protects the shoulder.'
   },
   'Lateral raise': {
     cues: [
       'Slight forward lean, soft bend in the elbows',
-      'Raise the DBs out to the sides to shoulder height â€” no higher',
+      'Raise the DBs out to the sides to shoulder height — no higher',
       'Lead with the elbows, not the wrists',
       'Slow on the way down; that\'s where the gains are',
-      'No shrugging â€” keep the traps relaxed'
+      'No shrugging — keep the traps relaxed'
     ],
-    watchOut: 'Swinging or shrugging the traps to get the weight up means the weight is too heavy. This is a high-rep isolation move â€” control it throughout.'
+    watchOut: 'Swinging or shrugging the traps to get the weight up means the weight is too heavy. This is a high-rep isolation move — control it throughout.'
   },
   'DB overhead triceps extension': {
     cues: [
@@ -966,7 +966,7 @@ const FORM = {
       'Get a full stretch at the bottom, then press back up',
       'Don\'t let the elbows flare wide'
     ],
-    watchOut: 'Keeping the upper arms locked vertical is key â€” if they drift forward, the long head of the triceps loses tension. Use a weight you can fully control at the bottom.'
+    watchOut: 'Keeping the upper arms locked vertical is key — if they drift forward, the long head of the triceps loses tension. Use a weight you can fully control at the bottom.'
   },
   'DB curl': {
     cues: [
@@ -974,15 +974,15 @@ const FORM = {
       'Curl both DBs up, keeping the elbows pinned to your sides',
       'Supinate (twist the pinky up) as you curl for a full biceps contraction',
       'Hold at the top for a beat, then lower with control',
-      'Full extension at the bottom â€” don\'t cut the range short'
+      'Full extension at the bottom — don\'t cut the range short'
     ],
     watchOut: 'Swinging the torso back to help the weight up transfers the load away from the biceps. Keep the upper arms still.'
   },
   'Close-grip push-up': {
     cues: [
-      'Hands narrow (about 8â€“10 inches apart), directly under the chest',
+      'Hands narrow (about 8–10 inches apart), directly under the chest',
       'Keep the elbows tucked close to the ribs throughout',
-      'Lower your chest toward your hands â€” full depth',
+      'Lower your chest toward your hands — full depth',
       'Press back up explosively, squeezing the triceps at the top',
       'Add the vest if you can hit 15+ reps cleanly'
     ],
@@ -991,19 +991,19 @@ const FORM = {
   'Barbell back squat': {
     cues: [
       'Bar rests on the upper traps (high bar) or rear delts (low bar)',
-      'Feet shoulder-width, toes out 20â€“30Â°',
+      'Feet shoulder-width, toes out 20–30°',
       'Brace the core hard, take a deep breath, and sit down between your knees',
       'Drive the knees out over the toes on the way down and up',
-      'Stand fully at the top â€” don\'t cut the lockout short',
+      'Stand fully at the top — don\'t cut the lockout short',
       'With the converter cap around 110 lb, use pauses or 1.5-reps to increase effective load'
     ],
-    watchOut: 'Caving knees are the main signal to reduce weight. Keep the chest tall â€” excessive forward lean shifts load to the lower back.'
+    watchOut: 'Caving knees are the main signal to reduce weight. Keep the chest tall — excessive forward lean shifts load to the lower back.'
   },
   'DB step-up': {
     cues: [
       'Use the bench height; hold DBs at your sides',
       'Step up, driving through the heel of the working leg',
-      'Bring the trailing foot up gently â€” don\'t push off it',
+      'Bring the trailing foot up gently — don\'t push off it',
       'Stand tall on the box, then lower the trailing foot slowly',
       'Complete all reps on one side before switching'
     ],
@@ -1013,11 +1013,11 @@ const FORM = {
     cues: [
       'Rear foot on the bench, front foot far enough forward that the shin stays vertical',
       'Hold DBs at your sides; add the vest for more load',
-      'Lower straight down â€” the rear knee drops toward the floor',
+      'Lower straight down — the rear knee drops toward the floor',
       'Keep the torso upright; drive through the front heel to stand',
-      '8â€“10 reps per leg â€” complete one leg before switching'
+      '8–10 reps per leg — complete one leg before switching'
     ],
-    watchOut: 'If your front knee dives past your toes excessively or the torso pitches forward, move the front foot forward. This is a hard exercise â€” go lighter than you think.'
+    watchOut: 'If your front knee dives past your toes excessively or the torso pitches forward, move the front foot forward. This is a hard exercise — go lighter than you think.'
   },
   'Single-leg DB Romanian deadlift': {
     cues: [
@@ -1025,47 +1025,47 @@ const FORM = {
       'Hinge at the hip, sending the free leg back as a counterweight',
       'Keep a flat back and lower the DB toward the floor',
       'Feel a long hamstring stretch, then drive the hip forward to stand',
-      'Keep the standing knee soft â€” don\'t lock it out'
+      'Keep the standing knee soft — don\'t lock it out'
     ],
     watchOut: 'Rotating the hips open to get more range is cheating. Keep them square to the floor throughout. Start with a lighter weight to find balance.'
   },
   'Standing calf raise': {
     cues: [
       'Stand on the edge of a step or plate, heels hanging off',
-      'Lower the heels to a full stretch â€” don\'t shortchange this',
+      'Lower the heels to a full stretch — don\'t shortchange this',
       'Rise as high as possible on the toes and squeeze at the top',
       'Pause at the top for a beat, then lower slowly',
-      'High reps (15â€“20) with full range beat heavy partial reps every time'
+      'High reps (15–20) with full range beat heavy partial reps every time'
     ],
     watchOut: 'Half-reps (no full stretch or lockout) are extremely common and limit calf development. Own the full range.'
   },
   'Dead bug': {
     cues: [
-      'Lie on your back, arms pointed at the ceiling, knees bent at 90Â° over the hips',
-      'Press your lower back HARD into the floor â€” keep it there the whole set',
+      'Lie on your back, arms pointed at the ceiling, knees bent at 90° over the hips',
+      'Press your lower back HARD into the floor — keep it there the whole set',
       'Slowly lower the opposite arm and leg toward the floor without letting the back lift',
-      'Bring them back up, then switch sides â€” that\'s one rep',
+      'Bring them back up, then switch sides — that\'s one rep',
       '8 per side, slow and controlled'
     ],
     watchOut: 'The lower back peeling off the floor means the core has lost the anti-extension challenge. Move slower, or reduce the range of motion until you can keep the back flat.'
   },
   'KB swing': {
     cues: [
-      'Use the Kettle Gryp on a loaded DB; hinge like a deadlift â€” not a squat',
+      'Use the Kettle Gryp on a loaded DB; hinge like a deadlift — not a squat',
       'Hike the KB back between your legs, then snap the hips forward explosively',
-      'The arms are just ropes â€” the power comes entirely from the hip drive',
-      'At the top the body is upright and braced â€” KB floats to chest height',
+      'The arms are just ropes — the power comes entirely from the hip drive',
+      'At the top the body is upright and braced — KB floats to chest height',
       '20 reps; keep the back flat and the core braced throughout'
     ],
-    watchOut: 'Squatting the swing (bending the knees too much) kills the hip hinge mechanics. The swing is NOT a front raise â€” arms stay relaxed.'
+    watchOut: 'Squatting the swing (bending the knees too much) kills the hip hinge mechanics. The swing is NOT a front raise — arms stay relaxed.'
   },
   'Chest-supported DB row': {
     cues: [
-      'Set the bench to ~45Â°; lie chest-down with your chest on the pad',
-      'Let the DBs hang at full arm extension â€” get a lat stretch',
+      'Set the bench to ~45°; lie chest-down with your chest on the pad',
+      'Let the DBs hang at full arm extension — get a lat stretch',
       'Row the DBs up to your lower ribs, leading with the elbows',
       'Hold at the top for a beat; lower fully',
-      'Because the torso is supported, you can\'t cheat â€” keep it strict'
+      'Because the torso is supported, you can\'t cheat — keep it strict'
     ],
     watchOut: 'Shrugging the traps to get the DBs higher is cheating. Pull with the back, not the neck and traps.'
   },
@@ -1073,33 +1073,32 @@ const FORM = {
     cues: [
       'Lie across the bench (shoulders on pad, hips dropped)',
       'Hold one DB with both hands over the chest, arms nearly straight',
-      'Lower the DB behind your head in an arc â€” feel the lat and chest stretch',
+      'Lower the DB behind your head in an arc — feel the lat and chest stretch',
       'Pull it back up over the chest, leading with the elbows',
-      '10â€“15 reps; move slowly to feel the stretch'
+      '10–15 reps; move slowly to feel the stretch'
     ],
     watchOut: 'Bending the elbows too much turns this into a triceps move. Keep the arms mostly straight to maximize lat and serratus engagement.'
   },
   'DB fly': {
     cues: [
       'Lie flat or at low-incline; DBs start over the chest, slight bend in the elbows',
-      'Open the arms in a wide arc â€” lower the DBs to chest height',
+      'Open the arms in a wide arc — lower the DBs to chest height',
       'Feel a big stretch across the chest at the bottom',
       'Bring the DBs back together over the chest in the same arc',
       'Don\'t let the elbows drop below the chest line'
     ],
-    watchOut: 'Keep a constant soft bend in the elbows â€” don\'t lock them or bend them more as you fatigue. Use a weight light enough to feel the chest, not the shoulder.'
+    watchOut: 'Keep a constant soft bend in the elbows — don\'t lock them or bend them more as you fatigue. Use a weight light enough to feel the chest, not the shoulder.'
   },
   'Arnold press': {
     cues: [
       'Start with DBs at chin height, palms facing you',
       'As you press up, rotate the palms to face forward at the top',
-      'Reverse the rotation on the way down â€” palms face in at the bottom',
+      'Reverse the rotation on the way down — palms face in at the bottom',
       'Full range: deep stretch at the bottom, full lockout at the top',
-      '8â€“10 controlled reps'
+      '8–10 controlled reps'
     ],
-    watchOut: 'Don\'t rush the rotation â€” the point is to hit all three heads of the shoulder across the arc. If you can\'t control the rotation, reduce the weight.'
+    watchOut: 'Don\'t rush the rotation — the point is to hit all three heads of the shoulder across the arc. If you can\'t control the rotation, reduce the weight.'
   },
-};
 
   'DB skullcrusher': {
     cues: [
@@ -1107,7 +1106,7 @@ const FORM = {
       'Lower the DBs beside and behind the head by bending only at the elbows',
       'Keep the upper arms still and pointed at the ceiling',
       'Press back up to the start by extending the elbows fully',
-      '10â€“15 controlled reps; feel the stretch at the bottom'
+      '10–15 controlled reps; feel the stretch at the bottom'
     ],
     watchOut: 'Upper arms drifting forward (turning it into a press) is the most common fault. Lock the elbows in place pointing at the ceiling.'
   },
@@ -1117,14 +1116,14 @@ const FORM = {
       'Curl the DBs up, keeping elbows pinned to your sides',
       'Hold at the top for a beat',
       'Lower under control to full extension',
-      'Targets the brachialis and brachioradialis â€” a different stress than the regular curl'
+      'Targets the brachialis and brachioradialis — a different stress than the regular curl'
     ],
-    watchOut: 'Same as the regular curl â€” keep the upper arms still. Rotating the wrist (supinating) at the top defeats the neutral-grip purpose.'
+    watchOut: 'Same as the regular curl — keep the upper arms still. Rotating the wrist (supinating) at the top defeats the neutral-grip purpose.'
   },
   'Squeeze push-up': {
     cues: [
       'Hands close together (touching or nearly so) under the chest',
-      'Actively try to push your hands together throughout the set â€” this maximizes chest tension',
+      'Actively try to push your hands together throughout the set — this maximizes chest tension',
       'Lower your chest to your hands, elbows slightly tucked',
       'Press back up explosively',
       'One hard set to failure; add the vest when 15+ reps comes easily'
@@ -1136,18 +1135,18 @@ const FORM = {
       'Shoulders on the bench, bar across the hips (pad it), feet flat ~18" from hips',
       'Drive through the heels and squeeze the glutes hard to lift the hips',
       'At the top: neutral spine, shins vertical, chin tucked',
-      'Hold the top for a beat â€” really squeeze',
+      'Hold the top for a beat — really squeeze',
       'Lower under control; don\'t let the hips touch the floor between reps'
     ],
-    watchOut: 'Arching the lower back to reach full height means the glutes aren\'t finishing the lift â€” tuck the pelvis at the top. Pushing through the toes shifts load to the quads.'
+    watchOut: 'Arching the lower back to reach full height means the glutes aren\'t finishing the lift — tuck the pelvis at the top. Pushing through the toes shifts load to the quads.'
   },
   'Front-foot-elevated split squat': {
     cues: [
-      'Front foot on a plate or wedge (1â€“2 inches elevation); rear foot flat on the floor',
+      'Front foot on a plate or wedge (1–2 inches elevation); rear foot flat on the floor',
       'Hold DBs or wear the vest; keep the torso upright',
-      'Lower straight down â€” front shin stays mostly vertical',
+      'Lower straight down — front shin stays mostly vertical',
       'Drive through the front heel to stand',
-      '8â€“10 reps per leg; elevating the front foot increases quad range of motion'
+      '8–10 reps per leg; elevating the front foot increases quad range of motion'
     ],
     watchOut: 'The elevation increases front-knee travel, so watch that the knee tracks over the toes and doesn\'t cave inward. Keep the torso from pitching forward.'
   },
@@ -1155,11 +1154,11 @@ const FORM = {
     cues: [
       'Stand tall, bar in a hip-width overhand grip',
       'Push the hips back while keeping the bar dragging close to the legs',
-      'Feel a deep hamstring stretch â€” lower until the back wants to round (stop just before)',
+      'Feel a deep hamstring stretch — lower until the back wants to round (stop just before)',
       'Drive the hips forward to stand, squeezing the glutes at the top',
-      'High-rep at the converter cap â€” control every inch'
+      'High-rep at the converter cap — control every inch'
     ],
-    watchOut: 'Rounding the lower back to reach more depth is the main injury risk. Your hamstring flexibility sets the depth limit â€” don\'t chase depth by rounding.'
+    watchOut: 'Rounding the lower back to reach more depth is the main injury risk. Your hamstring flexibility sets the depth limit — don\'t chase depth by rounding.'
   },
   'Goblet squat': {
     cues: [
@@ -1169,25 +1168,25 @@ const FORM = {
       'Keep the heels planted and chest tall',
       'Stand back up, squeezing the glutes'
     ],
-    watchOut: 'Let the knees track out over the toes, not cave inward, and keep the heels down. This is a technique and quad-finisher move â€” prioritize full, clean depth.'
+    watchOut: 'Let the knees track out over the toes, not cave inward, and keep the heels down. This is a technique and quad-finisher move — prioritize full, clean depth.'
   },
   'Side plank': {
     cues: [
       'Forearm on the floor, elbow under the shoulder; feet stacked',
       'Lift the hips until the body is a straight line head to feet',
       'Free hand on the hip or pointed at the ceiling',
-      'Brace the obliques â€” don\'t let the hips sag or pike up',
-      '20â€“40 seconds per side Ã— 3'
+      'Brace the obliques — don\'t let the hips sag or pike up',
+      '20–40 seconds per side × 3'
     ],
     watchOut: 'Hips sagging down or piking up both reduce the oblique challenge. Keep the body in one long rigid plank. If you can\'t hold form, drop to a knee.'
   },
   'Plank shoulder tap': {
     cues: [
-      'High plank â€” wrists under shoulders, body straight',
+      'High plank — wrists under shoulders, body straight',
       'Brace the core HARD before lifting a hand',
       'Tap the opposite shoulder, then replace the hand before moving the other',
-      'Hips stay square â€” minimal rotation',
-      '10 per side Ã— 3; wear the vest to increase the anti-rotation demand'
+      'Hips stay square — minimal rotation',
+      '10 per side × 3; wear the vest to increase the anti-rotation demand'
     ],
     watchOut: 'Rotating the hips to make room for the tap defeats the purpose. The whole challenge is keeping the hips level while one arm is off the ground.'
   },
@@ -1196,55 +1195,55 @@ const FORM = {
       'Use the Kettle Gryp on a light DB, or a real KB',
       'Hold it at chest height, elbows in',
       'Circle it slowly around your head one way, then reverse',
-      '8 per direction Ã— 2; keep the torso completely still',
-      'Breathe steadily â€” the core stays braced throughout'
+      '8 per direction × 2; keep the torso completely still',
+      'Breathe steadily — the core stays braced throughout'
     ],
     watchOut: 'Moving the torso instead of just the arms kills the core demand. Keep the ribs down and the hips still.'
   },
   'Run intervals': {
     cues: [
-      '1 min faster run + 2 min easy walk Ã— 6â€“8 rounds',
-      'The "fast" interval should feel hard but sustainable â€” not a full sprint',
+      '1 min faster run + 2 min easy walk × 6–8 rounds',
+      'The "fast" interval should feel hard but sustainable — not a full sprint',
       'Use the walk intervals to recover genuinely before the next work period',
       'Outdoors preferred; treadmill works fine with same protocol',
       'Aim to feel comfortably wrecked by the last interval, not gassed after the first'
     ],
-    watchOut: 'Going too hard on the first interval and dying by interval 3 is the most common mistake. Start controlled â€” the later intervals should feel the hardest.'
+    watchOut: 'Going too hard on the first interval and dying by interval 3 is the most common mistake. Start controlled — the later intervals should feel the hardest.'
   },
   'Easy run': {
     cues: [
-      '20â€“30 min at truly conversational pace â€” you can say a full sentence without gasping',
-      'This is active recovery, not a training stimulus â€” resist the urge to push',
+      '20–30 min at truly conversational pace — you can say a full sentence without gasping',
+      'This is active recovery, not a training stimulus — resist the urge to push',
       'Land softly midfoot under your hips, not heel-striking out in front',
-      'Treadmill alt: brisk incline walk (3.5â€“4.5 mph at 4â€“6% grade) for 30â€“40 min',
+      'Treadmill alt: brisk incline walk (3.5–4.5 mph at 4–6% grade) for 30–40 min',
       'Heart rate should stay well below 75% max'
     ],
     watchOut: 'Running too fast on easy days undermines recovery and leaves you flat for Friday\'s session. If in doubt, go slower.'
   },
   'Easy walk': {
     cues: [
-      'Optional 20â€“30 min at an easy, comfortable pace',
-      'Outdoors preferred â€” fresh air and sunlight have real recovery benefits',
+      'Optional 20–30 min at an easy, comfortable pace',
+      'Outdoors preferred — fresh air and sunlight have real recovery benefits',
       'Swing the arms naturally; stay relaxed',
-      'If the legs feel beat, skip it entirely â€” full rest is the point of Sunday'
+      'If the legs feel beat, skip it entirely — full rest is the point of Sunday'
     ],
     watchOut: 'This is optional recovery movement, not a workout. If it starts to feel like effort, slow down or stop.'
   },
   'Weighted vest ruck': {
     cues: [
-      '20â€“25 min at a steady, easy pace with 15â€“25 lb vest',
-      'Tall posture â€” don\'t let the vest pull your shoulders forward',
+      '20–25 min at a steady, easy pace with 15–25 lb vest',
+      'Tall posture — don\'t let the vest pull your shoulders forward',
       'Conversational pace: this is low-intensity zone 2, not a hike race',
-      'Drop the vest any week the legs feel beat â€” recovery first'
+      'Drop the vest any week the legs feel beat — recovery first'
     ],
-    watchOut: 'The vest adds load to the joints â€” keep the pace easy and the duration modest. If knees or ankles protest, stick with the bodyweight walk.'
+    watchOut: 'The vest adds load to the joints — keep the pace easy and the duration modest. If knees or ankles protest, stick with the bodyweight walk.'
   },
   'Leg swings': {
     cues: [
       'Hold a wall for balance',
       '10 front-to-back swings: let the leg swing freely like a pendulum, gradually increasing range',
       '10 side-to-side swings: swing the leg across the body and out to the side',
-      'Keep the torso upright â€” don\'t lean into the swing',
+      'Keep the torso upright — don\'t lean into the swing',
       'Repeat on the other leg'
     ],
     watchOut: 'Force the range too early and you\'ll pull a hip flexor. Let the swings grow gradually as the hip warms up.'
@@ -1267,7 +1266,7 @@ const FORM = {
       'Drive through the front heel to bring the back foot through into the next lunge',
       '~8 per leg'
     ],
-    watchOut: 'Don\'t let the front knee crash way past the toes or the torso pitch forward. Keep it controlled â€” a gentle stretch at the bottom is the point.'
+    watchOut: 'Don\'t let the front knee crash way past the toes or the torso pitch forward. Keep it controlled — a gentle stretch at the bottom is the point.'
   },
   'Glute bridges': {
     cues: [
@@ -1277,7 +1276,7 @@ const FORM = {
       'Squeeze for a beat, then lower under control',
       '~15 reps'
     ],
-    watchOut: 'Finish the lift with your glutes, not by arching your lower back â€” keep the ribs down and chin tucked.'
+    watchOut: 'Finish the lift with your glutes, not by arching your lower back — keep the ribs down and chin tucked.'
   },
   'Ankle rocks': {
     cues: [
@@ -1286,7 +1285,7 @@ const FORM = {
       'Rock the knee past the toes, feeling a stretch in the front of the ankle, then back',
       '~10 rocks per side'
     ],
-    watchOut: 'Keep the heel down the whole time â€” if it lifts, you\'ve gone too far.'
+    watchOut: 'Keep the heel down the whole time — if it lifts, you\'ve gone too far.'
   },
   'March in place': {
     cues: [
@@ -1294,13 +1293,13 @@ const FORM = {
       'Pump the arms in rhythm with the legs',
       'Start easy and build the pace over ~2 minutes',
       'Stay light on your feet, landing softly',
-      'Breathe steadily â€” you should warm up, not gas out'
+      'Breathe steadily — you should warm up, not gas out'
     ],
-    watchOut: 'Build the pace gradually â€” this is to raise your heart rate and warm the legs, not to tire them before the run.'
+    watchOut: 'Build the pace gradually — this is to raise your heart rate and warm the legs, not to tire them before the run.'
   },
   'Build-up strides': {
     cues: [
-      'Over ~30â€“60 sec, gradually accelerate from a jog toward your working pace',
+      'Over ~30–60 sec, gradually accelerate from a jog toward your working pace',
       'Stay tall, quick light steps, relaxed shoulders',
       'Land midfoot under your hips, not reaching out front',
       'Ease back down rather than slamming to a stop',
@@ -1312,7 +1311,7 @@ const FORM = {
     cues: [
       'Stand tall, hold a wall for balance',
       'Pull one ankle up toward your glute, knees close together',
-      'Stay tall â€” don\'t lean or hunch forward',
+      'Stay tall — don\'t lean or hunch forward',
       'Feel the stretch down the front of the thigh, hold ~30 sec',
       'Switch sides'
     ],
@@ -1330,15 +1329,15 @@ const FORM = {
   'Calf stretch': {
     cues: [
       'Stagger one foot back, both toes pointing forward, heel down',
-      'Keep the back leg straight and lean into a wall â€” stretches the upper calf (~30 sec)',
+      'Keep the back leg straight and lean into a wall — stretches the upper calf (~30 sec)',
       'Then bend the back knee slightly to shift the stretch lower into the soleus (~30 sec)',
       'Switch sides'
     ],
-    watchOut: 'Keep the back heel planted and the toes pointing straight ahead â€” turning the foot out cheats the stretch.'
+    watchOut: 'Keep the back heel planted and the toes pointing straight ahead — turning the foot out cheats the stretch.'
   },
   'Chest/doorway stretch': {
     cues: [
-      'Brace one forearm on a doorway at shoulder height, elbow bent 90Â°',
+      'Brace one forearm on a doorway at shoulder height, elbow bent 90°',
       'Step the same-side foot through and gently turn your body away',
       'Feel the stretch across the front of the chest and shoulder, hold ~30 sec',
       'Switch sides'
@@ -1350,7 +1349,7 @@ const FORM = {
       'Step into a deep forward lunge, both hands on the floor inside the front foot',
       'Sink the hips to open the back-leg hip flexor',
       'Rotate the inside arm up toward the ceiling, following the hand with your eyes',
-      'Return the hand down, step back, and switch sides â€” 3â€“4 per side'
+      'Return the hand down, step back, and switch sides — 3–4 per side'
     ],
     watchOut: 'Rotate from the upper back, not by cranking the lower back.'
   },
@@ -1359,16 +1358,16 @@ const FORM = {
       'Sink into the bottom of a bodyweight squat, heels flat',
       'Use your elbows to gently push your knees outward',
       'Keep your chest tall and spine long',
-      'Hold ~20â€“30 sec, breathing into the position and gently rocking to open the hips'
+      'Hold ~20–30 sec, breathing into the position and gently rocking to open the hips'
     ],
-    watchOut: 'Keep the heels down and chest up â€” if you tip backward, hold a doorframe for support.'
+    watchOut: 'Keep the heels down and chest up — if you tip backward, hold a doorframe for support.'
   },
   'Shoulder pass-through': {
     cues: [
       'Hold a dowel, towel, or empty bar with a wide overhand grip',
       'Keep the arms straight and raise the bar overhead',
       'Continue back and down behind your head as far as comfortable, then reverse',
-      'Keep ribs down â€” ~8 passes'
+      'Keep ribs down — ~8 passes'
     ],
     watchOut: 'Go wide enough that you can keep the arms straight. Keep the ribs down rather than arching the back to fake the range.'
   },
@@ -1377,26 +1376,26 @@ const FORM = {
       'Stand tall, arms out to the sides',
       '10 small-to-large forward circles, then 10 backward',
       'Let the range grow gradually',
-      'Keep the core braced â€” don\'t lean with the momentum'
+      'Keep the core braced — don\'t lean with the momentum'
     ],
-    watchOut: 'Don\'t rush into the big circles â€” let the shoulder warm up gradually.'
+    watchOut: 'Don\'t rush into the big circles — let the shoulder warm up gradually.'
   },
   'Rear-delt raises': {
     cues: [
-      'Hinge forward ~45Â° at the hips, back flat',
+      'Hinge forward ~45° at the hips, back flat',
       'Hold mini DBs, palms facing each other',
       'Raise the arms out to the sides to shoulder height',
       'Hold at the top for a beat, then lower slowly',
-      '12 reps â€” very light weight'
+      '12 reps — very light weight'
     ],
     watchOut: 'This is a warm-up, not a working set. Keep the weight light enough to feel it in the rear delts, not the traps.'
   },
   'External rotations': {
     cues: [
-      'Hold a mini DB, elbow bent 90Â° and pinned to your side',
+      'Hold a mini DB, elbow bent 90° and pinned to your side',
       'Rotate the forearm outward, keeping the elbow glued to the ribs',
-      'Return slowly â€” don\'t let it snap back',
-      '12 per side â€” light weight, slow tempo'
+      'Return slowly — don\'t let it snap back',
+      '12 per side — light weight, slow tempo'
     ],
     watchOut: 'The elbow must stay pinned to the side. Letting it drift away from the body turns this into something else entirely.'
   },
@@ -1405,15 +1404,15 @@ const FORM = {
       'High plank position, arms straight',
       'Without bending the elbows, let the shoulder blades come together (protraction)',
       'Then push them apart as wide as possible (retraction)',
-      '~10 reps â€” slow and deliberate',
+      '~10 reps — slow and deliberate',
       'This activates the serratus anterior and warms up scapular stability'
     ],
-    watchOut: 'The elbows must stay straight throughout â€” the only movement is the shoulder blades spreading and pinching. Bending the elbows turns it into a push-up.'
+    watchOut: 'The elbows must stay straight throughout — the only movement is the shoulder blades spreading and pinching. Bending the elbows turns it into a push-up.'
   },
   'Light ramp sets': {
     cues: [
-      '1â€“2 sets with a very light load to groove the movement pattern',
-      'Focus on bar path, bracing, and cues â€” not output',
+      '1–2 sets with a very light load to groove the movement pattern',
+      'Focus on bar path, bracing, and cues — not output',
       'These don\'t count toward your working sets',
       'Increase weight gradually before hitting the working weight'
     ],
@@ -1421,18 +1420,18 @@ const FORM = {
   },
 };
 
-// â”€â”€ Routine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Routine ───────────────────────────────────────────
 const ROUTINE = [
   {
     day: 'Sunday', short: 'Sun', label: 'Rest / Mobility', type: 'log',
-    fuel: 'Rest day â€” 5 g creatine anytime. Add 1 whey scoop only if short of your protein target.',
+    fuel: 'Rest day — 5 g creatine anytime. Add 1 whey scoop only if short of your protein target.',
     items: [
       { name: 'Easy walk', kind: 'cardio', formKey: 'Easy walk',
-        detail: 'Optional 20â€“30 min easy walk outdoors (preferred) or treadmill, conversational pace.' },
+        detail: 'Optional 20–30 min easy walk outdoors (preferred) or treadmill, conversational pace.' },
       { name: 'Weighted vest ruck', kind: 'cardio', formKey: 'Weighted vest ruck',
-        detail: 'Optional swap for the walk: 20â€“25 min ruck with the vest at 15â€“25 lb, easy pace.' },
-      { name: 'Deep squat hold', kind: 'mobility', detail: '2 Ã— 20â€“30s, push the knees out.' },
-      { name: "World's greatest stretch", kind: 'mobility', detail: '3â€“4 per side.' },
+        detail: 'Optional swap for the walk: 20–25 min ruck with the vest at 15–25 lb, easy pace.' },
+      { name: 'Deep squat hold', kind: 'mobility', detail: '2 × 20–30s, push the knees out.' },
+      { name: "World's greatest stretch", kind: 'mobility', detail: '3–4 per side.' },
       { name: 'Chest/doorway stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Shoulder pass-through', kind: 'mobility', detail: '~8 slow passes with a dowel.' },
       { name: 'Calf stretch', kind: 'mobility', detail: '~30s per side; straight then bent knee.' },
@@ -1444,28 +1443,28 @@ const ROUTINE = [
     fuel: 'Post-lift shake: 1 scoop whey + 5 g creatine in water.',
     items: [
       { name: 'Arm circles', kind: 'warmup', track: false, detail: '10 forward + 10 backward.' },
-      { name: 'Rear-delt raises', kind: 'warmup', track: false, detail: 'Mini-DBs, hinge ~45Â°, 12 reps.' },
-      { name: 'External rotations', kind: 'warmup', track: false, detail: 'Mini-DB, 12/side â€” rotator cuff.' },
+      { name: 'Rear-delt raises', kind: 'warmup', track: false, detail: 'Mini-DBs, hinge ~45°, 12 reps.' },
+      { name: 'External rotations', kind: 'warmup', track: false, detail: 'Mini-DB, 12/side — rotator cuff.' },
       { name: 'Scap push-ups', kind: 'warmup', track: false, detail: 'High plank, pinch & spread, ~10.' },
-      { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1â€“2 light sets of barbell bench.' },
-      { name: 'Barbell bench press', kind: 'main', sets: 4, reps: '6â€“10',
-        detail: 'Controlled lower, slight pause; stop 1â€“2 reps shy of failure (no spotter).' },
-      { name: 'Barbell row', kind: 'main', sets: 4, reps: '8â€“12',
+      { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1–2 light sets of barbell bench.' },
+      { name: 'Barbell bench press', kind: 'main', sets: 4, reps: '6–10',
+        detail: 'Controlled lower, slight pause; stop 1–2 reps shy of failure (no spotter).' },
+      { name: 'Barbell row', kind: 'main', sets: 4, reps: '8–12',
         detail: 'Bent-over, flat back, pull to the lower ribs.' },
-      { name: 'Inverted row', kind: 'main', sets: 3, reps: '8â€“12',
+      { name: 'Inverted row', kind: 'main', sets: 3, reps: '8–12',
         detail: 'Body under the converter bar across the bench; pull chest to bar. Elevate feet to make it harder.' },
-      { name: 'Incline DB press', kind: 'main', sets: 3, reps: '8â€“12',
-        detail: 'Bench 30â€“45Â°; upper-chest bias.' },
-      { name: 'Lateral raise', kind: 'main', sets: 3, reps: '12â€“20', detail: 'Mini-DBs; smooth tempo, no swing.' },
-      { name: 'DB overhead triceps extension', kind: 'main', sets: 3, reps: '10â€“15',
+      { name: 'Incline DB press', kind: 'main', sets: 3, reps: '8–12',
+        detail: 'Bench 30–45°; upper-chest bias.' },
+      { name: 'Lateral raise', kind: 'main', sets: 3, reps: '12–20', detail: 'Mini-DBs; smooth tempo, no swing.' },
+      { name: 'DB overhead triceps extension', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Both hands on one DB, overhead, deep stretch at the bottom.' },
-      { name: 'DB curl', kind: 'main', sets: 3, reps: '10â€“12' },
+      { name: 'DB curl', kind: 'main', sets: 3, reps: '10–12' },
       { name: 'Close-grip push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
         detail: 'One hard set. Hands narrow, elbows tucked. Add the vest if 15+ reps comes easy.' }
     ]
   },
   {
-    day: 'Tuesday', short: 'Tue', label: 'Lower A â€” Squat + Core', type: 'strength',
+    day: 'Tuesday', short: 'Tue', label: 'Lower A — Squat + Core', type: 'strength',
     fuel: 'Post-lift shake: 1 scoop whey + 5 g creatine in water.',
     items: [
       { name: 'Leg swings', kind: 'warmup', track: false, detail: '10 front-to-back + 10 side-to-side per leg.' },
@@ -1474,15 +1473,15 @@ const ROUTINE = [
       { name: 'Glute bridges', kind: 'warmup', track: false, detail: '~15 reps; squeeze the glutes.' },
       { name: 'Ankle rocks', kind: 'warmup', track: false, detail: '~10 per side.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1 light set of squats before loading up.' },
-      { name: 'Barbell back squat', kind: 'main', sets: 4, reps: '10â€“15',
-        detail: 'Converter caps ~110 lb â†’ high-rep quad driver. Add pauses or 1.5-reps for effective load.' },
-      { name: 'DB step-up', kind: 'main', sets: 3, reps: '8â€“10/leg',
+      { name: 'Barbell back squat', kind: 'main', sets: 4, reps: '10–15',
+        detail: 'Converter caps ~110 lb → high-rep quad driver. Add pauses or 1.5-reps for effective load.' },
+      { name: 'DB step-up', kind: 'main', sets: 3, reps: '8–10/leg',
         detail: 'Bench height; drive through the heel, control the lower.' },
-      { name: 'Bulgarian split squat', kind: 'main', sets: 4, reps: '8â€“10/leg',
+      { name: 'Bulgarian split squat', kind: 'main', sets: 4, reps: '8–10/leg',
         detail: 'Two 55 lb DBs (add vest). Rear foot on the bench, control the descent.' },
-      { name: 'Single-leg DB Romanian deadlift', kind: 'main', sets: 3, reps: '10â€“12/leg',
+      { name: 'Single-leg DB Romanian deadlift', kind: 'main', sets: 3, reps: '10–12/leg',
         detail: 'Per-leg loading; long stretch, neutral spine.' },
-      { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '12â€“20', detail: 'Full stretch at the bottom, pause at the top.' },
+      { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '12–20', detail: 'Full stretch at the bottom, pause at the top.' },
       { name: 'Dead bug', kind: 'core', sets: 3, reps: '8/side' },
       { name: 'KB swing', kind: 'finisher', sets: 3, reps: '20',
         detail: 'Kettle Gryp on a loaded DB; explosive hip hinge, snap to chest height.' }
@@ -1490,13 +1489,13 @@ const ROUTINE = [
   },
   {
     day: 'Wednesday', short: 'Wed', label: 'Easy Cardio', type: 'log',
-    fuel: 'Easy cardio â€” 5 g creatine anytime. Whey only if under your protein target.',
+    fuel: 'Easy cardio — 5 g creatine anytime. Whey only if under your protein target.',
     items: [
       { name: 'March in place', kind: 'warmup', detail: 'Build pace over ~2 min.' },
       { name: 'Arm circles', kind: 'warmup', detail: '10 each direction.' },
       { name: 'Leg swings', kind: 'warmup', detail: '10 each way per leg.' },
       { name: 'Easy run', kind: 'cardio', formKey: 'Easy run',
-        detail: '20â€“30 min genuinely EASY run/walk-jog, conversational pace. Treadmill alt: incline walk 30â€“40 min.' },
+        detail: '20–30 min genuinely EASY run/walk-jog, conversational pace. Treadmill alt: incline walk 30–40 min.' },
       { name: 'Quad stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Hamstring stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Calf stretch', kind: 'mobility', detail: '~30s per side.' },
@@ -1508,28 +1507,28 @@ const ROUTINE = [
     fuel: 'Post-lift shake: 1 scoop whey + 5 g creatine in water.',
     items: [
       { name: 'Arm circles', kind: 'warmup', track: false, detail: '10 forward + 10 backward.' },
-      { name: 'Rear-delt raises', kind: 'warmup', track: false, detail: 'Mini-DBs, hinge ~45Â°, 12 reps.' },
+      { name: 'Rear-delt raises', kind: 'warmup', track: false, detail: 'Mini-DBs, hinge ~45°, 12 reps.' },
       { name: 'External rotations', kind: 'warmup', track: false, detail: 'Mini-DB, 12/side.' },
       { name: 'Scap push-ups', kind: 'warmup', track: false, detail: 'High plank, ~10.' },
-      { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1â€“2 light sets of the incline press.' },
-      { name: 'Incline DB bench press', kind: 'main', sets: 4, reps: '6â€“10',
-        detail: '30â€“45Â° bench; upper-chest thickness; deep stretch at the bottom.' },
-      { name: 'Chest-supported DB row', kind: 'main', sets: 4, reps: '8â€“12',
+      { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1–2 light sets of the incline press.' },
+      { name: 'Incline DB bench press', kind: 'main', sets: 4, reps: '6–10',
+        detail: '30–45° bench; upper-chest thickness; deep stretch at the bottom.' },
+      { name: 'Chest-supported DB row', kind: 'main', sets: 4, reps: '8–12',
         detail: 'Chest on the inclined bench; pull to the lower ribs.' },
-      { name: 'Single-arm DB pullover', kind: 'main', sets: 3, reps: '10â€“15',
+      { name: 'Single-arm DB pullover', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Lats + serratus. Lie across the bench, deep stretch behind the head.' },
-      { name: 'DB fly', kind: 'main', sets: 3, reps: '10â€“15',
+      { name: 'DB fly', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Flat or low-incline; big stretch at the bottom.' },
-      { name: 'Arnold press', kind: 'main', sets: 3, reps: '8â€“10' },
-      { name: 'DB skullcrusher', kind: 'main', sets: 3, reps: '10â€“15',
+      { name: 'Arnold press', kind: 'main', sets: 3, reps: '8–10' },
+      { name: 'DB skullcrusher', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Lying on the bench, lower the DBs beside/behind the head, elbows tucked.' },
-      { name: 'Hammer curl', kind: 'main', sets: 3, reps: '10â€“12' },
+      { name: 'Hammer curl', kind: 'main', sets: 3, reps: '10–12' },
       { name: 'Squeeze push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
         detail: 'One hard set. Hands close, press them together. Vest optional.' }
     ]
   },
   {
-    day: 'Friday', short: 'Fri', label: 'Lower B â€” Hinge + Core', type: 'strength',
+    day: 'Friday', short: 'Fri', label: 'Lower B — Hinge + Core', type: 'strength',
     fuel: 'Post-lift shake: 1 scoop whey + 5 g creatine in water.',
     items: [
       { name: 'Leg swings', kind: 'warmup', track: false, detail: '10 front-to-back + 10 side-to-side per leg.' },
@@ -1538,63 +1537,63 @@ const ROUTINE = [
       { name: 'Glute bridges', kind: 'warmup', track: false, detail: '~15 reps.' },
       { name: 'Ankle rocks', kind: 'warmup', track: false, detail: '~10 per side.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1 light set of split squats.' },
-      { name: 'Barbell hip thrust', kind: 'main', sets: 4, reps: '8â€“12',
+      { name: 'Barbell hip thrust', kind: 'main', sets: 4, reps: '8–12',
         detail: 'Converter barbell across the hips (pad it). Shoulders on bench, full lockout squeeze.' },
-      { name: 'Front-foot-elevated split squat', kind: 'main', sets: 4, reps: '8â€“10/leg',
+      { name: 'Front-foot-elevated split squat', kind: 'main', sets: 4, reps: '8–10/leg',
         detail: 'Front foot on a plate/wedge; DBs or vest; quad-biased, long range.' },
-      { name: 'Barbell Romanian deadlift', kind: 'main', sets: 3, reps: '10â€“15',
+      { name: 'Barbell Romanian deadlift', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Back-off hinge. High-rep at the converter cap; long hamstring stretch.' },
-      { name: 'Goblet squat', kind: 'main', sets: 3, reps: '10â€“12',
+      { name: 'Goblet squat', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Kettle Gryp on a DB; upright torso, deep, controlled.' },
-      { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '15â€“20' },
-      { name: 'Side plank', kind: 'core', sets: 3, reps: '20â€“40s/side' },
+      { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '15–20' },
+      { name: 'Side plank', kind: 'core', sets: 3, reps: '20–40s/side' },
       { name: 'Suitcase carry', kind: 'finisher', track: false,
-        detail: 'Heavy DB in one hand, walk 30â€“45s/side, tall and braced; 2â€“3 trips/side.' }
+        detail: 'Heavy DB in one hand, walk 30–45s/side, tall and braced; 2–3 trips/side.' }
     ]
   },
   {
     day: 'Saturday', short: 'Sat', label: 'Intervals + Core', type: 'log',
-    fuel: 'Intervals â€” 5 g creatine anytime, extra water. Whey only if under target.',
+    fuel: 'Intervals — 5 g creatine anytime, extra water. Whey only if under target.',
     items: [
       { name: 'March in place', kind: 'warmup', detail: 'Build pace over ~2 min.' },
       { name: 'Leg swings', kind: 'warmup', detail: '10 each way per leg.' },
       { name: 'Build-up strides', kind: 'warmup', detail: 'A couple of smooth accelerations to working pace.' },
       { name: 'Run intervals', kind: 'cardio', formKey: 'Run intervals',
-        detail: '1 min faster run + 2 min easy walk Ã— 6â€“8. Your one harder cardio session.' },
+        detail: '1 min faster run + 2 min easy walk × 6–8. Your one harder cardio session.' },
       { name: 'Plank shoulder tap', kind: 'core', formKey: 'Plank shoulder tap',
-        detail: '10/side Ã— 3; hips quiet, brace hard.' },
+        detail: '10/side × 3; hips quiet, brace hard.' },
       { name: 'Dead bug', kind: 'core', formKey: 'Dead bug',
-        detail: '8/side Ã— 3; low back pinned to the floor.' },
+        detail: '8/side × 3; low back pinned to the floor.' },
       { name: 'KB halo', kind: 'core', formKey: 'KB halo',
-        detail: 'Optional: 8/direction Ã— 2; light DB with Kettle Gryp, circle the head.' },
+        detail: 'Optional: 8/direction × 2; light DB with Kettle Gryp, circle the head.' },
       { name: 'Quad stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Calf stretch', kind: 'mobility', detail: '~30s per side.' }
     ]
   }
 ];
 
-// â”€â”€ Supplement Plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Supplement Plan ───────────────────────────────────
 const SUPP = {
   creatine: {
     dose: '5 g per day (one rounded teaspoon of ON Micronized Creatine Monohydrate).',
     timing: 'On lift days stir it into your post-workout whey shake; on other days take it any time. Take it EVERY day, including rest days.',
-    loading: 'No loading phase needed â€” 5 g daily reaches full muscle saturation in about 3â€“4 weeks.',
-    notes: 'Expect a ~1â€“2 lb scale bump the first couple of weeks â€” that\'s water drawn inside the muscle, not fat.'
+    loading: 'No loading phase needed — 5 g daily reaches full muscle saturation in about 3–4 weeks.',
+    notes: 'Expect a ~1–2 lb scale bump the first couple of weeks — that\'s water drawn inside the muscle, not fat.'
   },
   whey: {
-    dose: '1 scoop Gold Standard â‰ˆ 24 g protein. Use 1â€“2 scoops/day, only to fill the gap to your daily target.',
+    dose: '1 scoop Gold Standard ≈ 24 g protein. Use 1–2 scoops/day, only to fill the gap to your daily target.',
     timing: 'Convenient within an hour or two after lifting, or at breakfast / any time you\'re short on protein.',
     notes: 'Whey is just convenient, portable protein. The same protein from chicken, eggs, beef, fish, Greek yogurt does the same job.'
   },
   protein: {
-    target: 'About 120â€“150 g protein/day (~0.7â€“1 g per lb at 150 lb). Aim for 140â€“150 g on lifting days.',
-    sources: 'Spread over 3â€“4 meals of ~30â€“45 g: chicken, turkey, lean beef, pork, eggs, fish, Greek yogurt, cottage cheese, milk, beans â€” then 1â€“2 whey scoops to top off.'
+    target: 'About 120–150 g protein/day (~0.7–1 g per lb at 150 lb). Aim for 140–150 g on lifting days.',
+    sources: 'Spread over 3–4 meals of ~30–45 g: chicken, turkey, lean beef, pork, eggs, fish, Greek yogurt, cottage cheese, milk, beans — then 1–2 whey scoops to top off.'
   },
-  hydration: 'Creatine pulls water into the muscle, so drink to thirst plus a little extra (~75â€“130 oz on active days). More on interval Saturdays and hot job sites.',
+  hydration: 'Creatine pulls water into the muscle, so drink to thirst plus a little extra (~75–130 oz on active days). More on interval Saturdays and hot job sites.',
   cautions: 'For a healthy adult, daily 5 g creatine + whey are well-established as safe. Clear it with a doctor first if you have kidney issues. This is general fitness info, not medical advice.'
 };
 
-// â”€â”€ Shared State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared State ──────────────────────────────────────
 let activeTab = 'workout';
 
 // Workout state
@@ -1612,7 +1611,7 @@ let pendingFiles = [];
 let inputMode  = 'photo';
 let histLoaded = false;
 
-// â”€â”€ Supabase REST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Supabase REST ─────────────────────────────────────
 const H = {
   'apikey': SB_KEY,
   'Authorization': `Bearer ${SB_KEY}`,
@@ -1642,7 +1641,7 @@ async function sbDelete(table, match) {
   await fetch(url, {method:'DELETE', headers:H});
 }
 
-// â”€â”€ Main Tab Switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Tab Switching ────────────────────────────────
 function switchMainTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
@@ -1666,7 +1665,7 @@ function switchMainTab(tab) {
   }
 }
 
-// â•â• WORKOUT LOGIC â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══ WORKOUT LOGIC ═════════════════════════════════════
 
 // Storage
 function weekKey(offset) {
@@ -1819,9 +1818,9 @@ function renderItemHTML(r, ei, data) {
     exData.sets.forEach((set, si) => {
       card += `<div class="set-row${set.done ? ' done-row' : ''}">
         <span class="set-num">${si+1}</span>
-        <input class="set-input" type="number" inputmode="decimal" placeholder="â€”"
+        <input class="set-input" type="number" inputmode="decimal" placeholder="—"
           value="${set.w}" data-ex="${ei}" data-si="${si}" data-f="w">
-        <input class="set-input" type="number" inputmode="numeric" placeholder="â€”"
+        <input class="set-input" type="number" inputmode="numeric" placeholder="—"
           value="${set.r}" data-ex="${ei}" data-si="${si}" data-f="r">
         <button class="set-done-btn${set.done ? ' active' : ''}" data-ex="${ei}" data-si="${si}">
           ${set.done ? '&#10003;' : '&#9675;'}
@@ -1862,7 +1861,7 @@ function renderWOContent() {
   const scrollY = window.scrollY;
   const r = ROUTINE[currentDay];
   const data = loadWOData(currentDay);
-  let h = `<div class="day-header"><h2>${r.day} â€” ${r.label}</h2></div>`;
+  let h = `<div class="day-header"><h2>${r.day} — ${r.label}</h2></div>`;
   if (r.fuel) h += `<div class="fuel-banner"><span class="fuel-ico">&#128138;</span><span>${r.fuel}</span></div>`;
 
   if (r.type === 'strength') {
@@ -1904,10 +1903,10 @@ function renderWOContent() {
   h += `<div class="rules-card">
     <h3>Quick Rules</h3>
     <ul>
-      <li>Add weight (or reps) once you hit the top of the rep range with 1â€“2 reps still in the tank.</li>
-      <li>Tap <span class="rules-fuel">&#128138; Fuel</span> up top for your creatine + whey plan. Protein 120â€“150 g/day.</li>
-      <li>Every lifting day opens with a warm-up and ends with a finisher â€” don't skip them.</li>
-      <li>Muscle grows in a slight calorie surplus â€” eat a bit above your busy-day burn.</li>
+      <li>Add weight (or reps) once you hit the top of the rep range with 1–2 reps still in the tank.</li>
+      <li>Tap <span class="rules-fuel">&#128138; Fuel</span> up top for your creatine + whey plan. Protein 120–150 g/day.</li>
+      <li>Every lifting day opens with a warm-up and ends with a finisher — don't skip them.</li>
+      <li>Muscle grows in a slight calorie surplus — eat a bit above your busy-day burn.</li>
     </ul>
   </div>`;
 
@@ -1985,7 +1984,7 @@ document.getElementById('unitToggle').addEventListener('click', () => {
 document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; renderWOTabs(); renderWOContent(); });
 document.getElementById('nextWeek').addEventListener('click', () => { weekOffset++; renderWOTabs(); renderWOContent(); });
 
-// â”€â”€ Form Guide â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Form Guide ────────────────────────────────────────
 function openFormGuide(exName) {
   const guide = FORM[exName];
   if (!guide) return;
@@ -1994,7 +1993,7 @@ function openFormGuide(exName) {
   const ex = r.items.find(it => it.name === exName);
   let sub = '';
   if (ex) {
-    if (ex.sets) sub = `${ex.sets} sets Ã— ${ex.reps}`;
+    if (ex.sets) sub = `${ex.sets} sets × ${ex.reps}`;
     else { const L = {warmup:'Warm-up',finisher:'Finisher',core:'Core',cardio:'Cardio',mobility:'Mobility'}; sub = L[ex.kind] || ''; }
   }
   document.getElementById('formSubtitle').textContent = sub;
@@ -2019,7 +2018,7 @@ document.getElementById('formOverlay').addEventListener('click', e => {
     document.getElementById('formOverlay').classList.remove('show');
 });
 
-// â”€â”€ Fuel Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Fuel Sheet ────────────────────────────────────────
 function openFuelSheet() {
   const s = SUPP;
   const sec = (label, rows) => `<div class="form-section">
@@ -2027,7 +2026,7 @@ function openFuelSheet() {
     <ul class="form-cues">${rows.filter(Boolean).map(t => `<li>${t}</li>`).join('')}</ul>
   </div>`;
   let body = '';
-  body += sec('Creatine â€” 5 g daily', [s.creatine.dose, s.creatine.timing, s.creatine.loading, s.creatine.notes]);
+  body += sec('Creatine — 5 g daily', [s.creatine.dose, s.creatine.timing, s.creatine.loading, s.creatine.notes]);
   body += sec('Whey protein', [s.whey.dose, s.whey.timing, s.whey.notes]);
   body += sec('Daily protein target', [s.protein.target, s.protein.sources]);
   body += sec('Hydration', [s.hydration]);
@@ -2042,7 +2041,7 @@ document.getElementById('fuelOverlay').addEventListener('click', e => {
     document.getElementById('fuelOverlay').classList.remove('show');
 });
 
-// â”€â”€ Progress Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Progress Sheet ────────────────────────────────────
 function openProgressSheet() {
   const weeks = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -2076,7 +2075,7 @@ function openProgressSheet() {
     r.items.forEach(ex => { if (ex.track !== false && !allExercises.includes(ex.name)) allExercises.push(ex.name); });
   });
   if (!sortedWeeks.length) {
-    document.getElementById('progressBody').innerHTML = '<p style="color:var(--muted);font-size:14px;margin-top:12px">No data yet â€” log some sets and come back!</p>';
+    document.getElementById('progressBody').innerHTML = '<p style="color:var(--muted);font-size:14px;margin-top:12px">No data yet — log some sets and come back!</p>';
   } else {
     const unit = unitPref;
     let html = '';
@@ -2107,7 +2106,7 @@ document.getElementById('progressOverlay').addEventListener('click', e => {
     document.getElementById('progressOverlay').classList.remove('show');
 });
 
-// â”€â”€ Rest Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Rest Timer ────────────────────────────────────────
 let timerSecs = 90, timerRemaining = 90, timerInterval = null, timerRunning = false;
 function fmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function updateTimer() {
@@ -2158,12 +2157,12 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
   });
 });
 
-// â•â• NUTRITION LOGIC â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══ NUTRITION LOGIC ═══════════════════════════════════
 
 // Set header date + session
 document.getElementById('h-date').textContent =
   nowD.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-document.getElementById('h-session').textContent = `${DAY_NAMES[DOW]} Â· ${SESSIONS[DOW]}`;
+document.getElementById('h-session').textContent = `${DAY_NAMES[DOW]} · ${SESSIONS[DOW]}`;
 
 // Load today's nutrition data
 async function load() {
@@ -2265,15 +2264,15 @@ function render() {
         <div class="supp-list">
           <div class="supp ${daily?.omega3_taken?'on':''}" onclick="toggleSupp('omega3_taken')">
             <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Omega-3 &middot; Fish Oil</div><div class="supp-desc">1â€“2g EPA+DHA &middot; with a meal</div></div>
+            <div><div class="supp-name">Omega-3 &middot; Fish Oil</div><div class="supp-desc">1–2g EPA+DHA &middot; with a meal</div></div>
           </div>
           <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
             <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">2,000â€“5,000 IU &middot; with a meal</div></div>
+            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">2,000–5,000 IU &middot; with a meal</div></div>
           </div>
           <div class="supp ${daily?.magnesium_taken?'on':''}" onclick="toggleSupp('magnesium_taken')">
             <div class="supp-box">${daily?.magnesium_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc">200â€“400mg &middot; before bed</div></div>
+            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc">200–400mg &middot; before bed</div></div>
           </div>
         </div>
       </div>
@@ -2282,7 +2281,7 @@ function render() {
       <div class="card-lbl">Workout</div>
       <div class="card-body">
         <button class="wo-btn ${daily?.workout_done?'on':''}" onclick="toggleWo()">
-          ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : `${SESSIONS[DOW]} â€” Mark Done`}
+          ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : `${SESSIONS[DOW]} — Mark Done`}
         </button>
       </div>
     </div>
@@ -2297,7 +2296,7 @@ function render() {
           <span>Total</span>
           <span>${t.cal.toLocaleString()} cal &nbsp;&middot;&nbsp; ${t.prot.toFixed(0)}g protein &nbsp;&middot;&nbsp; ${t.sugar.toFixed(0)}g sugar</span>
         </div>` :
-        '<div class="food-empty">No food logged yet â€” tap + Log Food to start</div>'}
+        '<div class="food-empty">No food logged yet — tap + Log Food to start</div>'}
     </div>`;
 }
 
@@ -2323,7 +2322,7 @@ async function refreshFoods() {
   render();
 }
 
-// â”€â”€ Food Log Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Food Log Sheet ────────────────────────────────────
 function openSheet() {
   document.getElementById('foodOverlay').classList.add('show');
   loadRecentMeals();
@@ -2358,7 +2357,7 @@ function pickMeal(btn, meal) {
   btn.classList.add('on');
 }
 
-// â”€â”€ Image Compression â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Image Compression ─────────────────────────────────
 function compressImage(file, maxPx = 900, quality = 0.88) {
   return new Promise(resolve => {
     const img = new Image();
@@ -2387,7 +2386,7 @@ function updatePhotoGrid() {
   btn.textContent = n === 1 ? 'Analyze 1 Photo' : `Analyze ${n} Photos`;
   document.getElementById('photo-label').textContent = n > 0 ? 'Add Another Photo' : 'Add a Photo';
   document.getElementById('photo-sub').textContent = n > 0
-    ? `${n} photo${n>1?'s':''} queued â€” add more or tap Analyze`
+    ? `${n} photo${n>1?'s':''} queued — add more or tap Analyze`
     : 'Take multiple shots of each part of your meal';
 }
 function removePhoto(i) { pendingFiles.splice(i, 1); updatePhotoGrid(); }
@@ -2406,7 +2405,7 @@ async function analyzePhotos() {
   btn.disabled = true;
   document.getElementById('analyzing').classList.add('show');
   document.getElementById('analyzing-txt').textContent =
-    `Analyzing ${pendingFiles.length} photo${pendingFiles.length>1?'s':''}â€¦`;
+    `Analyzing ${pendingFiles.length} photo${pendingFiles.length>1?'s':''}…`;
   try {
     const images = await Promise.all(
       pendingFiles.map(async f => ({ data: await compressImage(f), media_type: 'image/jpeg' }))
@@ -2430,7 +2429,7 @@ async function analyzePhotos() {
     aiResult = true;
   } catch(err) {
     document.getElementById('analyzing').classList.remove('show');
-    document.getElementById('photo-sub').textContent = '&#9888; ' + (err.message || 'Analysis failed â€” try again');
+    document.getElementById('photo-sub').textContent = '&#9888; ' + (err.message || 'Analysis failed — try again');
   }
   btn.disabled = false;
 }
@@ -2441,7 +2440,7 @@ async function analyzeText() {
   const btn = document.getElementById('desc-analyze-btn');
   btn.disabled = true;
   document.getElementById('analyzing').classList.add('show');
-  document.getElementById('analyzing-txt').textContent = 'Analyzing descriptionâ€¦';
+  document.getElementById('analyzing-txt').textContent = 'Analyzing description…';
   try {
     const resp = await fetch(FN_URL, {
       method: 'POST',
@@ -2461,7 +2460,7 @@ async function analyzeText() {
     document.getElementById('ai-badge').style.display = 'inline';
   } catch(err) {
     document.getElementById('analyzing').classList.remove('show');
-    document.getElementById('f-desc').placeholder = '&#9888; ' + (err.message || 'Analysis failed â€” try again');
+    document.getElementById('f-desc').placeholder = '&#9888; ' + (err.message || 'Analysis failed — try again');
   }
   btn.disabled = false;
 }
@@ -2518,7 +2517,7 @@ function relogItem(name, cal, prot, sugar) {
   document.getElementById('ai-badge').style.display = 'inline';
 }
 
-// â•â• HISTORY LOGIC â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══ HISTORY LOGIC ══════════════════════════════════════
 
 async function loadHistory() {
   try {
@@ -2540,7 +2539,7 @@ function weekLabel(dateStr) {
   const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const fmt = dt => dt.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  return `Week of ${fmt(mon)} â€“ ${fmt(sun)}`;
+  return `Week of ${fmt(mon)} – ${fmt(sun)}`;
 }
 
 function renderHistory(rows) {
@@ -2562,13 +2561,13 @@ function renderHistory(rows) {
   const daysLowProt   = recent.filter(r => parseFloat(r.total_protein_g) < 150 && r.total_calories > 0).length;
 
   const flags = [];
-  if (parseFloat(avgProt)  < 140) flags.push('&#9888; Avg protein below 150g â€” prioritize protein at each meal');
-  if (parseFloat(avgSugar) > 30)  flags.push('&#9888; Avg added sugar trending high â€” watch sauces, dressings, drinks');
+  if (parseFloat(avgProt)  < 140) flags.push('&#9888; Avg protein below 150g — prioritize protein at each meal');
+  if (parseFloat(avgSugar) > 30)  flags.push('&#9888; Avg added sugar trending high — watch sauces, dressings, drinks');
   if (daysOverSugar > 5)          flags.push(`&#9888; Sugar limit exceeded ${daysOverSugar} of last ${n} days`);
   if (daysLowProt   > 7)          flags.push(`&#9888; Protein under target ${daysLowProt} of last ${n} days`);
-  if (mgComp < 60)                flags.push('&#9888; Magnesium compliance low â€” affects sleep and recovery');
-  if (o3Comp < 60)                flags.push('&#9888; Omega-3 compliance low â€” take with any meal');
-  if (woComp >= 80)               flags.push('&#10003; Strong workout consistency â€” keep it up');
+  if (mgComp < 60)                flags.push('&#9888; Magnesium compliance low — affects sleep and recovery');
+  if (o3Comp < 60)                flags.push('&#9888; Omega-3 compliance low — take with any meal');
+  if (woComp >= 80)               flags.push('&#10003; Strong workout consistency — keep it up');
 
   const insClr = (val, good, bad, higher) =>
     higher ? (val >= good ? 'ok' : val >= bad ? 'warn' : 'bad')
@@ -2632,9 +2631,9 @@ function renderHistory(rows) {
       <div class="hist-row">
         <div class="hr-date">${mo}<span>${dy}</span></div>
         <div class="hr-session">${r.session_type}</div>
-        <div class="hr-cal" style="color:${calClr}">${hasData ? cal.toLocaleString() : 'â€”'}</div>
-        <div class="hr-prot" style="color:${protClr}">${hasData ? prot.toFixed(0)+'g' : 'â€”'}</div>
-        <div class="hr-sugar" style="color:${sugarClr}">${hasData ? sugar.toFixed(0)+'g' : 'â€”'}</div>
+        <div class="hr-cal" style="color:${calClr}">${hasData ? cal.toLocaleString() : '—'}</div>
+        <div class="hr-prot" style="color:${protClr}">${hasData ? prot.toFixed(0)+'g' : '—'}</div>
+        <div class="hr-sugar" style="color:${sugarClr}">${hasData ? sugar.toFixed(0)+'g' : '—'}</div>
         <div class="hr-wo">${r.workout_done ? '&#10003;' : ''}</div>
         <div class="hr-supps">
           <div class="supp-dot ${r.omega3_taken?'on':''}" title="Omega-3"></div>
@@ -2671,7 +2670,7 @@ async function downloadCSV() {
   a.click();
 }
 
-// â•â• INIT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══ INIT ═══════════════════════════════════════════════
 renderWOTabs();
 renderWOContent();
 updateTimer();
