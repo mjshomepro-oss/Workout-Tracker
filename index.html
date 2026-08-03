@@ -1792,7 +1792,9 @@ async function sbGet(table, qs = {}) {
   const url = new URL(`${SB_URL}/rest/v1/${table}`);
   Object.entries(qs).forEach(([k,v]) => url.searchParams.set(k,v));
   const r = await fetch(url, {headers: H});
-  return r.json();
+  const data = await r.json();
+  if (!r.ok) throw new Error(data?.message || `HTTP ${r.status}`);
+  return data;
 }
 async function sbPost(table, data, upsert = false) {
   const h = {...H, 'Prefer': upsert ? 'resolution=merge-duplicates,return=representation' : 'return=representation'};
@@ -2947,7 +2949,7 @@ async function loadMealItems() {
     const items = await sbGet('food_log', {
       'log_date': `gte.${since}`,
       'food_name': 'neq.Historical Import',
-      'order': 'log_date.desc,created_at.asc',
+      'order': 'log_date.desc,id.asc',
       'limit': '1000',
     });
     if (!items.length) { root.innerHTML = '<div class="food-empty">No meals logged yet.</div>'; return; }
