@@ -1067,12 +1067,14 @@ function pickStapleFraction(i) {
 }
 async function applyStapleFraction(frac) {
   document.getElementById('stapleOverlay').classList.remove('show');
-  if (!pendingStaple) return;
+  if (!pendingStaple) { alert('DEBUG: pendingStaple is null'); return; }
   const s = pendingStaple; pendingStaple = null;
   const r = v => Math.round(v * frac * 10) / 10;
   saltLevel = 'none';
   relogItem(s.name, r(s.cal), r(s.prot), r(s.sugar), r(s.fat), r(s.carbs), r(s.fiber), Math.round(s.sodium * frac), Math.round(s.potassium * frac));
+  alert('DEBUG: about to saveFood for ' + s.name);
   await saveFood();
+  alert('DEBUG: saveFood done');
 }
 
 // ── Lyfta Links ───────────────────────────────────────
