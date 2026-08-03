@@ -2829,7 +2829,7 @@ function render() {
         <div class="supp-list">
           <div class="supp ${daily?.omega3_taken?'on':''}" onclick="toggleSupp('omega3_taken')">
             <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Omega-3 &middot; Fish Oil</div><div class="supp-desc">CVS 2 softgels &middot; 1000mg / 600mg Omega-3 &middot; with a meal</div></div>
+            <div><div class="supp-name">Omega-3 &middot; Fish Oil</div><div class="supp-desc">CVS 1 softgel &middot; 500mg / 300mg Omega-3 &middot; with a meal</div></div>
           </div>
           <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
             <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
@@ -2871,7 +2871,7 @@ async function setLabor(lv) {
   await sbPatch('daily_log', {log_date: ntDateStr()}, {labor_level: lv});
 }
 const SUPP_FOOD = {
-  omega3_taken:   { food_name:'Fish Oil (2 softgels)', calories:10, protein_g:0, added_sugar_g:0, fat_g:1,   carbs_g:0,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
+  omega3_taken:   { food_name:'Fish Oil (1 softgel)',  calories:5,  protein_g:0, added_sugar_g:0, fat_g:0.5, carbs_g:0,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
   d3_k2_taken:    { food_name:'D3+K2 Gummy (1)',       calories:8,  protein_g:0, added_sugar_g:1, fat_g:0,   carbs_g:1.5, fiber_g:0, sodium_mg:3,  potassium_mg:0  },
 };
 async function toggleSupp(field) {
