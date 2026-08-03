@@ -1072,9 +1072,12 @@ async function applyStapleFraction(frac) {
   const r = v => Math.round(v * frac * 10) / 10;
   saltLevel = 'none';
   relogItem(s.name, r(s.cal), r(s.prot), r(s.sugar), r(s.fat), r(s.carbs), r(s.fiber), Math.round(s.sodium * frac), Math.round(s.potassium * frac));
-  alert('DEBUG: about to saveFood for ' + s.name);
-  await saveFood();
-  alert('DEBUG: saveFood done');
+  try {
+    await saveFood();
+    alert('DEBUG: saved ' + s.name);
+  } catch(e) {
+    alert('DEBUG ERROR: ' + e.message);
+  }
 }
 
 // ── Lyfta Links ───────────────────────────────────────
