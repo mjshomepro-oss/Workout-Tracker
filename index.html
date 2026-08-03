@@ -262,7 +262,7 @@ body {
 /* ── Rules Card ──────────────────────────────────────── */
 .rules-card {
   background: var(--surface); border-radius: var(--radius);
-  padding: 14px; margin-top: 6px; border: 1px solid var(--border);
+  padding: 14px; margin-top: 6px; margin-bottom: 80px; border: 1px solid var(--border);
 }
 .rules-card h3 {
   font-size: 11px; font-weight: 700; color: var(--muted);
@@ -1022,7 +1022,7 @@ const LYFTA = {
   'Lateral raise':                   'https://www.lyfta.app/exercise/lateral-raise-96',
   'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-incline-triceps-extension-6im',
   'DB curl':                         'https://www.lyfta.app/exercise/dumbbell-standing-biceps-curl-6ka',
-  'Close-grip push-up':              'https://www.lyfta.app/exercise/push-up-close-grip-off-dumbbell-6rs',
+  'Close-grip push-up':              'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
   'Barbell back squat':              'https://www.lyfta.app/exercise/barbell-squat--620',
   'DB step-up':                      'https://www.lyfta.app/exercise/dumbbell-step-up--7t0',
   'Bulgarian split squat':           'https://www.lyfta.app/exercise/dumbbell-bulgarian-split-squat--7v6',
@@ -1743,7 +1743,7 @@ const SUPP = {
 const EXTRA_LIFTS = [
   // Kettlebell
   { name: 'KB Goblet Squat',          cat:'KB',    sets:3, reps:'12–15',      formKey:'Goblet squat', lyfta:'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux' },
-  { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://www.lyfta.app/exercise/kettlebell-swing-7z3' },
+  { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://www.lyfta.app/exercise/kettlebell-swing-7ba' },
   { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://www.lyfta.app/exercise/kettlebell-halo-7z5' },
   { name: 'KB Single-arm Row',        cat:'KB',    sets:3, reps:'10–12 / side', formKey:null,         lyfta:null },
   { name: 'KB Romanian Deadlift',     cat:'KB',    sets:3, reps:'10–12',      formKey:null,           lyfta:null },
@@ -1756,7 +1756,7 @@ const EXTRA_LIFTS = [
   // Upper
   { name: 'Face Pull',                cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
   { name: 'Band Pull-apart',          cat:'Upper', sets:3, reps:'20',         formKey:null,           lyfta:null },
-  { name: 'Push-up',                  cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:'https://www.lyfta.app/exercise/push-up-8a6' },
+  { name: 'Push-up',                  cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:'https://www.lyfta.app/exercise/push-up-1j' },
   { name: 'Pike Push-up',             cat:'Upper', sets:3, reps:'10–12',      formKey:null,           lyfta:null },
   { name: 'DB Rear-delt Fly',         cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
   { name: 'DB Upright Row',           cat:'Upper', sets:3, reps:'12',         formKey:null,           lyfta:null },
