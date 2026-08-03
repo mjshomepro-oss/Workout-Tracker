@@ -1067,17 +1067,12 @@ function pickStapleFraction(i) {
 }
 async function applyStapleFraction(frac) {
   document.getElementById('stapleOverlay').classList.remove('show');
-  if (!pendingStaple) { alert('DEBUG: pendingStaple is null'); return; }
+  if (!pendingStaple) return;
   const s = pendingStaple; pendingStaple = null;
   const r = v => Math.round(v * frac * 10) / 10;
   saltLevel = 'none';
   relogItem(s.name, r(s.cal), r(s.prot), r(s.sugar), r(s.fat), r(s.carbs), r(s.fiber), Math.round(s.sodium * frac), Math.round(s.potassium * frac));
-  try {
-    await saveFood();
-    alert('DEBUG: saved ' + s.name);
-  } catch(e) {
-    alert('DEBUG ERROR: ' + e.message);
-  }
+  await saveFood();
 }
 
 // ── Lyfta Links ───────────────────────────────────────
@@ -2923,8 +2918,6 @@ function closeSheet() {
   document.getElementById('cam-input').value = '';
   document.getElementById('cam-input-shoot').value = '';
   document.getElementById('save-btn').disabled = false;
-  document.getElementById('photo-label').textContent = 'Add a Photo';
-  document.getElementById('photo-sub').textContent = 'Take multiple shots of each part of your meal';
   document.getElementById('photo-grid').innerHTML = '';
   document.getElementById('analyze-btn').style.display = 'none';
   document.getElementById('f-desc').value = '';
