@@ -659,6 +659,7 @@ body {
 }
 .m-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 .num-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.num-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .ai-badge { font-size: 10px; color: var(--accent); font-weight: 700; float: right; letter-spacing: 0.3px; }
 
 /* Recent meals */
@@ -951,6 +952,24 @@ body {
       <div>
         <label class="fl-lbl">Added Sugar (g)</label>
         <input class="fi" id="f-sugar" type="number" inputmode="decimal" placeholder="0">
+      </div>
+    </div>
+    <div class="num-row-4">
+      <div>
+        <label class="fl-lbl">Fat (g)</label>
+        <input class="fi" id="f-fat" type="number" inputmode="decimal" placeholder="0">
+      </div>
+      <div>
+        <label class="fl-lbl">Carbs (g)</label>
+        <input class="fi" id="f-carbs" type="number" inputmode="decimal" placeholder="0">
+      </div>
+      <div>
+        <label class="fl-lbl">Fiber (g)</label>
+        <input class="fi" id="f-fiber" type="number" inputmode="decimal" placeholder="0">
+      </div>
+      <div>
+        <label class="fl-lbl">Sodium (mg)</label>
+        <input class="fi" id="f-sodium" type="number" inputmode="numeric" placeholder="0">
       </div>
     </div>
 
@@ -2596,10 +2615,14 @@ async function load() {
 // Compute totals + calorie target
 function totals() {
   return foods.reduce((a,e) => ({
-    cal:   a.cal   + (e.calories||0),
-    prot:  a.prot  + parseFloat(e.protein_g||0),
-    sugar: a.sugar + parseFloat(e.added_sugar_g||0),
-  }), {cal:0, prot:0, sugar:0});
+    cal:    a.cal    + (e.calories||0),
+    prot:   a.prot   + parseFloat(e.protein_g||0),
+    sugar:  a.sugar  + parseFloat(e.added_sugar_g||0),
+    fat:    a.fat    + parseFloat(e.fat_g||0),
+    carbs:  a.carbs  + parseFloat(e.carbs_g||0),
+    fiber:  a.fiber  + parseFloat(e.fiber_g||0),
+    sodium: a.sodium + (parseInt(e.sodium_mg)||0),
+  }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0});
 }
 function target() { return CAL_BASE[DOW] + (LABOR_ADD[daily?.labor_level||'light']||0); }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
@@ -2626,7 +2649,7 @@ function render() {
           <div class="food-row">
             <div class="food-info">
               <div class="food-name-tx">${e.food_name}</div>
-              <div class="food-mac">${parseFloat(e.protein_g||0).toFixed(0)}g protein &middot; ${parseFloat(e.added_sugar_g||0).toFixed(0)}g sugar</div>
+              <div class="food-mac">${parseFloat(e.protein_g||0).toFixed(0)}g P &middot; ${parseFloat(e.added_sugar_g||0).toFixed(0)}g S${parseFloat(e.fat_g||0) ? ` &middot; ${parseFloat(e.fat_g).toFixed(0)}g F` : ''}${parseFloat(e.carbs_g||0) ? ` &middot; ${parseFloat(e.carbs_g).toFixed(0)}g C` : ''}${parseFloat(e.fiber_g||0) ? ` &middot; ${parseFloat(e.fiber_g).toFixed(0)}g Fb` : ''}${parseInt(e.sodium_mg||0) ? ` &middot; ${parseInt(e.sodium_mg)}mg Na` : ''}</div>
             </div>
             <div class="food-cal">${(e.calories||0).toLocaleString()}</div>
             <button class="food-del" onclick="delFood('${e.id}')">&#215;</button>
@@ -2668,6 +2691,34 @@ function render() {
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sugar,36)}%;background:${sugarClr}"></div></div>
         </div>
+        ${t.fat > 0 ? `<div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Fat</span>
+            <span class="prog-val" style="color:${t.fat > 80 ? 'var(--yellow)' : 'var(--muted)'}">${t.fat.toFixed(0)}g / 80g</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.fat,80)}%;background:${t.fat > 80 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
+        </div>` : ''}
+        ${t.carbs > 0 ? `<div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Carbs</span>
+            <span class="prog-val" style="color:${t.carbs > 250 ? 'var(--yellow)' : 'var(--muted)'}">${t.carbs.toFixed(0)}g / 250g</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.carbs,250)}%;background:${t.carbs > 250 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
+        </div>` : ''}
+        ${t.fiber > 0 ? `<div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Fiber</span>
+            <span class="prog-val" style="color:${t.fiber >= 30 ? 'var(--accent)' : 'var(--muted)'}">${t.fiber.toFixed(0)}g / 30g</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.fiber,30)}%;background:${t.fiber >= 30 ? 'var(--accent)' : 'var(--blue)'}"></div></div>
+        </div>` : ''}
+        ${t.sodium > 0 ? `<div class="prog">
+          <div class="prog-row">
+            <span class="prog-lbl">Sodium</span>
+            <span class="prog-val" style="color:${t.sodium > 2300 ? 'var(--red)' : 'var(--muted)'}">${t.sodium.toLocaleString()}mg / 2300mg</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sodium,2300)}%;background:${t.sodium > 2300 ? 'var(--red)' : 'var(--accent)'}"></div></div>
+        </div>` : ''}
       </div>
     </div>
     <div class="card">
@@ -2706,7 +2757,7 @@ function render() {
         ${foodHTML}
         <div class="food-total">
           <span>Total</span>
-          <span>${t.cal.toLocaleString()} cal &nbsp;&middot;&nbsp; ${t.prot.toFixed(0)}g protein &nbsp;&middot;&nbsp; ${t.sugar.toFixed(0)}g sugar</span>
+          <span>${t.cal.toLocaleString()} cal &nbsp;&middot;&nbsp; ${t.prot.toFixed(0)}g P &nbsp;&middot;&nbsp; ${t.sugar.toFixed(0)}g S${t.fat > 0 ? ` &nbsp;&middot;&nbsp; ${t.fat.toFixed(0)}g F` : ''}${t.carbs > 0 ? ` &nbsp;&middot;&nbsp; ${t.carbs.toFixed(0)}g C` : ''}${t.fiber > 0 ? ` &nbsp;&middot;&nbsp; ${t.fiber.toFixed(0)}g Fb` : ''}${t.sodium > 0 ? ` &nbsp;&middot;&nbsp; ${t.sodium.toLocaleString()}mg Na` : ''}</span>
         </div>` :
         `<div class="food-empty">${ntDayOffset === 0 ? 'No food logged yet — tap + Log Food to start' : 'Nothing logged this day.'}</div>`}
     </div>`;
@@ -2744,7 +2795,7 @@ function openSheet() {
 }
 function closeSheet() {
   document.getElementById('foodOverlay').classList.remove('show');
-  ['f-name','f-cal','f-prot','f-sugar'].forEach(id => {
+  ['f-name','f-cal','f-prot','f-sugar','f-fat','f-carbs','f-fiber','f-sodium'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
     el.classList.remove('ai-filled');
@@ -2836,6 +2887,8 @@ async function analyzePhotos() {
     const fill = (id, val) => { const el = document.getElementById(id); el.value = val ?? ''; el.classList.add('ai-filled'); };
     fill('f-name', data.name); fill('f-cal', data.calories);
     fill('f-prot', data.protein_g); fill('f-sugar', data.added_sugar_g);
+    fill('f-fat', data.fat_g); fill('f-carbs', data.carbs_g);
+    fill('f-fiber', data.fiber_g); fill('f-sodium', data.sodium_mg);
     if (data.meal_time && MEALS.includes(data.meal_time)) {
       formMeal = data.meal_time;
       document.querySelectorAll('.m-btn').forEach(b => b.classList.toggle('on', b.textContent === data.meal_time));
@@ -2868,6 +2921,8 @@ async function analyzeText() {
     const fill = (id, v) => { const el = document.getElementById(id); el.value = v ?? ''; el.classList.add('ai-filled'); };
     fill('f-name', data.name); fill('f-cal', data.calories);
     fill('f-prot', data.protein_g); fill('f-sugar', data.added_sugar_g);
+    fill('f-fat', data.fat_g); fill('f-carbs', data.carbs_g);
+    fill('f-fiber', data.fiber_g); fill('f-sodium', data.sodium_mg);
     if (data.meal_time && MEALS.includes(data.meal_time)) {
       formMeal = data.meal_time;
       document.querySelectorAll('.m-btn').forEach(b => b.classList.toggle('on', b.textContent === data.meal_time));
@@ -2889,16 +2944,21 @@ function setInputMode(mode) {
 }
 
 async function saveFood() {
-  const name  = document.getElementById('f-name').value.trim();
-  const cal   = parseInt(document.getElementById('f-cal').value)    || 0;
-  const prot  = parseFloat(document.getElementById('f-prot').value) || 0;
-  const sugar = parseFloat(document.getElementById('f-sugar').value)|| 0;
+  const name   = document.getElementById('f-name').value.trim();
+  const cal    = parseInt(document.getElementById('f-cal').value)     || 0;
+  const prot   = parseFloat(document.getElementById('f-prot').value)  || 0;
+  const sugar  = parseFloat(document.getElementById('f-sugar').value) || 0;
+  const fat    = parseFloat(document.getElementById('f-fat').value)   || 0;
+  const carbs  = parseFloat(document.getElementById('f-carbs').value) || 0;
+  const fiber  = parseFloat(document.getElementById('f-fiber').value) || 0;
+  const sodium = parseInt(document.getElementById('f-sodium').value)  || 0;
   if (!name) { document.getElementById('f-name').focus(); return; }
   document.getElementById('save-btn').disabled = true;
   closeSheet();
   const rows = await sbPost('food_log', {
     log_date: ntDateStr(), meal_time: formMeal, food_name: name,
     calories: cal, protein_g: prot, added_sugar_g: sugar,
+    fat_g: fat, carbs_g: carbs, fiber_g: fiber, sodium_mg: sodium,
   });
   if (Array.isArray(rows) && rows[0]) { foods.push(rows[0]); }
   else { foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'}); }
@@ -2921,14 +2981,15 @@ async function loadRecentMeals() {
   const el = document.getElementById('recent-scroll');
   if (!unique.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0">None yet</div>'; return; }
   el.innerHTML = unique.map(r => `
-    <button class="recent-chip" onclick="relogItem(${JSON.stringify(r.food_name).replace(/"/g,'&quot;')},${r.calories},${r.protein_g},${r.added_sugar_g})">
+    <button class="recent-chip" onclick="relogItem(${JSON.stringify(r.food_name).replace(/"/g,'&quot;')},${r.calories},${r.protein_g},${r.added_sugar_g},${r.fat_g||0},${r.carbs_g||0},${r.fiber_g||0},${r.sodium_mg||0})">
       <div class="rc-name">${r.food_name}</div>
       <div class="rc-mac">${r.calories} cal &middot; ${parseFloat(r.protein_g).toFixed(0)}g P &middot; ${parseFloat(r.added_sugar_g).toFixed(0)}g S</div>
     </button>`).join('');
 }
-function relogItem(name, cal, prot, sugar) {
-  const fill = (id, v) => { const el = document.getElementById(id); el.value = v; el.classList.add('ai-filled'); };
+function relogItem(name, cal, prot, sugar, fat, carbs, fiber, sodium) {
+  const fill = (id, v) => { const el = document.getElementById(id); el.value = v || ''; el.classList.add('ai-filled'); };
   fill('f-name', name); fill('f-cal', cal); fill('f-prot', prot); fill('f-sugar', sugar);
+  fill('f-fat', fat); fill('f-carbs', carbs); fill('f-fiber', fiber); fill('f-sodium', sodium);
   document.getElementById('ai-badge').style.display = 'inline';
 }
 
