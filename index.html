@@ -2691,34 +2691,34 @@ function render() {
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sugar,36)}%;background:${sugarClr}"></div></div>
         </div>
-        ${t.fat > 0 ? `<div class="prog">
+        <div class="prog">
           <div class="prog-row">
             <span class="prog-lbl">Fat</span>
             <span class="prog-val" style="color:${t.fat > 80 ? 'var(--yellow)' : 'var(--muted)'}">${t.fat.toFixed(0)}g / 80g</span>
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.fat,80)}%;background:${t.fat > 80 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
-        </div>` : ''}
-        ${t.carbs > 0 ? `<div class="prog">
+        </div>
+        <div class="prog">
           <div class="prog-row">
             <span class="prog-lbl">Carbs</span>
             <span class="prog-val" style="color:${t.carbs > 250 ? 'var(--yellow)' : 'var(--muted)'}">${t.carbs.toFixed(0)}g / 250g</span>
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.carbs,250)}%;background:${t.carbs > 250 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
-        </div>` : ''}
-        ${t.fiber > 0 ? `<div class="prog">
+        </div>
+        <div class="prog">
           <div class="prog-row">
             <span class="prog-lbl">Fiber</span>
             <span class="prog-val" style="color:${t.fiber >= 30 ? 'var(--accent)' : 'var(--muted)'}">${t.fiber.toFixed(0)}g / 30g</span>
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.fiber,30)}%;background:${t.fiber >= 30 ? 'var(--accent)' : 'var(--blue)'}"></div></div>
-        </div>` : ''}
-        ${t.sodium > 0 ? `<div class="prog">
+        </div>
+        <div class="prog">
           <div class="prog-row">
             <span class="prog-lbl">Sodium</span>
             <span class="prog-val" style="color:${t.sodium > 2300 ? 'var(--red)' : 'var(--muted)'}">${t.sodium.toLocaleString()}mg / 2300mg</span>
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sodium,2300)}%;background:${t.sodium > 2300 ? 'var(--red)' : 'var(--accent)'}"></div></div>
-        </div>` : ''}
+        </div>
       </div>
     </div>
     <div class="card">
