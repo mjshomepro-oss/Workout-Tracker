@@ -438,6 +438,43 @@ body {
 .mi-meal { font-size: 10px; color: var(--muted); min-width: 66px; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
 .mi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mi-nums { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+/* ── Workout: set count control + add-lift ───────────── */
+.set-ctrl {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted);
+}
+.set-ctrl-right { display: flex; align-items: center; gap: 8px; }
+.set-ctrl-btn {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  width: 28px; height: 28px; border-radius: 7px; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.set-ctrl-btn:disabled { opacity: 0.35; cursor: default; }
+.set-ctrl-count { font-size: 16px; font-weight: 700; color: var(--text); min-width: 20px; text-align: center; }
+.add-lift-btn {
+  display: block; width: calc(100% - 28px); margin: 10px 14px;
+  padding: 12px; background: var(--surface); border: 1.5px dashed var(--border);
+  color: var(--blue); font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer;
+}
+.remove-extra-btn {
+  background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 4px;
+}
+/* ── Add-lift picker sheet ───────────────────────────── */
+.lift-cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.lift-cat-btn {
+  padding: 5px 11px; background: var(--surface2); border: none; border-radius: 7px;
+  color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.lift-cat-btn.active { background: var(--accent); color: #000; }
+.lift-list { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; }
+.lift-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--surface2); border-radius: 8px; cursor: pointer; border: 2px solid transparent;
+}
+.lift-item.selected { border-color: var(--accent); background: var(--surface); }
+.lift-item-name { font-size: 13px; font-weight: 600; }
+.lift-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .week-hd {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
   color: var(--muted); padding: 12px 14px 4px; background: var(--bg);
@@ -803,6 +840,26 @@ body {
     <div class="form-sheet-title">&#129514; Creatine &amp; Protein Plan</div>
     <div class="form-sheet-subtitle">Take creatine every day — including rest days.</div>
     <div id="fuelBody"></div>
+  </div>
+</div>
+
+<!-- Add Lift Sheet -->
+<div class="overlay" id="addLiftOverlay">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="form-sheet-title">Add a Lift</div>
+    <div class="lift-cat-tabs" id="liftCatTabs">
+      <button class="lift-cat-btn active" onclick="filterLifts('All',this)">All</button>
+      <button class="lift-cat-btn" onclick="filterLifts('KB',this)">Kettlebell</button>
+      <button class="lift-cat-btn" onclick="filterLifts('Upper',this)">Upper</button>
+      <button class="lift-cat-btn" onclick="filterLifts('Lower',this)">Lower</button>
+      <button class="lift-cat-btn" onclick="filterLifts('Core',this)">Core</button>
+    </div>
+    <div class="lift-list" id="liftList"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="save-btn" id="addLiftConfirm" onclick="confirmAddLift()" style="flex:1">Add to Workout</button>
+      <button class="cancel-btn" onclick="document.getElementById('addLiftOverlay').classList.remove('show')" style="flex:1;margin-top:0">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1622,6 +1679,46 @@ const SUPP = {
   cautions: 'For a healthy adult, daily 5 g creatine + whey are well-established as safe. Clear it with a doctor first if you have kidney issues. This is general fitness info, not medical advice.'
 };
 
+// ── Extra Lift Library ────────────────────────────────
+const EXTRA_LIFTS = [
+  // Kettlebell
+  { name: 'KB Goblet Squat',          cat:'KB',    sets:3, reps:'12–15',      formKey:'Goblet squat', lyfta:'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux' },
+  { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://www.lyfta.app/exercise/kettlebell-swing-7z3' },
+  { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://www.lyfta.app/exercise/kettlebell-halo-7z5' },
+  { name: 'KB Single-arm Row',        cat:'KB',    sets:3, reps:'10–12 / side', formKey:null,         lyfta:null },
+  { name: 'KB Romanian Deadlift',     cat:'KB',    sets:3, reps:'10–12',      formKey:null,           lyfta:null },
+  { name: 'KB Clean & Press',         cat:'KB',    sets:3, reps:'6–8 / side', formKey:null,           lyfta:null },
+  { name: 'KB Turkish Get-up',        cat:'KB',    sets:2, reps:'3 / side',   formKey:null,           lyfta:null },
+  { name: 'KB Sumo Deadlift',         cat:'KB',    sets:3, reps:'12',         formKey:null,           lyfta:null },
+  { name: 'KB Floor Press',           cat:'KB',    sets:3, reps:'10–12 / side', formKey:null,         lyfta:null },
+  { name: 'KB Windmill',              cat:'KB',    sets:2, reps:'5 / side',   formKey:null,           lyfta:null },
+  { name: 'KB Farmers Carry',         cat:'KB',    sets:3, reps:'40 yds',     formKey:null,           lyfta:null },
+  // Upper
+  { name: 'Face Pull',                cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
+  { name: 'Band Pull-apart',          cat:'Upper', sets:3, reps:'20',         formKey:null,           lyfta:null },
+  { name: 'Push-up',                  cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:'https://www.lyfta.app/exercise/push-up-8a6' },
+  { name: 'Pike Push-up',             cat:'Upper', sets:3, reps:'10–12',      formKey:null,           lyfta:null },
+  { name: 'DB Rear-delt Fly',         cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
+  { name: 'DB Upright Row',           cat:'Upper', sets:3, reps:'12',         formKey:null,           lyfta:null },
+  { name: 'Cable Row',                cat:'Upper', sets:3, reps:'12',         formKey:null,           lyfta:null },
+  { name: 'Neutral-grip Pull-up',     cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:null },
+  // Lower
+  { name: 'Nordic Curl',              cat:'Lower', sets:3, reps:'5–8',        formKey:null,           lyfta:null },
+  { name: 'Copenhagen Plank',         cat:'Lower', sets:3, reps:'20s / side', formKey:null,           lyfta:null },
+  { name: 'Reverse Lunge',            cat:'Lower', sets:3, reps:'10 / side',  formKey:null,           lyfta:null },
+  { name: 'Hip Abduction',            cat:'Lower', sets:3, reps:'15',         formKey:null,           lyfta:null },
+  { name: 'Single-leg Hip Thrust',    cat:'Lower', sets:3, reps:'12 / side',  formKey:null,           lyfta:null },
+  { name: 'Box Jump',                 cat:'Lower', sets:3, reps:'5',          formKey:null,           lyfta:null },
+  // Core
+  { name: 'Pallof Press',             cat:'Core',  sets:3, reps:'12 / side',  formKey:null,           lyfta:null },
+  { name: 'Ab Wheel Rollout',         cat:'Core',  sets:3, reps:'8–12',       formKey:null,           lyfta:null },
+  { name: 'Hollow Hold',              cat:'Core',  sets:3, reps:'30s',        formKey:null,           lyfta:null },
+  { name: 'L-sit Hold',               cat:'Core',  sets:3, reps:'20s',        formKey:null,           lyfta:null },
+  { name: 'Cable Crunch',             cat:'Core',  sets:3, reps:'15',         formKey:null,           lyfta:null },
+  { name: 'Hanging Knee Raise',       cat:'Core',  sets:3, reps:'15',         formKey:null,           lyfta:null },
+  { name: 'Russian Twist',            cat:'Core',  sets:3, reps:'20',         formKey:null,           lyfta:null },
+];
+
 // ── Shared State ──────────────────────────────────────
 let activeTab = 'workout';
 
@@ -1744,7 +1841,7 @@ function dataMatchesRoutine(d, r) {
       const ed = d.exercises[i];
       if (!ed) return false;
       if (ex.track === false) return ed.note === true;
-      return Array.isArray(ed.sets) && ed.sets.length === ex.sets;
+      return Array.isArray(ed.sets) && ed.sets.length > 0;
     });
   }
   return !!d && Array.isArray(d.items) && d.items.length === r.items.length;
@@ -1759,7 +1856,9 @@ function loadStored(dow, offset) {
   } catch { return null; }
 }
 function loadWOData(dow, offset) {
-  return loadStored(dow, offset) || freshData(ROUTINE[dow]);
+  const d = loadStored(dow, offset) || freshData(ROUTINE[dow]);
+  if (ROUTINE[dow].type === 'strength' && !d.extras) d.extras = [];
+  return d;
 }
 function saveWOData(dow, data, offset) {
   offset = offset !== undefined ? offset : weekOffset;
@@ -1920,15 +2019,39 @@ function renderWOContent() {
   if (r.fuel) h += `<div class="fuel-banner"><span class="fuel-ico">&#128138;</span><span>${r.fuel}</span></div>`;
 
   if (r.type === 'strength') {
-    const total = r.items.reduce((s, ex) => s + (ex.track === false ? 1 : ex.sets), 0);
-    const done  = data.exercises.reduce((s, ex) => s + (ex.note ? (ex.checked ? 1 : 0) : ex.sets.filter(st => st.done).length), 0);
+    const extraSetCount = (data.extras || []).reduce((s, ex) => s + ex.sets_data.length, 0);
+    const extraDone    = (data.extras || []).reduce((s, ex) => s + ex.sets_data.filter(st => st.done).length, 0);
+    const total = r.items.reduce((s, ex) => s + (ex.track === false ? 1 : ex.sets), 0) + extraSetCount;
+    const done  = data.exercises.reduce((s, ex) => s + (ex.note ? (ex.checked ? 1 : 0) : ex.sets.filter(st => st.done).length), 0) + extraDone;
     h += `<div class="progress-strip">`;
     for (let i = 0; i < total; i++) h += `<div class="progress-seg${i < done ? ' done' : ''}"></div>`;
     h += `</div>`;
+
+    // Set count control (main lifts only)
+    const mainItems = r.items.filter(ex => ex.kind === 'main' && ex.track !== false);
+    if (mainItems.length) {
+      const firstMainIdx = r.items.indexOf(mainItems[0]);
+      const curSets = data.exercises[firstMainIdx]?.sets?.length || mainItems[0].sets || 3;
+      h += `<div class="set-ctrl">
+        <span>Sets per lift</span>
+        <div class="set-ctrl-right">
+          <button class="set-ctrl-btn" onclick="changeSetCount(-1)" ${curSets <= 1 ? 'disabled' : ''}>&#8722;</button>
+          <span class="set-ctrl-count">${curSets}</span>
+          <button class="set-ctrl-btn" onclick="changeSetCount(1)" ${curSets >= 6 ? 'disabled' : ''}>+</button>
+        </div>
+      </div>`;
+    }
   }
+
+  const firstFinisherIdx = r.items.findIndex(ex => ex.kind === 'finisher');
 
   let i = 0;
   while (i < r.items.length) {
+    // Inject extras + Add Lift button before the first finisher (strength days only)
+    if (r.type === 'strength' && i === firstFinisherIdx && firstFinisherIdx !== -1) {
+      (data.extras || []).forEach((extra, xi) => { h += renderExtraHTML(extra, xi); });
+      h += `<button class="add-lift-btn" onclick="openAddLift()">+ Add a Lift</button>`;
+    }
     const k = r.items[i].kind;
     if (k === 'warmup' || k === 'mobility') {
       let j = i;
@@ -1955,6 +2078,12 @@ function renderWOContent() {
     }
   }
 
+  // If no finisher on a strength day, append extras + button at end
+  if (r.type === 'strength' && firstFinisherIdx === -1) {
+    (data.extras || []).forEach((extra, xi) => { h += renderExtraHTML(extra, xi); });
+    h += `<button class="add-lift-btn" onclick="openAddLift()">+ Add a Lift</button>`;
+  }
+
   h += `<div class="rules-card">
     <h3>Quick Rules</h3>
     <ul>
@@ -1970,15 +2099,137 @@ function renderWOContent() {
   requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 
+// ── Extra lift card ───────────────────────────────────
+function renderExtraHTML(extra, xi) {
+  const allDone = extra.sets_data.every(s => s.done);
+  const fKey = extra.formKey;
+  const info = (fKey && FORM[fKey])
+    ? `<button class="info-btn" data-ex-name="${escHtml(fKey)}" title="Form guide"><i>i</i></button>` : '';
+  const lyftaUrl = extra.lyfta || LYFTA[extra.name];
+  let card = `<div class="exercise-card${allDone ? ' completed' : ''}">`;
+  card += `<div class="exercise-header">
+    <div class="exercise-header-left">
+      <div class="exercise-name">${pill('main')}${extra.name}</div>
+      <div class="exercise-meta">${extra.sets_data.length} sets &times; ${extra.reps}
+        ${lyftaUrl ? `&nbsp;<a href="${lyftaUrl}" target="_blank" style="color:var(--blue);font-size:10px">Lyfta</a>` : ''}
+        &nbsp;<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(extra.name+' exercise form')}" target="_blank" style="color:var(--red);font-size:10px">YT</a>
+      </div>
+    </div>
+    <div class="exercise-header-right">
+      ${info}
+      <button class="remove-extra-btn" onclick="removeExtra(${xi})" title="Remove">&#10005;</button>
+      <div class="ex-check${allDone ? ' done' : ''}">${allDone ? '&#10003;' : ''}</div>
+    </div>
+  </div>
+  <div class="sets-table">
+    <div class="set-header"><span>SET</span><span>WT (${unitPref})</span><span>REPS</span><span></span></div>`;
+  extra.sets_data.forEach((set, si) => {
+    card += `<div class="set-row${set.done ? ' done-row' : ''}">
+      <span class="set-num">${si+1}</span>
+      <input class="set-input" type="number" inputmode="decimal" placeholder="—"
+        value="${set.w}" data-extra="${xi}" data-si="${si}" data-f="w">
+      <input class="set-input" type="number" inputmode="numeric" placeholder="—"
+        value="${set.r}" data-extra="${xi}" data-si="${si}" data-f="r">
+      <button class="set-done-btn${set.done ? ' active' : ''}" data-extra="${xi}" data-si="${si}">
+        ${set.done ? '&#10003;' : '&#9675;'}
+      </button>
+    </div>`;
+  });
+  card += `</div></div>`;
+  return card;
+}
+
+// ── Set count ─────────────────────────────────────────
+function changeSetCount(delta) {
+  const data = loadWOData(currentDay);
+  const r = ROUTINE[currentDay];
+  if (r.type !== 'strength') return;
+  r.items.forEach((ex, i) => {
+    if (ex.kind !== 'main' || ex.track === false) return;
+    const sets = data.exercises[i].sets;
+    if (delta > 0) {
+      sets.push({w: sets[sets.length-1]?.w || '', r:'', done:false});
+    } else if (delta < 0 && sets.length > 1) {
+      sets.pop();
+    }
+  });
+  saveWOData(currentDay, data);
+  renderWOContent();
+}
+
+// ── Add-lift picker ───────────────────────────────────
+let selectedLiftIdx = null;
+
+function openAddLift() {
+  selectedLiftIdx = null;
+  filterLifts('All', document.querySelector('#liftCatTabs .lift-cat-btn'));
+  document.getElementById('addLiftOverlay').classList.add('show');
+}
+document.getElementById('addLiftOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('addLiftOverlay'))
+    document.getElementById('addLiftOverlay').classList.remove('show');
+});
+
+function filterLifts(cat, btn) {
+  document.querySelectorAll('.lift-cat-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = cat === 'All' ? EXTRA_LIFTS : EXTRA_LIFTS.filter(l => l.cat === cat);
+  document.getElementById('liftList').innerHTML = filtered.map((l, fi) => {
+    const realIdx = EXTRA_LIFTS.indexOf(l);
+    return `<div class="lift-item${selectedLiftIdx === realIdx ? ' selected' : ''}" onclick="selectLift(${realIdx}, this)">
+      <div>
+        <div class="lift-item-name">${l.name}</div>
+        <div class="lift-item-meta">${l.sets} sets &times; ${l.reps} &nbsp;&#183;&nbsp; ${l.cat}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectLift(idx, el) {
+  selectedLiftIdx = idx;
+  document.querySelectorAll('.lift-item').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function confirmAddLift() {
+  if (selectedLiftIdx === null) return;
+  const lift = EXTRA_LIFTS[selectedLiftIdx];
+  const data = loadWOData(currentDay);
+  data.extras.push({
+    name: lift.name, cat: lift.cat, reps: lift.reps,
+    formKey: lift.formKey, lyfta: lift.lyfta,
+    sets_data: Array.from({length: lift.sets}, () => ({w:'', r:'', done:false})),
+  });
+  saveWOData(currentDay, data);
+  document.getElementById('addLiftOverlay').classList.remove('show');
+  renderWOContent();
+}
+
+function removeExtra(xi) {
+  const data = loadWOData(currentDay);
+  data.extras.splice(xi, 1);
+  saveWOData(currentDay, data);
+  renderWOContent();
+}
+
 // Event listeners
 function attachWOListeners(data) {
-  document.querySelectorAll('.set-input').forEach(el => {
+  // Routine exercise inputs
+  document.querySelectorAll('.set-input[data-ex]').forEach(el => {
     el.addEventListener('blur', () => {
       data.exercises[+el.dataset.ex].sets[+el.dataset.si][el.dataset.f] = el.value;
       saveWOData(currentDay, data);
     });
   });
-  document.querySelectorAll('.set-done-btn').forEach(btn => {
+  // Extra lift inputs
+  document.querySelectorAll('.set-input[data-extra]').forEach(el => {
+    el.addEventListener('blur', () => {
+      data.extras[+el.dataset.extra].sets_data[+el.dataset.si][el.dataset.f] = el.value;
+      saveWOData(currentDay, data);
+    });
+  });
+  // Routine done buttons
+  document.querySelectorAll('.set-done-btn[data-ex]').forEach(btn => {
     btn.addEventListener('click', () => {
       const ei = +btn.dataset.ex, si = +btn.dataset.si;
       const wEl = document.querySelector(`.set-input[data-ex="${ei}"][data-si="${si}"][data-f="w"]`);
@@ -1986,6 +2237,21 @@ function attachWOListeners(data) {
       if (wEl) data.exercises[ei].sets[si].w = wEl.value;
       if (rEl) data.exercises[ei].sets[si].r = rEl.value;
       const set = data.exercises[ei].sets[si];
+      set.done = !set.done;
+      saveWOData(currentDay, data);
+      if (set.done) autoStartTimer();
+      renderWOContent(); renderWOTabs();
+    });
+  });
+  // Extra lift done buttons
+  document.querySelectorAll('.set-done-btn[data-extra]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const xi = +btn.dataset.extra, si = +btn.dataset.si;
+      const wEl = document.querySelector(`.set-input[data-extra="${xi}"][data-si="${si}"][data-f="w"]`);
+      const rEl = document.querySelector(`.set-input[data-extra="${xi}"][data-si="${si}"][data-f="r"]`);
+      if (wEl) data.extras[xi].sets_data[si].w = wEl.value;
+      if (rEl) data.extras[xi].sets_data[si].r = rEl.value;
+      const set = data.extras[xi].sets_data[si];
       set.done = !set.done;
       saveWOData(currentDay, data);
       if (set.done) autoStartTimer();
