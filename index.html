@@ -452,6 +452,14 @@ body {
 }
 .set-ctrl-btn:disabled { opacity: 0.35; cursor: default; }
 .set-ctrl-count { font-size: 16px; font-weight: 700; color: var(--text); min-width: 20px; text-align: center; }
+.hist-btn { background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:4px 6px; border-radius:6px; line-height:1; }
+.hist-btn:hover { color:var(--text); background:var(--surface2); }
+.hist-entry { padding:12px 0; border-bottom:1px solid var(--border); }
+.hist-entry:last-child { border-bottom:none; }
+.hist-entry-date { font-weight:700; font-size:13px; color:var(--text); margin-bottom:6px; }
+.hist-set-row { display:flex; gap:12px; font-size:12px; color:var(--muted); padding:2px 0; }
+.hist-set-num { min-width:42px; font-weight:600; }
+.hist-set-val { color:var(--text); }
 .add-lift-btn {
   display: block; width: calc(100% - 28px); margin: 10px 14px;
   padding: 12px; background: var(--surface); border: 1.5px dashed var(--border);
@@ -860,6 +868,15 @@ body {
       <button class="save-btn" id="addLiftConfirm" onclick="confirmAddLift()" style="flex:1">Add to Workout</button>
       <button class="cancel-btn" onclick="document.getElementById('addLiftOverlay').classList.remove('show')" style="flex:1;margin-top:0">Cancel</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="liftHistoryOverlay">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="form-sheet-title" id="liftHistoryTitle">Lift History</div>
+    <div id="liftHistoryBody" style="max-height:62vh;overflow-y:auto;padding-bottom:4px"></div>
+    <button class="cancel-btn" onclick="document.getElementById('liftHistoryOverlay').classList.remove('show')" style="margin-top:14px">Close</button>
   </div>
 </div>
 
@@ -1963,6 +1980,7 @@ function renderItemHTML(r, ei, data) {
       </div>
       <div class="exercise-header-right">
         ${info}
+        <button class="hist-btn" onclick="openLiftHistory('${escHtml(ex.name)}',${ei},${currentDay})" title="View history">&#9776;</button>
         <div class="ex-check${allDone ? ' done' : ''}">${allDone ? '&#10003;' : ''}</div>
       </div>
     </div>`;
@@ -2202,6 +2220,50 @@ function removeExtra(xi) {
   saveWOData(currentDay, data);
   renderWOContent();
 }
+
+// ── Lift History ──────────────────────────────────────
+function openLiftHistory(exName, ei, dow) {
+  const prefix = 'wt_';
+  const suffix = `_${dow}`;
+  const entries = [];
+  for (let k = 0; k < localStorage.length; k++) {
+    const key = localStorage.key(k);
+    if (!key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+    const weekStr = key.slice(prefix.length, key.length - suffix.length);
+    try {
+      const d = JSON.parse(localStorage.getItem(key));
+      const sets = d?.exercises?.[ei]?.sets;
+      if (!sets) continue;
+      const logged = sets.filter(s => s.w || s.r);
+      if (!logged.length) continue;
+      entries.push({ weekStr, sets: logged });
+    } catch(e) {}
+  }
+  entries.sort((a, b) => b.weekStr.localeCompare(a.weekStr));
+  document.getElementById('liftHistoryTitle').textContent = exName;
+  if (!entries.length) {
+    document.getElementById('liftHistoryBody').innerHTML =
+      `<p style="color:var(--muted);padding:24px 0;text-align:center">No history logged yet</p>`;
+  } else {
+    document.getElementById('liftHistoryBody').innerHTML = entries.map(e => {
+      const sun = new Date(e.weekStr + 'T12:00:00');
+      sun.setDate(sun.getDate() + dow);
+      const dateStr = sun.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+      const setsHtml = e.sets.map((s, si) =>
+        `<div class="hist-set-row">
+          <span class="hist-set-num">Set ${si+1}</span>
+          <span class="hist-set-val">${s.w ? s.w + ' ' + unitPref : '—'} &times; ${s.r || '—'} reps</span>
+        </div>`
+      ).join('');
+      return `<div class="hist-entry"><div class="hist-entry-date">${dateStr}</div>${setsHtml}</div>`;
+    }).join('');
+  }
+  document.getElementById('liftHistoryOverlay').classList.add('show');
+}
+document.getElementById('liftHistoryOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('liftHistoryOverlay'))
+    document.getElementById('liftHistoryOverlay').classList.remove('show');
+});
 
 // Event listeners
 function attachWOListeners(data) {
