@@ -728,8 +728,9 @@ body {
 
 <body>
 
-<!-- Hidden camera input -->
-<input type="file" id="cam-input" accept="image/*" style="display:none">
+<!-- Hidden camera inputs -->
+<input type="file" id="cam-input"        accept="image/*"                     style="display:none">
+<input type="file" id="cam-input-shoot"  accept="image/*" capture="environment" style="display:none">
 
 <!-- ── Bottom Navigation ─────────────────────────────── -->
 <nav class="bottom-nav">
@@ -915,11 +916,14 @@ body {
 
     <div id="photo-section">
       <div id="photo-grid" class="photo-grid"></div>
-      <div class="photo-add" onclick="document.getElementById('cam-input').click()">
-        <div class="photo-add-icon">&#128247;</div>
-        <div class="photo-add-text">
-          <strong id="photo-label">Add a Photo</strong>
-          <span id="photo-sub">Take multiple shots of each part of your meal</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="photo-add" onclick="document.getElementById('cam-input-shoot').click()">
+          <div class="photo-add-icon">📷</div>
+          <div class="photo-add-text"><strong>Take Photo</strong><span>Open camera</span></div>
+        </div>
+        <div class="photo-add" onclick="document.getElementById('cam-input').click()">
+          <div class="photo-add-icon">🖼️</div>
+          <div class="photo-add-text"><strong>Choose Photo</strong><span>From library</span></div>
         </div>
       </div>
       <button class="analyze-btn" id="analyze-btn" onclick="analyzePhotos()">Analyze Photos</button>
@@ -2868,6 +2872,7 @@ function closeSheet() {
   document.getElementById('ai-badge').style.display = 'none';
   document.getElementById('analyzing').classList.remove('show');
   document.getElementById('cam-input').value = '';
+  document.getElementById('cam-input-shoot').value = '';
   document.getElementById('save-btn').disabled = false;
   document.getElementById('photo-label').textContent = 'Add a Photo';
   document.getElementById('photo-sub').textContent = 'Take multiple shots of each part of your meal';
@@ -2923,13 +2928,15 @@ function updatePhotoGrid() {
 }
 function removePhoto(i) { pendingFiles.splice(i, 1); updatePhotoGrid(); }
 
-document.getElementById('cam-input').addEventListener('change', (e) => {
+function handlePhotoFile(e) {
   const file = e.target.files[0];
   if (!file) return;
   pendingFiles.push(file);
-  document.getElementById('cam-input').value = '';
+  e.target.value = '';
   updatePhotoGrid();
-});
+}
+document.getElementById('cam-input').addEventListener('change', handlePhotoFile);
+document.getElementById('cam-input-shoot').addEventListener('change', handlePhotoFile);
 
 async function analyzePhotos() {
   if (!pendingFiles.length) return;
