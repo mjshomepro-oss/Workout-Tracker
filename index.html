@@ -732,7 +732,7 @@ body {
 <body>
 
 <!-- Hidden camera inputs -->
-<input type="file" id="cam-input"        accept="image/*"                     style="display:none">
+<input type="file" id="cam-input"        accept="image/*" multiple            style="display:none">
 <input type="file" id="cam-input-shoot"  accept="image/*" capture="environment" style="display:none">
 
 <!-- ── Bottom Navigation ─────────────────────────────── -->
@@ -2971,9 +2971,9 @@ function updatePhotoGrid() {
 function removePhoto(i) { pendingFiles.splice(i, 1); updatePhotoGrid(); }
 
 function handlePhotoFile(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  pendingFiles.push(file);
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  pendingFiles.push(...files);
   e.target.value = '';
   updatePhotoGrid();
 }
