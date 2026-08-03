@@ -1981,7 +1981,17 @@ function renderItemHTML(r, ei, data) {
         </button>
       </div>`;
     });
-    card += `</div></div>`;
+    card += `</div>`;  // close sets-table
+    const curSets = exData.sets.length;
+    card += `<div class="set-ctrl">
+      <span>Sets</span>
+      <div class="set-ctrl-right">
+        <button class="set-ctrl-btn" onclick="changeSetCount(${ei},-1)" ${curSets <= 1 ? 'disabled' : ''}>&#8722;</button>
+        <span class="set-ctrl-count">${curSets}</span>
+        <button class="set-ctrl-btn" onclick="changeSetCount(${ei},1)" ${curSets >= 6 ? 'disabled' : ''}>+</button>
+      </div>
+    </div>`;
+    card += `</div>`;  // close exercise-card
     return card;
   }
 
@@ -2027,20 +2037,6 @@ function renderWOContent() {
     for (let i = 0; i < total; i++) h += `<div class="progress-seg${i < done ? ' done' : ''}"></div>`;
     h += `</div>`;
 
-    // Set count control (main lifts only)
-    const mainItems = r.items.filter(ex => ex.kind === 'main' && ex.track !== false);
-    if (mainItems.length) {
-      const firstMainIdx = r.items.indexOf(mainItems[0]);
-      const curSets = data.exercises[firstMainIdx]?.sets?.length || mainItems[0].sets || 3;
-      h += `<div class="set-ctrl">
-        <span>Sets per lift</span>
-        <div class="set-ctrl-right">
-          <button class="set-ctrl-btn" onclick="changeSetCount(-1)" ${curSets <= 1 ? 'disabled' : ''}>&#8722;</button>
-          <span class="set-ctrl-count">${curSets}</span>
-          <button class="set-ctrl-btn" onclick="changeSetCount(1)" ${curSets >= 6 ? 'disabled' : ''}>+</button>
-        </div>
-      </div>`;
-    }
   }
 
   const firstFinisherIdx = r.items.findIndex(ex => ex.kind === 'finisher');
@@ -2140,19 +2136,14 @@ function renderExtraHTML(extra, xi) {
 }
 
 // ── Set count ─────────────────────────────────────────
-function changeSetCount(delta) {
+function changeSetCount(ei, delta) {
   const data = loadWOData(currentDay);
-  const r = ROUTINE[currentDay];
-  if (r.type !== 'strength') return;
-  r.items.forEach((ex, i) => {
-    if (ex.kind !== 'main' || ex.track === false) return;
-    const sets = data.exercises[i].sets;
-    if (delta > 0) {
-      sets.push({w: sets[sets.length-1]?.w || '', r:'', done:false});
-    } else if (delta < 0 && sets.length > 1) {
-      sets.pop();
-    }
-  });
+  const sets = data.exercises[ei].sets;
+  if (delta > 0 && sets.length < 6) {
+    sets.push({w: sets[sets.length-1]?.w || '', r:'', done:false});
+  } else if (delta < 0 && sets.length > 1) {
+    sets.pop();
+  }
   saveWOData(currentDay, data);
   renderWOContent();
 }
