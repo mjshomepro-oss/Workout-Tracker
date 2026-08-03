@@ -701,7 +701,11 @@ body {
   <div class="nt-hdr">
     <div class="hdr-row">
       <span class="hdr-title">🍎 Nutrition</span>
-      <span class="hdr-date" id="h-date"></span>
+      <div class="week-nav">
+        <button class="week-btn" id="ntPrevDay">&#8249;</button>
+        <span class="week-label" id="h-date" style="min-width:90px"></span>
+        <button class="week-btn" id="ntNextDay" disabled>&#8250;</button>
+      </div>
     </div>
     <div class="hdr-session" id="h-session"></div>
   </div>
@@ -1603,6 +1607,7 @@ let weekOffset = 0;
 let unitPref = localStorage.getItem('unit') || 'lbs';
 
 // Nutrition state
+let ntDayOffset = 0;
 let daily      = null;
 let foods      = [];
 let formMeal   = 'Morning';
@@ -1610,6 +1615,31 @@ let aiResult   = false;
 let pendingFiles = [];
 let inputMode  = 'photo';
 let histLoaded = false;
+
+function ntDateStr(offset) {
+  const d = new Date(nowD);
+  d.setDate(d.getDate() + (offset ?? ntDayOffset));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function ntDateObj() {
+  const d = new Date(nowD);
+  d.setDate(d.getDate() + ntDayOffset);
+  return d;
+}
+function updateNtHeader() {
+  const d = ntDateObj();
+  const isToday = ntDayOffset === 0;
+  document.getElementById('h-date').textContent = isToday
+    ? d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
+    : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const dow = d.getDay();
+  document.getElementById('h-session').textContent = `${DAY_NAMES[dow]} · ${SESSIONS[dow]}`;
+  document.getElementById('ntNextDay').disabled = ntDayOffset >= 0;
+  // FAB: only show on today
+  const fab = document.getElementById('fab');
+  if (isToday) fab.classList.add('visible');
+  else fab.classList.remove('visible');
+}
 
 // ── Supabase REST ─────────────────────────────────────
 const H = {
@@ -1657,7 +1687,7 @@ function switchMainTab(tab) {
     fab.classList.remove('visible');
   } else if (tab === 'nutrition') {
     pill.classList.remove('visible');
-    fab.classList.add('visible');
+    updateNtHeader(); // sets FAB based on current day offset
   } else {
     pill.classList.remove('visible');
     fab.classList.remove('visible');
@@ -2159,18 +2189,27 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
 
 // ══ NUTRITION LOGIC ═══════════════════════════════════
 
-// Set header date + session
-document.getElementById('h-date').textContent =
-  nowD.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-document.getElementById('h-session').textContent = `${DAY_NAMES[DOW]} · ${SESSIONS[DOW]}`;
+// Init nutrition header
+updateNtHeader();
 
-// Load today's nutrition data
+// Prev / next day nav
+document.getElementById('ntPrevDay').addEventListener('click', () => {
+  ntDayOffset--; updateNtHeader(); load();
+});
+document.getElementById('ntNextDay').addEventListener('click', () => {
+  if (ntDayOffset >= 0) return;
+  ntDayOffset++; updateNtHeader(); load();
+});
+
+// Load nutrition data for the active day
 async function load() {
+  document.getElementById('nutrition-root').innerHTML = '<div class="s-loading">Loading…</div>';
+  const dateStr = ntDateStr();
   try {
-    await sbPost('daily_log', {log_date: TODAY}, true);
+    if (ntDayOffset === 0) await sbPost('daily_log', {log_date: dateStr}, true);
     const [dl, fe] = await Promise.all([
-      sbGet('daily_log', {'log_date': `eq.${TODAY}`}),
-      sbGet('food_log',  {'log_date': `eq.${TODAY}`, 'order': 'created_at'}),
+      sbGet('daily_log', {'log_date': `eq.${dateStr}`}),
+      sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
     ]);
     daily = dl[0] || {labor_level:'light',omega3_taken:false,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
     foods = fe;
@@ -2296,29 +2335,29 @@ function render() {
           <span>Total</span>
           <span>${t.cal.toLocaleString()} cal &nbsp;&middot;&nbsp; ${t.prot.toFixed(0)}g protein &nbsp;&middot;&nbsp; ${t.sugar.toFixed(0)}g sugar</span>
         </div>` :
-        '<div class="food-empty">No food logged yet — tap + Log Food to start</div>'}
+        `<div class="food-empty">${ntDayOffset === 0 ? 'No food logged yet — tap + Log Food to start' : 'Nothing logged this day.'}</div>`}
     </div>`;
 }
 
 // Nutrition actions
 async function setLabor(lv) {
   daily.labor_level = lv; render();
-  await sbPatch('daily_log', {log_date: TODAY}, {labor_level: lv});
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {labor_level: lv});
 }
 async function toggleSupp(field) {
   const v = !daily[field]; daily[field] = v; render();
-  await sbPatch('daily_log', {log_date: TODAY}, {[field]: v});
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {[field]: v});
 }
 async function toggleWo() {
   const v = !daily.workout_done; daily.workout_done = v; render();
-  await sbPatch('daily_log', {log_date: TODAY}, {workout_done: v});
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {workout_done: v});
 }
 async function delFood(id) {
   foods = foods.filter(e => e.id !== id); render();
   await sbDelete('food_log', {id});
 }
 async function refreshFoods() {
-  foods = await sbGet('food_log', {log_date: `eq.${TODAY}`, order: 'created_at'});
+  foods = await sbGet('food_log', {log_date: `eq.${ntDateStr()}`, order: 'created_at'});
   render();
 }
 
@@ -2482,11 +2521,11 @@ async function saveFood() {
   document.getElementById('save-btn').disabled = true;
   closeSheet();
   const rows = await sbPost('food_log', {
-    log_date: TODAY, meal_time: formMeal, food_name: name,
+    log_date: ntDateStr(), meal_time: formMeal, food_name: name,
     calories: cal, protein_g: prot, added_sugar_g: sugar,
   });
   if (Array.isArray(rows) && rows[0]) { foods.push(rows[0]); }
-  else { foods = await sbGet('food_log', {log_date:`eq.${TODAY}`, order:'created_at'}); }
+  else { foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'}); }
   render();
 }
 
@@ -2650,9 +2689,35 @@ function renderHistory(rows) {
 async function downloadCSV() {
   if (!window._histRows) { await loadHistory(); }
   const rows = window._histRows || [];
+
+  // Fetch all food items for logged dates
+  const dates = rows.map(r => r.log_date);
+  let itemMap = {};
+  if (dates.length) {
+    const earliest = dates[dates.length - 1];
+    const latest   = dates[0];
+    const items = await sbGet('food_log', {
+      'log_date': `gte.${earliest}`,
+      'log_date2': `lte.${latest}`,
+      'order': 'log_date,created_at',
+      'limit': '5000',
+    }).catch(() => []);
+    // sbGet doesn't support two filters on same column — fetch and filter manually
+    const allItems = await sbGet('food_log', {
+      'log_date': `gte.${earliest}`,
+      'order': 'log_date,created_at',
+      'limit': '5000',
+    }).catch(() => []);
+    allItems.forEach(i => {
+      if (!itemMap[i.log_date]) itemMap[i.log_date] = [];
+      itemMap[i.log_date].push(i);
+    });
+  }
+
+  // Sheet 1: daily summary
   const hdr = ['Date','Day','Session','Labor','Cal Target','Calories','Protein (g)',
                 'Added Sugar (g)','Workout','Omega-3','D3+K2','Magnesium','Food Entries'];
-  const lines = [hdr.join(',')];
+  const lines = ['=== DAILY SUMMARY ===', hdr.join(',')];
   for (const r of [...rows].reverse()) {
     const d = new Date(r.log_date + 'T12:00:00');
     lines.push([
@@ -2663,6 +2728,25 @@ async function downloadCSV() {
       r.d3_k2_taken?'Yes':'No', r.magnesium_taken?'Yes':'No', r.food_entries,
     ].join(','));
   }
+
+  // Sheet 2: food items
+  lines.push('');
+  lines.push('=== FOOD ITEMS ===');
+  lines.push(['Date','Day','Meal','Food','Calories','Protein (g)','Added Sugar (g)'].join(','));
+  for (const r of [...rows].reverse()) {
+    const dayItems = itemMap[r.log_date] || [];
+    const d = new Date(r.log_date + 'T12:00:00');
+    const dayName = d.toLocaleDateString('en-US',{weekday:'long'});
+    dayItems.forEach(i => {
+      lines.push([
+        r.log_date, dayName, i.meal_time,
+        `"${(i.food_name||'').replace(/"/g,'""')}"`,
+        i.calories||0, parseFloat(i.protein_g||0).toFixed(1),
+        parseFloat(i.added_sugar_g||0).toFixed(1),
+      ].join(','));
+    });
+  }
+
   const blob = new Blob([lines.join('\n')], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
