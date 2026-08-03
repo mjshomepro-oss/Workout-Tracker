@@ -1821,6 +1821,7 @@ async function sbDelete(table, match) {
 // ── Main Tab Switching ────────────────────────────────
 function switchMainTab(tab) {
   activeTab = tab;
+  localStorage.setItem('activeTab', tab);
   document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
@@ -2937,6 +2938,7 @@ let histMealsLoaded = false;
 
 function switchHistTab(tab) {
   histSubTab = tab;
+  localStorage.setItem('histSubTab', tab);
   document.getElementById('hst-daily').classList.toggle('active', tab === 'daily');
   document.getElementById('hst-meals').classList.toggle('active', tab === 'meals');
   document.getElementById('history-root').style.display       = tab === 'daily' ? '' : 'none';
@@ -3202,6 +3204,16 @@ renderWOTabs();
 renderWOContent();
 updateTimer();
 load();
+
+// Restore last active tab
+const _savedTab = localStorage.getItem('activeTab');
+if (_savedTab && _savedTab !== 'workout') {
+  switchMainTab(_savedTab);
+  if (_savedTab === 'history') {
+    const _savedHist = localStorage.getItem('histSubTab');
+    if (_savedHist && _savedHist !== 'daily') switchHistTab(_savedHist);
+  }
+}
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
