@@ -682,6 +682,7 @@ body {
   text-align: left; max-width: 160px;
 }
 .recent-chip:active { border-color: var(--accent); }
+.staple-chip { border-color: var(--acc-b); }
 .rc-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc-mac  { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
@@ -896,6 +897,11 @@ body {
     <div class="sheet-title">Log Food</div>
 
     <div class="recent-sect">
+      <span class="recent-lbl">Staples</span>
+      <div class="recent-scroll" id="staples-scroll"></div>
+    </div>
+
+    <div class="recent-sect">
       <span class="recent-lbl">Recent</span>
       <div class="recent-scroll" id="recent-scroll">
         <div style="font-size:12px;color:var(--muted);padding:6px 0">Loading…</div>
@@ -1012,6 +1018,24 @@ const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
 const nowD  = new Date();
 const TODAY = `${nowD.getFullYear()}-${String(nowD.getMonth()+1).padStart(2,'0')}-${String(nowD.getDate()).padStart(2,'0')}`;
 const DOW   = nowD.getDay();
+
+// ── Staples ───────────────────────────────────────────
+const STAPLES = [
+  { name:'WO Shake (milk)',  cal:330, prot:38, sugar:2, fat:6,   carbs:16, fiber:0,  sodium:230, potassium:500  },
+  { name:'WO Shake (water)', cal:120, prot:24, sugar:1, fat:1.5, carbs:4,  fiber:0,  sodium:130, potassium:150  },
+  { name:'Iced Coffee',      cal:40,  prot:1,  sugar:1, fat:0.5, carbs:2,  fiber:0,  sodium:20,  potassium:50   },
+  { name:'Quest Bar',        cal:190, prot:21, sugar:1, fat:8,   carbs:22, fiber:14, sodium:270, potassium:100  },
+  { name:'Banana',           cal:105, prot:1,  sugar:0, fat:0,   carbs:27, fiber:3,  sodium:1,   potassium:422  },
+];
+const STAPLE_NAMES = new Set(STAPLES.map(s => s.name));
+
+function renderStaples() {
+  document.getElementById('staples-scroll').innerHTML = STAPLES.map(s =>
+    `<button class="recent-chip staple-chip" onclick="relogItem(${JSON.stringify(s.name).replace(/"/g,'&quot;')},${s.cal},${s.prot},${s.sugar},${s.fat},${s.carbs},${s.fiber},${s.sodium},${s.potassium})">
+      <div class="rc-name">${s.name}</div>
+      <div class="rc-mac">${s.cal} cal &middot; ${s.prot}g P</div>
+    </button>`).join('');
+}
 
 // ── Lyfta Links ───────────────────────────────────────
 const LYFTA = {
@@ -2831,6 +2855,7 @@ async function refreshFoods() {
 // ── Food Log Sheet ────────────────────────────────────
 function openSheet() {
   document.getElementById('foodOverlay').classList.add('show');
+  renderStaples();
   loadRecentMeals();
 }
 function closeSheet() {
@@ -3019,9 +3044,10 @@ async function loadRecentMeals() {
   });
   const seen = new Set();
   const unique = rows.filter(r => {
+    if (STAPLE_NAMES.has(r.food_name)) return false;
     if (seen.has(r.food_name)) return false;
     seen.add(r.food_name); return true;
-  }).slice(0, 15);
+  }).slice(0, 20);
   const el = document.getElementById('recent-scroll');
   if (!unique.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0">None yet</div>'; return; }
   el.innerHTML = unique.map(r => `
