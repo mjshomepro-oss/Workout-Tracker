@@ -3071,10 +3071,11 @@ async function saveFood() {
   const sodium    = (parseInt(document.getElementById('f-sodium').value) || 0) + SALT_MG[saltLevel];
   const potassium = parseInt(document.getElementById('f-potassium').value)   || 0;
   if (!name) { document.getElementById('f-name').focus(); return; }
+  const mealTime = formMeal;
   document.getElementById('save-btn').disabled = true;
   closeSheet();
   const rows = await sbPost('food_log', {
-    log_date: ntDateStr(), meal_time: formMeal, food_name: name,
+    log_date: ntDateStr(), meal_time: mealTime, food_name: name,
     calories: cal, protein_g: prot, added_sugar_g: sugar,
     fat_g: fat, carbs_g: carbs, fiber_g: fiber, sodium_mg: sodium, potassium_mg: potassium,
   });
