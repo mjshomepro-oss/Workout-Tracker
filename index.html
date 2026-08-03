@@ -418,6 +418,26 @@ body {
   background: var(--surface2); border: none; color: var(--blue);
   font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer;
 }
+.hist-sub-tabs {
+  display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.hst-btn {
+  flex: 1; padding: 10px 0; background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.hst-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.mi-day-hd {
+  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 10px 14px 4px; background: var(--bg);
+}
+.mi-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--surface2); font-size: 12px;
+}
+.mi-row:last-child { border-bottom: none; }
+.mi-meal { font-size: 10px; color: var(--muted); min-width: 66px; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
+.mi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-nums { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); flex-shrink: 0; }
 .week-hd {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
   color: var(--muted); padding: 12px 14px 4px; background: var(--bg);
@@ -723,7 +743,12 @@ body {
       <button class="dl-btn" onclick="downloadCSV()">&#8595; CSV</button>
     </div>
   </div>
+  <div class="hist-sub-tabs">
+    <button class="hst-btn active" id="hst-daily" onclick="switchHistTab('daily')">Daily Log</button>
+    <button class="hst-btn" id="hst-meals" onclick="switchHistTab('meals')">Meal Items</button>
+  </div>
   <div id="history-root"><div class="s-loading">Loading history…</div></div>
+  <div id="history-meals-root" style="display:none"></div>
 </div>
 
 <!-- ══ OVERLAYS ════════════════════════════════════════ -->
@@ -2557,6 +2582,72 @@ function relogItem(name, cal, prot, sugar) {
 }
 
 // ══ HISTORY LOGIC ══════════════════════════════════════
+
+let histSubTab = 'daily';
+let histMealsLoaded = false;
+
+function switchHistTab(tab) {
+  histSubTab = tab;
+  document.getElementById('hst-daily').classList.toggle('active', tab === 'daily');
+  document.getElementById('hst-meals').classList.toggle('active', tab === 'meals');
+  document.getElementById('history-root').style.display       = tab === 'daily' ? '' : 'none';
+  document.getElementById('history-meals-root').style.display = tab === 'meals' ? '' : 'none';
+  if (tab === 'meals' && !histMealsLoaded) { histMealsLoaded = true; loadMealItems(); }
+}
+
+async function loadMealItems() {
+  const root = document.getElementById('history-meals-root');
+  root.innerHTML = '<div class="s-loading">Loading meals…</div>';
+  try {
+    const cutoff = new Date(nowD); cutoff.setDate(cutoff.getDate() - 90);
+    const since = cutoff.toISOString().split('T')[0];
+    const items = await sbGet('food_log', {
+      'log_date': `gte.${since}`,
+      'food_name': 'neq.Historical Import',
+      'order': 'log_date.desc,created_at.asc',
+      'limit': '1000',
+    });
+    if (!items.length) { root.innerHTML = '<div class="food-empty">No meals logged yet.</div>'; return; }
+
+    const byDate = {};
+    items.forEach(i => { (byDate[i.log_date] = byDate[i.log_date] || []).push(i); });
+
+    let html = '<div style="margin-bottom:16px">';
+    Object.entries(byDate).forEach(([date, rows]) => {
+      const d = new Date(date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+      const tot = rows.reduce((a,r) => ({
+        cal: a.cal + (r.calories||0),
+        prot: a.prot + parseFloat(r.protein_g||0),
+        sugar: a.sugar + parseFloat(r.added_sugar_g||0),
+      }), {cal:0, prot:0, sugar:0});
+      const calClr  = tot.cal  > 2300 ? 'var(--red)' : tot.cal < 1600 ? 'var(--yellow)' : 'var(--blue)';
+      const protClr = tot.prot >= 150  ? 'var(--accent)' : 'var(--yellow)';
+      html += `<div class="mi-day-hd">${label}
+        <span style="float:right;font-weight:400">
+          <span style="color:${calClr}">${tot.cal.toLocaleString()} cal</span>
+          &nbsp;·&nbsp;<span style="color:${protClr}">${tot.prot.toFixed(0)}g P</span>
+          &nbsp;·&nbsp;${tot.sugar.toFixed(0)}g S
+        </span>
+      </div>`;
+      rows.forEach(i => {
+        html += `<div class="mi-row">
+          <div class="mi-meal">${i.meal_time}</div>
+          <div class="mi-name">${i.food_name}</div>
+          <div class="mi-nums">
+            <span>${(i.calories||0).toLocaleString()}</span>
+            <span>${parseFloat(i.protein_g||0).toFixed(0)}g P</span>
+            <span>${parseFloat(i.added_sugar_g||0).toFixed(0)}g S</span>
+          </div>
+        </div>`;
+      });
+    });
+    html += '</div>';
+    root.innerHTML = html;
+  } catch(e) {
+    root.innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
+  }
+}
 
 async function loadHistory() {
   try {
