@@ -2705,6 +2705,7 @@ async function downloadCSV() {
     // sbGet doesn't support two filters on same column — fetch and filter manually
     const allItems = await sbGet('food_log', {
       'log_date': `gte.${earliest}`,
+      'food_name': 'neq.Historical Import',
       'order': 'log_date,created_at',
       'limit': '5000',
     }).catch(() => []);
