@@ -748,6 +748,8 @@ body {
         <button class="week-btn" id="prevWeek">&#8249;</button>
         <span class="week-label" id="weekLabel"></span>
         <button class="week-btn" id="nextWeek">&#8250;</button>
+        <button class="week-btn" onclick="document.getElementById('importFileInput').click()" title="Import workout backup" style="font-size:11px;padding:4px 8px">Import</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importWorkoutData(this)">
       </div>
     </div>
   </div>
@@ -2219,6 +2221,28 @@ function removeExtra(xi) {
   data.extras.splice(xi, 1);
   saveWOData(currentDay, data);
   renderWOContent();
+}
+
+// ── Import / Export ───────────────────────────────────
+function importWorkoutData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      let count = 0;
+      Object.entries(data).forEach(([k, v]) => {
+        if (k.startsWith('wt_')) { localStorage.setItem(k, v); count++; }
+      });
+      input.value = '';
+      alert(`Imported ${count} workout sessions.`);
+      renderWOContent();
+    } catch(err) {
+      alert('Import failed — file may be corrupted.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ── Lift History ──────────────────────────────────────
