@@ -2030,7 +2030,10 @@ function renderItemHTML(r, ei, data) {
     card += `<div class="exercise-header">
       <div class="exercise-header-left">
         <div class="exercise-name">${pill(ex.kind)}${ex.name}</div>
-        <div class="exercise-meta">${ex.sets} sets &times; ${ex.reps}</div>
+        <div class="exercise-meta">${ex.sets} sets &times; ${ex.reps}
+          ${LYFTA[ex.name] ? `&nbsp;<a href="${LYFTA[ex.name]}" target="_blank" style="color:var(--blue);font-size:10px">Lyfta</a>` : ''}
+          &nbsp;<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise form')}" target="_blank" style="color:var(--red);font-size:10px">YT</a>
+        </div>
         ${ex.detail ? `<div class="item-detail">${ex.detail}</div>` : ''}
       </div>
       <div class="exercise-header-right">
