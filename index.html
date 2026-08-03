@@ -1045,6 +1045,7 @@ const STAPLES = [
   { name:'Iced Coffee',      cal:40,  prot:1,  sugar:1, fat:0.5, carbs:2,  fiber:0,  sodium:20,  potassium:50   },
   { name:'Quest Bar',        cal:190, prot:21, sugar:1, fat:8,   carbs:22, fiber:14, sodium:270, potassium:100  },
   { name:'Banana',           cal:105, prot:1,  sugar:0, fat:0,   carbs:27, fiber:3,  sodium:1,   potassium:422  },
+  { name:'Gatorlyte Powder', cal:45,  prot:0,  sugar:9, fat:0,   carbs:10, fiber:0,  sodium:420, potassium:280  },
 ];
 const STAPLE_NAMES = new Set(STAPLES.map(s => s.name));
 
@@ -2865,9 +2866,19 @@ async function setLabor(lv) {
   daily.labor_level = lv; render();
   await sbPatch('daily_log', {log_date: ntDateStr()}, {labor_level: lv});
 }
+const SUPP_FOOD = {
+  omega3_taken:   { food_name:'Fish Oil (2 softgels)', calories:10, protein_g:0, added_sugar_g:0, fat_g:1,   carbs_g:0,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
+  d3_k2_taken:    { food_name:'D3+K2 Gummy (1)',       calories:8,  protein_g:0, added_sugar_g:1, fat_g:0,   carbs_g:1.5, fiber_g:0, sodium_mg:3,  potassium_mg:0  },
+};
 async function toggleSupp(field) {
   const v = !daily[field]; daily[field] = v; render();
   await sbPatch('daily_log', {log_date: ntDateStr()}, {[field]: v});
+  if (v && SUPP_FOOD[field]) {
+    const row = await sbPost('food_log', { log_date: ntDateStr(), meal_time: 'Morning', ...SUPP_FOOD[field] });
+    if (Array.isArray(row) && row[0]) foods.push(row[0]);
+    else foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'});
+    render();
+  }
 }
 async function toggleWo() {
   const v = !daily.workout_done; daily.workout_done = v; render();
