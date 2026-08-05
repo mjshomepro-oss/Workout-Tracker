@@ -365,6 +365,13 @@ body {
 .wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
 /* ── Food List ───────────────────────────────────────── */
+.notes-area { width:100%; box-sizing:border-box; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; padding:10px 12px; resize:none; min-height:72px; font-family:inherit; line-height:1.5; }
+.notes-area:focus { outline:none; border-color:var(--accent); }
+.notes-saved { font-size:11px; color:var(--muted); margin-top:4px; text-align:right; min-height:14px; }
+.hist-note { padding:1px 14px 7px; font-size:11px; color:var(--muted); font-style:italic; display:flex; align-items:center; gap:8px; }
+.hist-note span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hist-note-btn { background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; padding:0; flex-shrink:0; }
+.hist-note-btn:active { color:var(--accent); }
 .meal-grp { margin-bottom: 6px; }
 .meal-hd {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -901,6 +908,16 @@ body {
       <button class="save-btn" id="addLiftConfirm" onclick="confirmAddLift()" style="flex:1">Add to Workout</button>
       <button class="cancel-btn" onclick="document.getElementById('addLiftOverlay').classList.remove('show')" style="flex:1;margin-top:0">Cancel</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="noteOverlay">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="note-overlay-date" style="margin-bottom:12px;font-size:15px;font-weight:700"></div>
+    <textarea class="notes-area" id="note-overlay-text" style="min-height:120px" placeholder="How'd this day go?"></textarea>
+    <button class="tbtn primary" style="margin-top:14px;width:100%" onclick="saveNoteOverlay()">Save</button>
+    <button class="cancel-btn" style="margin-top:8px" onclick="document.getElementById('noteOverlay').classList.remove('show')">Cancel</button>
   </div>
 </div>
 
@@ -2855,6 +2872,13 @@ function render() {
         </button>
       </div>
     </div>
+    <div class="card">
+      <div class="card-lbl">Day Notes</div>
+      <div class="card-body">
+        <textarea class="notes-area" id="day-notes" placeholder="How'd today go? Energy, lifts, anything worth remembering..." oninput="scheduleNotesSave()">${(daily?.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        <div class="notes-saved" id="notes-saved"></div>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:80px">
       <div class="card-lbl-row">
         <div class="card-lbl">Food Log</div>
@@ -2893,6 +2917,42 @@ async function toggleWo() {
   const v = !daily.workout_done; daily.workout_done = v; render();
   await sbPatch('daily_log', {log_date: ntDateStr()}, {workout_done: v});
 }
+let _notesSaveTimer = null;
+function scheduleNotesSave() {
+  clearTimeout(_notesSaveTimer);
+  const el = document.getElementById('notes-saved');
+  if (el) el.textContent = '';
+  _notesSaveTimer = setTimeout(saveNotes, 1200);
+}
+async function saveNotes() {
+  const el = document.getElementById('day-notes');
+  if (!el) return;
+  const text = el.value;
+  if (daily) daily.notes = text;
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {notes: text});
+  const saved = document.getElementById('notes-saved');
+  if (saved) { saved.textContent = 'Saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 2000); }
+}
+let _noteOverlayDate = null;
+function openNoteOverlay(date, note) {
+  _noteOverlayDate = date;
+  const d = new Date(date + 'T12:00:00');
+  document.getElementById('note-overlay-date').textContent = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('note-overlay-text').value = note || '';
+  document.getElementById('noteOverlay').classList.add('show');
+}
+async function saveNoteOverlay() {
+  const text = document.getElementById('note-overlay-text').value.trim();
+  document.getElementById('noteOverlay').classList.remove('show');
+  if (!_noteOverlayDate) return;
+  await sbPatch('daily_log', {log_date: _noteOverlayDate}, {notes: text});
+  if (window._histNotes) window._histNotes[_noteOverlayDate] = text;
+  histLoaded = false;
+  loadHistory();
+}
+document.getElementById('noteOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('noteOverlay')) document.getElementById('noteOverlay').classList.remove('show');
+});
 async function cycleMealTime(id, current) {
   const order = ['Morning','Lunch','Afternoon','Evening'];
   const next = order[(order.indexOf(current) + 1) % order.length];
@@ -3202,7 +3262,12 @@ async function loadMealItems() {
 
 async function loadHistory() {
   try {
-    const rows = await sbGet('daily_summary', {order: 'log_date.desc', limit: 120});
+    const [rows, noteRows] = await Promise.all([
+      sbGet('daily_summary', {order: 'log_date.desc', limit: '120'}),
+      sbGet('daily_log',     {order: 'log_date.desc', limit: '120'}),
+    ]);
+    window._histNotes = {};
+    noteRows.filter(r => r.notes).forEach(r => { window._histNotes[r.log_date] = r.notes; });
     renderHistory(rows);
   } catch(e) {
     document.getElementById('history-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
@@ -3308,6 +3373,7 @@ function renderHistory(rows) {
     const sugarClr = !hasData ? 'var(--muted)' : sugar > 36 ? 'var(--red)' : 'var(--accent)';
     const mo = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const dy = d.toLocaleDateString('en-US',{weekday:'short'});
+    const note = (window._histNotes||{})[r.log_date] || '';
     html += `
       <div class="hist-row">
         <div class="hr-date">${mo}<span>${dy}</span></div>
@@ -3321,7 +3387,8 @@ function renderHistory(rows) {
           <div class="supp-dot ${r.d3_k2_taken?'on':''}" title="D3+K2"></div>
           <div class="supp-dot ${r.magnesium_taken?'on':''}" title="Magnesium"></div>
         </div>
-      </div>`;
+      </div>
+      ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}`;
   }
   html += '</div>';
   document.getElementById('history-root').innerHTML = html;
