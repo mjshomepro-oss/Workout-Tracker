@@ -3176,13 +3176,19 @@ async function loadMealItems() {
   try {
     const cutoff = new Date(nowD); cutoff.setDate(cutoff.getDate() - 90);
     const since = cutoff.toISOString().split('T')[0];
-    const items = await sbGet('food_log', {
-      'log_date': `gte.${since}`,
-      'food_name': 'neq.Historical Import',
-      'order': 'log_date.desc,id.asc',
-      'limit': '1000',
-    });
+    const [items, summaries] = await Promise.all([
+      sbGet('food_log', {
+        'log_date': `gte.${since}`,
+        'food_name': 'neq.Historical Import',
+        'order': 'log_date.desc,id.asc',
+        'limit': '1000',
+      }),
+      sbGet('daily_summary', {'log_date': `gte.${since}`, 'order': 'log_date.desc', 'limit': '90'}),
+    ]);
     if (!items.length) { root.innerHTML = '<div class="food-empty">No meals logged yet.</div>'; return; }
+
+    const targetByDate = {};
+    summaries.forEach(s => { targetByDate[s.log_date] = s.calorie_target || 2050; });
 
     const byDate = {};
     items.forEach(i => { (byDate[i.log_date] = byDate[i.log_date] || []).push(i); });
@@ -3196,7 +3202,8 @@ async function loadMealItems() {
         prot: a.prot + parseFloat(r.protein_g||0),
         sugar: a.sugar + parseFloat(r.added_sugar_g||0),
       }), {cal:0, prot:0, sugar:0});
-      const calClr  = tot.cal  > 2300 ? 'var(--red)' : tot.cal < 1600 ? 'var(--yellow)' : 'var(--blue)';
+      const tg = targetByDate[date] || 2050;
+      const calClr  = tot.cal > tg ? 'var(--red)' : tot.cal < tg - 400 ? 'var(--yellow)' : 'var(--blue)';
       const protClr = tot.prot >= 150  ? 'var(--accent)' : 'var(--yellow)';
       html += `<div class="mi-day-hd">${label}
         <span style="float:right;font-weight:400">
