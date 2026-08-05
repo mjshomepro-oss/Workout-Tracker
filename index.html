@@ -948,11 +948,6 @@ body {
       </div>
     </div>
 
-    <div class="input-toggle">
-      <button class="it-btn on" id="it-photo" onclick="setInputMode('photo')">&#128247; Photo</button>
-      <button class="it-btn" id="it-desc" onclick="setInputMode('desc')">&#9999;&#65039; Describe</button>
-    </div>
-
     <div id="photo-section">
       <div id="photo-grid" class="photo-grid"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -965,13 +960,10 @@ body {
           <div class="photo-add-text"><strong>Choose Photo</strong><span>From library</span></div>
         </div>
       </div>
-      <button class="analyze-btn" id="analyze-btn" onclick="analyzePhotos()">Analyze Photos</button>
     </div>
 
-    <div id="desc-section" style="display:none">
-      <textarea class="desc-area" id="f-desc" placeholder="e.g. grilled chicken breast, half cup brown rice, side salad with ranch dressing, medium apple"></textarea>
-      <button class="desc-analyze" id="desc-analyze-btn" onclick="analyzeText()">Analyze Description</button>
-    </div>
+    <textarea class="desc-area" id="f-desc" placeholder="Describe the meal — or add context to your photos (e.g. no mayo, large size, extra cheese...)" oninput="updateAnalyzeBtn()" style="margin-top:10px"></textarea>
+    <button class="analyze-btn" id="analyze-btn" onclick="analyze()" style="margin-top:8px">Analyze</button>
 
     <div class="analyzing" id="analyzing">
       <div class="spin"></div>
@@ -2994,10 +2986,9 @@ function closeSheet() {
   document.getElementById('cam-input-shoot').value = '';
   document.getElementById('save-btn').disabled = false;
   document.getElementById('photo-grid').innerHTML = '';
-  document.getElementById('analyze-btn').style.display = 'none';
   document.getElementById('f-desc').value = '';
-  setInputMode('photo');
   pendingFiles = []; aiResult = false;
+  updateAnalyzeBtn();
   formMeal = 'Morning'; saltLevel = 'none';
   document.querySelectorAll('.m-btn').forEach((b,i) => b.classList.toggle('on', i===0));
   document.querySelectorAll('.salt-btn').forEach((b,i) => b.classList.toggle('on', i===0));
@@ -3027,6 +3018,15 @@ function compressImage(file, maxPx = 900, quality = 0.88) {
   });
 }
 
+function updateAnalyzeBtn() {
+  const hasPhotos = pendingFiles.length > 0;
+  const hasDesc   = (document.getElementById('f-desc')?.value || '').trim().length > 0;
+  const btn = document.getElementById('analyze-btn');
+  btn.style.display = (hasPhotos || hasDesc) ? 'block' : 'none';
+  if (hasPhotos && hasDesc) btn.textContent = `Analyze ${pendingFiles.length} Photo${pendingFiles.length>1?'s':''} + Description`;
+  else if (hasPhotos) btn.textContent = `Analyze ${pendingFiles.length} Photo${pendingFiles.length>1?'s':''}`;
+  else btn.textContent = 'Analyze Description';
+}
 function updatePhotoGrid() {
   const grid = document.getElementById('photo-grid');
   grid.innerHTML = pendingFiles.map((f, i) => `
@@ -3034,14 +3034,7 @@ function updatePhotoGrid() {
       <img src="${URL.createObjectURL(f)}" alt="Photo ${i+1}">
       <button class="photo-item-del" onclick="removePhoto(${i})">&#215;</button>
     </div>`).join('');
-  const n = pendingFiles.length;
-  const btn = document.getElementById('analyze-btn');
-  btn.style.display = n > 0 ? 'block' : 'none';
-  btn.textContent = n === 1 ? 'Analyze 1 Photo' : `Analyze ${n} Photos`;
-  document.getElementById('photo-label').textContent = n > 0 ? 'Add Another Photo' : 'Add a Photo';
-  document.getElementById('photo-sub').textContent = n > 0
-    ? `${n} photo${n>1?'s':''} queued — add more or tap Analyze`
-    : 'Take multiple shots of each part of your meal';
+  updateAnalyzeBtn();
 }
 function removePhoto(i) { pendingFiles.splice(i, 1); updatePhotoGrid(); }
 
@@ -3055,21 +3048,28 @@ function handlePhotoFile(e) {
 document.getElementById('cam-input').addEventListener('change', handlePhotoFile);
 document.getElementById('cam-input-shoot').addEventListener('change', handlePhotoFile);
 
-async function analyzePhotos() {
-  if (!pendingFiles.length) return;
+async function analyze() {
+  const desc = document.getElementById('f-desc').value.trim();
+  const hasPhotos = pendingFiles.length > 0;
+  if (!hasPhotos && !desc) return;
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
   document.getElementById('analyzing').classList.add('show');
-  document.getElementById('analyzing-txt').textContent =
-    `Analyzing ${pendingFiles.length} photo${pendingFiles.length>1?'s':''}…`;
+  document.getElementById('analyzing-txt').textContent = hasPhotos
+    ? `Analyzing ${pendingFiles.length} photo${pendingFiles.length>1?'s':''}${desc?' + description':''}…`
+    : 'Analyzing description…';
   try {
-    const images = await Promise.all(
-      pendingFiles.map(async f => ({ data: await compressImage(f), media_type: 'image/jpeg' }))
-    );
+    let payload = { meal_hint: formMeal };
+    if (hasPhotos) {
+      payload.images = await Promise.all(
+        pendingFiles.map(async f => ({ data: await compressImage(f), media_type: 'image/jpeg' }))
+      );
+    }
+    if (desc) payload.description = desc;
     const resp = await fetch(FN_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ images, meal_hint: formMeal }),
+      body: JSON.stringify(payload),
     });
     const data = await resp.json();
     document.getElementById('analyzing').classList.remove('show');
@@ -3088,41 +3088,7 @@ async function analyzePhotos() {
     aiResult = true;
   } catch(err) {
     document.getElementById('analyzing').classList.remove('show');
-    document.getElementById('photo-sub').textContent = '&#9888; ' + (err.message || 'Analysis failed — try again');
-  }
-  btn.disabled = false;
-}
-
-async function analyzeText() {
-  const desc = document.getElementById('f-desc').value.trim();
-  if (!desc) { document.getElementById('f-desc').focus(); return; }
-  const btn = document.getElementById('desc-analyze-btn');
-  btn.disabled = true;
-  document.getElementById('analyzing').classList.add('show');
-  document.getElementById('analyzing-txt').textContent = 'Analyzing description…';
-  try {
-    const resp = await fetch(FN_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ description: desc, meal_hint: formMeal }),
-    });
-    const data = await resp.json();
-    document.getElementById('analyzing').classList.remove('show');
-    if (data.error) throw new Error(data.error);
-    const fill = (id, v) => { const el = document.getElementById(id); el.value = v ?? ''; el.classList.add('ai-filled'); };
-    fill('f-name', data.name); fill('f-cal', data.calories);
-    fill('f-prot', data.protein_g); fill('f-sugar', data.added_sugar_g);
-    fill('f-fat', data.fat_g); fill('f-carbs', data.carbs_g);
-    fill('f-fiber', data.fiber_g); fill('f-sodium', data.sodium_mg);
-    fill('f-potassium', data.potassium_mg);
-    if (data.meal_time && MEALS.includes(data.meal_time)) {
-      formMeal = data.meal_time;
-      document.querySelectorAll('.m-btn').forEach(b => b.classList.toggle('on', b.textContent === data.meal_time));
-    }
-    document.getElementById('ai-badge').style.display = 'inline';
-  } catch(err) {
-    document.getElementById('analyzing').classList.remove('show');
-    document.getElementById('f-desc').placeholder = '&#9888; ' + (err.message || 'Analysis failed — try again');
+    alert('Analysis failed: ' + (err.message || 'try again'));
   }
   btn.disabled = false;
 }
