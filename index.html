@@ -2740,7 +2740,7 @@ function render() {
   const t  = totals();
   const tg = target();
   const lab = daily?.labor_level || 'light';
-  const calClr   = t.cal   > tg   ? 'var(--red)'    : 'var(--blue)';
+  const calClr   = t.cal > tg + 150 ? 'var(--red)' : t.cal > tg ? 'var(--yellow)' : 'var(--blue)';
   const protClr  = t.prot  >= 150 ? 'var(--accent)'  : 'var(--yellow)';
   const sugarClr = t.sugar > 36   ? 'var(--red)'    : 'var(--accent)';
 
@@ -3208,7 +3208,7 @@ async function loadMealItems() {
         sugar: a.sugar + parseFloat(r.added_sugar_g||0),
       }), {cal:0, prot:0, sugar:0});
       const tg = targetByDate[date] || 2050;
-      const calClr  = tot.cal > tg ? 'var(--red)' : tot.cal < tg - 400 ? 'var(--yellow)' : 'var(--blue)';
+      const calClr  = tot.cal > tg + 150 ? 'var(--red)' : tot.cal > tg ? 'var(--yellow)' : tot.cal < tg - 400 ? 'var(--yellow)' : 'var(--blue)';
       const protClr = tot.prot >= 150  ? 'var(--accent)' : 'var(--yellow)';
       html += `<div class="mi-day-hd">${label}
         <span style="float:right;font-weight:400">
@@ -3346,7 +3346,7 @@ function renderHistory(rows) {
     const prot  = parseFloat(r.total_protein_g);
     const sugar = parseFloat(r.total_added_sugar_g);
     const hasData = cal > 0;
-    const calClr   = !hasData ? 'var(--muted)' : cal > tg  ? 'var(--red)'    : cal < tg - 300 ? 'var(--yellow)' : 'var(--blue)';
+    const calClr   = !hasData ? 'var(--muted)' : cal > tg + 150 ? 'var(--red)' : cal > tg ? 'var(--yellow)' : cal < tg - 300 ? 'var(--yellow)' : 'var(--blue)';
     const protClr  = !hasData ? 'var(--muted)' : prot >= 150 ? 'var(--accent)' : prot < 130 ? 'var(--red)' : 'var(--yellow)';
     const sugarClr = !hasData ? 'var(--muted)' : sugar > 36 ? 'var(--red)' : 'var(--accent)';
     const mo = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
