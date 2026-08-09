@@ -365,6 +365,11 @@ body {
 .wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
 /* ── Food List ───────────────────────────────────────── */
+.bp-row { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.bp-input { width:68px; text-align:center; }
+.bp-sep { font-size:20px; color:var(--muted); font-weight:300; line-height:1; }
+.bp-cat { font-size:12px; font-weight:600; margin-top:2px; }
+.hist-bp { padding:1px 14px 6px; font-size:11px; color:var(--muted); }
 .notes-area { width:100%; box-sizing:border-box; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; padding:10px 12px; resize:none; min-height:72px; font-family:inherit; line-height:1.5; }
 .notes-area:focus { outline:none; border-color:var(--accent); }
 .notes-saved { font-size:11px; color:var(--muted); margin-top:4px; text-align:right; min-height:14px; }
@@ -2733,6 +2738,20 @@ function totals() {
   }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0, potassium:0});
 }
 function target() { return CAL_BASE[DOW] + (LABOR_ADD[daily?.labor_level||'light']||0); }
+function sodiumTarget() {
+  const lab = daily?.labor_level || 'light';
+  if (lab === 'heavy')    return 3200;
+  if (lab === 'moderate') return 2800;
+  return 2300;
+}
+function bpCategory(sys, dia) {
+  if (!sys || !dia) return null;
+  if (sys >= 180 || dia >= 120) return { label: 'Crisis — seek care', color: 'var(--red)' };
+  if (sys >= 140 || dia >= 90)  return { label: 'High (Stage 2)',     color: 'var(--red)' };
+  if (sys >= 130 || dia >= 80)  return { label: 'High (Stage 1)',     color: 'var(--yellow)' };
+  if (sys >= 120)               return { label: 'Elevated',           color: 'var(--yellow)' };
+  return { label: 'Normal', color: 'var(--accent)' };
+}
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
 
 // Render nutrition today view
@@ -2824,9 +2843,9 @@ function render() {
         <div class="prog">
           <div class="prog-row">
             <span class="prog-lbl">Sodium</span>
-            <span class="prog-val" style="color:${t.sodium > 2300 ? 'var(--red)' : 'var(--muted)'}">${t.sodium.toLocaleString()}mg / 2300mg</span>
+            <span class="prog-val" style="color:${t.sodium > sodiumTarget() ? 'var(--red)' : 'var(--muted)'}">${t.sodium.toLocaleString()}mg / ${sodiumTarget().toLocaleString()}mg</span>
           </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sodium,2300)}%;background:${t.sodium > 2300 ? 'var(--red)' : 'var(--accent)'}"></div></div>
+          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sodium,sodiumTarget())}%;background:${t.sodium > sodiumTarget() ? 'var(--red)' : 'var(--accent)'}"></div></div>
         </div>
         <div class="prog">
           <div class="prog-row">
@@ -2869,6 +2888,19 @@ function render() {
       <div class="card-body">
         <textarea class="notes-area" id="day-notes" placeholder="How'd today go? Energy, lifts, anything worth remembering..." oninput="scheduleNotesSave()">${(daily?.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
         <div class="notes-saved" id="notes-saved"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Blood Pressure</div>
+      <div class="card-body">
+        <div class="bp-row">
+          <input class="fi bp-input" id="bp-sys" type="number" inputmode="numeric" placeholder="120" value="${daily?.bp_systolic||''}" oninput="scheduleBpSave()">
+          <span class="bp-sep">/</span>
+          <input class="fi bp-input" id="bp-dia" type="number" inputmode="numeric" placeholder="80" value="${daily?.bp_diastolic||''}" oninput="scheduleBpSave()">
+          <span style="font-size:12px;color:var(--muted)">mmHg</span>
+          ${(()=>{ const c=bpCategory(daily?.bp_systolic,daily?.bp_diastolic); return c?`<span class="bp-cat" style="color:${c.color}">${c.label}</span>`:''; })()}
+        </div>
+        <div class="notes-saved" id="bp-saved"></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:80px">
@@ -2924,6 +2956,24 @@ async function saveNotes() {
   await sbPatch('daily_log', {log_date: ntDateStr()}, {notes: text});
   const saved = document.getElementById('notes-saved');
   if (saved) { saved.textContent = 'Saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 2000); }
+}
+let _bpSaveTimer = null;
+function scheduleBpSave() {
+  clearTimeout(_bpSaveTimer);
+  _bpSaveTimer = setTimeout(saveBp, 1200);
+}
+async function saveBp() {
+  const sys = parseInt(document.getElementById('bp-sys')?.value) || null;
+  const dia = parseInt(document.getElementById('bp-dia')?.value) || null;
+  if (daily) { daily.bp_systolic = sys; daily.bp_diastolic = dia; }
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {bp_systolic: sys, bp_diastolic: dia});
+  const saved = document.getElementById('bp-saved');
+  if (saved) {
+    const c = bpCategory(sys, dia);
+    saved.textContent = c ? c.label : 'Saved';
+    saved.style.color = c ? c.color : '';
+    setTimeout(() => { if(saved) { saved.textContent = ''; saved.style.color = ''; } }, 2500);
+  }
 }
 let _noteOverlayDate = null;
 function openNoteOverlay(date, note) {
@@ -3245,7 +3295,11 @@ async function loadHistory() {
       sbGet('daily_log',     {order: 'log_date.desc', limit: '120'}),
     ]);
     window._histNotes = {};
-    noteRows.filter(r => r.notes).forEach(r => { window._histNotes[r.log_date] = r.notes; });
+    window._histBP = {};
+    noteRows.forEach(r => {
+      if (r.notes) window._histNotes[r.log_date] = r.notes;
+      if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic };
+    });
     renderHistory(rows);
   } catch(e) {
     document.getElementById('history-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
@@ -3366,7 +3420,8 @@ function renderHistory(rows) {
           <div class="supp-dot ${r.magnesium_taken?'on':''}" title="Magnesium"></div>
         </div>
       </div>
-      ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}`;
+      ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}
+      ${(()=>{ const bp=(window._histBP||{})[r.log_date]; if(!bp) return ''; const c=bpCategory(bp.sys,bp.dia); return `<div class="hist-bp" style="color:${c?c.color:'var(--muted)'}">&#128147; ${bp.sys}/${bp.dia} mmHg${c?' &middot; '+c.label:''}</div>`; })()}`;
   }
   html += '</div>';
   document.getElementById('history-root').innerHTML = html;
