@@ -916,6 +916,14 @@ body {
   </div>
 </div>
 
+<div class="overlay" id="sessionOverlay">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="margin-bottom:14px;font-size:15px;font-weight:700">What's the session?</div>
+    <div id="session-picker-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="cancel-btn" style="margin-top:14px" onclick="document.getElementById('sessionOverlay').classList.remove('show')">Cancel</button>
+  </div>
+</div>
 <div class="overlay" id="noteOverlay">
   <div class="form-sheet">
     <div class="sheet-handle"></div>
@@ -2737,7 +2745,7 @@ function totals() {
     potassium: a.potassium + (parseInt(e.potassium_mg)||0),
   }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0, potassium:0});
 }
-function target() { return CAL_BASE[DOW] + (LABOR_ADD[daily?.labor_level||'light']||0); }
+function target() { return CAL_BASE[ntDateObj().getDay()] + (LABOR_ADD[daily?.labor_level||'light']||0); }
 function sodiumTarget() {
   const lab = daily?.labor_level || 'light';
   if (lab === 'heavy')    return 3200;
@@ -2878,8 +2886,12 @@ function render() {
     <div class="card">
       <div class="card-lbl">Workout</div>
       <div class="card-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--muted);flex:1">${daily?.session_type || SESSIONS[ntDateObj().getDay()]}</span>
+          <button class="meal-badge" onclick="openSessionPicker()" title="Change session" style="opacity:0.7;font-size:13px">&#9998;</button>
+        </div>
         <button class="wo-btn ${daily?.workout_done?'on':''}" onclick="toggleWo()">
-          ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : `${SESSIONS[DOW]} — Mark Done`}
+          ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : 'Mark Done'}
         </button>
       </div>
     </div>
@@ -2956,6 +2968,20 @@ async function saveNotes() {
   await sbPatch('daily_log', {log_date: ntDateStr()}, {notes: text});
   const saved = document.getElementById('notes-saved');
   if (saved) { saved.textContent = 'Saved'; setTimeout(() => { if(saved) saved.textContent = ''; }, 2000); }
+}
+function openSessionPicker() {
+  const current = daily?.session_type || SESSIONS[ntDateObj().getDay()];
+  const list = document.getElementById('session-picker-list');
+  list.innerHTML = SESSIONS.map(s =>
+    `<button style="width:100%;padding:11px;border-radius:10px;border:none;font-size:14px;font-weight:${s===current?'700':'400'};background:${s===current?'var(--accent)':'var(--surface2)'};color:${s===current?'#000':'var(--text)'};cursor:pointer" onclick="pickSession('${s.replace(/'/g,"\\'")}')">${s}</button>`
+  ).join('');
+  document.getElementById('sessionOverlay').classList.add('show');
+}
+async function pickSession(session) {
+  document.getElementById('sessionOverlay').classList.remove('show');
+  if (daily) daily.session_type = session;
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {session_type: session});
+  render();
 }
 let _bpSaveTimer = null;
 function scheduleBpSave() {
