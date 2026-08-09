@@ -365,6 +365,13 @@ body {
 .wo-btn.on { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 
 /* ── Food List ───────────────────────────────────────── */
+.run-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px; }
+.run-field label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); display:block; margin-bottom:4px; }
+.run-pace { font-size:13px; color:var(--muted); margin-top:6px; }
+.run-weather-btns { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.run-weather-btn { font-size:12px; padding:5px 10px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; }
+.run-weather-btn.on { background:var(--accent); color:#000; border-color:var(--accent); }
+.hist-run { padding:1px 14px 6px; font-size:11px; color:var(--muted); }
 .bp-row { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
 .bp-input { width:68px; text-align:center; }
 .bp-sep { font-size:20px; color:var(--muted); font-weight:300; line-height:1; }
@@ -1060,7 +1067,7 @@ const FN_URL = `${SB_URL}/functions/v1/analyze-food`;
 const CAL_BASE  = [1750,2050,2200,1900,2050,2200,2000];
 const LABOR_ADD = {light:0, moderate:250, heavy:500};
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core'];
+const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core','Running'];
 const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
 
 const nowD  = new Date();
@@ -2895,6 +2902,31 @@ function render() {
         </button>
       </div>
     </div>
+    ${(daily?.session_type || SESSIONS[ntDateObj().getDay()]) === 'Running' ? `
+    <div class="card">
+      <div class="card-lbl">Run Details</div>
+      <div class="card-body">
+        <div class="run-grid">
+          <div class="run-field">
+            <label>Miles</label>
+            <input class="fi" id="run-miles" type="number" inputmode="decimal" step="0.01" placeholder="0.0" value="${daily?.run_miles||''}" oninput="scheduleRunSave()">
+          </div>
+          <div class="run-field">
+            <label>Time (min)</label>
+            <input class="fi" id="run-minutes" type="number" inputmode="numeric" placeholder="0" value="${daily?.run_minutes||''}" oninput="scheduleRunSave()">
+          </div>
+        </div>
+        ${daily?.run_miles && daily?.run_minutes ? `<div class="run-pace">Pace: ${(daily.run_minutes / daily.run_miles).toFixed(2).replace('.',':')} /mi</div>` : ''}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:8px 0 6px">Weather</div>
+        <div class="run-weather-btns">
+          ${['Hot / Humid','Warm','Cool','Cold','Rainy','Windy'].map(w =>
+            `<button class="run-weather-btn ${daily?.run_weather===w?'on':''}" onclick="setRunWeather('${w}')">${w}</button>`
+          ).join('')}
+        </div>
+        <input class="fi" id="run-weather-custom" type="text" placeholder="Custom conditions (e.g. 87°F, sunny)" value="${!['Hot / Humid','Warm','Cool','Cold','Rainy','Windy'].includes(daily?.run_weather||'') ? (daily?.run_weather||'') : ''}" oninput="scheduleRunSave()" style="margin-top:4px">
+        <div class="notes-saved" id="run-saved"></div>
+      </div>
+    </div>` : ''}
     <div class="card">
       <div class="card-lbl">Day Notes</div>
       <div class="card-body">
@@ -2982,6 +3014,33 @@ async function pickSession(session) {
   if (daily) daily.session_type = session;
   await sbPatch('daily_log', {log_date: ntDateStr()}, {session_type: session});
   render();
+}
+const RUN_WEATHER_PRESETS = ['Hot / Humid','Warm','Cool','Cold','Rainy','Windy'];
+let _runSaveTimer = null;
+function scheduleRunSave() {
+  clearTimeout(_runSaveTimer);
+  _runSaveTimer = setTimeout(saveRun, 1200);
+}
+function setRunWeather(w) {
+  if (daily) daily.run_weather = w;
+  document.querySelectorAll('.run-weather-btn').forEach(b => b.classList.toggle('on', b.textContent === w));
+  document.getElementById('run-weather-custom').value = '';
+  scheduleRunSave();
+}
+async function saveRun() {
+  const miles   = parseFloat(document.getElementById('run-miles')?.value)   || null;
+  const minutes = parseInt(document.getElementById('run-minutes')?.value)    || null;
+  const custom  = document.getElementById('run-weather-custom')?.value.trim();
+  const weather = custom || (daily?.run_weather && RUN_WEATHER_PRESETS.includes(daily.run_weather) ? daily.run_weather : null)
+                          || (RUN_WEATHER_PRESETS.find(w => document.querySelector(`.run-weather-btn.on`)?.textContent === w) || null);
+  if (daily) { daily.run_miles = miles; daily.run_minutes = minutes; if (weather !== undefined) daily.run_weather = weather; }
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {run_miles: miles, run_minutes: minutes, run_weather: weather || null});
+  const saved = document.getElementById('run-saved');
+  if (saved) {
+    const pace = miles && minutes ? `${Math.floor(minutes/miles)}:${String(Math.round((minutes/miles % 1)*60)).padStart(2,'0')} /mi` : null;
+    saved.textContent = pace ? `Saved · ${pace} pace` : 'Saved';
+    setTimeout(() => { if(saved) saved.textContent = ''; }, 2500);
+  }
 }
 let _bpSaveTimer = null;
 function scheduleBpSave() {
@@ -3322,9 +3381,11 @@ async function loadHistory() {
     ]);
     window._histNotes = {};
     window._histBP = {};
+    window._histRun = {};
     noteRows.forEach(r => {
       if (r.notes) window._histNotes[r.log_date] = r.notes;
       if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic };
+      if (r.run_miles || r.run_minutes) window._histRun[r.log_date] = { miles: r.run_miles, minutes: r.run_minutes, weather: r.run_weather };
     });
     renderHistory(rows);
   } catch(e) {
@@ -3447,7 +3508,16 @@ function renderHistory(rows) {
         </div>
       </div>
       ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}
-      ${(()=>{ const bp=(window._histBP||{})[r.log_date]; if(!bp) return ''; const c=bpCategory(bp.sys,bp.dia); return `<div class="hist-bp" style="color:${c?c.color:'var(--muted)'}">&#128147; ${bp.sys}/${bp.dia} mmHg${c?' &middot; '+c.label:''}</div>`; })()}`;
+      ${(()=>{ const bp=(window._histBP||{})[r.log_date]; if(!bp) return ''; const c=bpCategory(bp.sys,bp.dia); return `<div class="hist-bp" style="color:${c?c.color:'var(--muted)'}">&#128147; ${bp.sys}/${bp.dia} mmHg${c?' &middot; '+c.label:''}</div>`; })()}
+      ${(()=>{
+        const run=(window._histRun||{})[r.log_date]; if(!run) return '';
+        const parts = [];
+        if (run.miles) parts.push(`${parseFloat(run.miles).toFixed(2)} mi`);
+        if (run.minutes && run.miles) { const p=run.minutes/run.miles; parts.push(`${Math.floor(p)}:${String(Math.round((p%1)*60)).padStart(2,'0')} /mi`); }
+        if (run.minutes && !run.miles) parts.push(`${run.minutes} min`);
+        if (run.weather) parts.push(run.weather);
+        return `<div class="hist-run">&#127939; ${parts.join(' &middot; ')}</div>`;
+      })()}`;
   }
   html += '</div>';
   document.getElementById('history-root').innerHTML = html;
@@ -3485,16 +3555,26 @@ async function downloadCSV() {
 
   // Sheet 1: daily summary
   const hdr = ['Date','Day','Session','Labor','Cal Target','Calories','Protein (g)',
-                'Added Sugar (g)','Workout','Omega-3','D3+K2','Magnesium','Food Entries'];
+                'Added Sugar (g)','Workout','Omega-3','D3+K2','Magnesium','Food Entries',
+                'Run Miles','Run Minutes','Run Pace (/mi)','Run Weather','BP Systolic','BP Diastolic','BP Category'];
   const lines = ['=== DAILY SUMMARY ===', hdr.join(',')];
   for (const r of [...rows].reverse()) {
     const d = new Date(r.log_date + 'T12:00:00');
+    const run = (window._histRun||{})[r.log_date];
+    const bp  = (window._histBP||{})[r.log_date];
+    const pace = run?.miles && run?.minutes
+      ? `${Math.floor(run.minutes/run.miles)}:${String(Math.round(((run.minutes/run.miles)%1)*60)).padStart(2,'0')}`
+      : '';
+    const bpCat = bp ? (bpCategory(bp.sys,bp.dia)?.label || '') : '';
     lines.push([
       r.log_date, d.toLocaleDateString('en-US',{weekday:'long'}),
       `"${r.session_type}"`, r.labor_level, r.calorie_target,
       r.total_calories, r.total_protein_g, r.total_added_sugar_g,
       r.workout_done?'Yes':'No', r.omega3_taken?'Yes':'No',
       r.d3_k2_taken?'Yes':'No', r.magnesium_taken?'Yes':'No', r.food_entries,
+      run?.miles||'', run?.minutes||'', pace,
+      run?.weather ? `"${run.weather}"` : '',
+      bp?.sys||'', bp?.dia||'', bpCat ? `"${bpCat}"` : '',
     ].join(','));
   }
 
