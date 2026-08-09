@@ -1117,6 +1117,7 @@ const LYFTA = {
   'Lateral raise':                   'https://www.lyfta.app/exercise/lateral-raise-96',
   'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-incline-triceps-extension-6im',
   'DB curl':                         'https://www.lyfta.app/exercise/dumbbell-standing-biceps-curl-6ka',
+  'Incline reverse grip DB press':   'https://www.lyfta.app/exercise/incline-reverse-grip-30-degrees-bench-press-3n',
   'Close-grip push-up':              'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
   'Barbell back squat':              'https://www.lyfta.app/exercise/barbell-squat--620',
   'DB step-up':                      'https://www.lyfta.app/exercise/dumbbell-step-up--7t0',
@@ -1178,6 +1179,16 @@ const FORM = {
       'To make it harder: elevate the feet; easier: bend the knees'
     ],
     watchOut: 'Keep the hips up and the body in a straight line — don\'t let the butt sag. Flaring the elbows wide shifts the load away from the lats.'
+  },
+  'Incline reverse grip DB press': {
+    cues: [
+      'Set bench 30–45°; underhand (supinated) grip — palms face your face at the top',
+      'Keep elbows tucked ~45° from your torso, not flared wide',
+      'Press up and slightly together; upper chest and long head of triceps both fire',
+      'Lower with control — the wrist angle will feel different, let it settle over sessions',
+      'Go lighter than your normal incline press while the wrists adapt'
+    ],
+    watchOut: 'Flaring the elbows out under a reverse grip puts stress on the wrists. Tuck them in. If the wrists ache, drop the weight and focus on the grip angle first.'
   },
   'Incline DB press': {
     cues: [
@@ -1700,6 +1711,8 @@ const ROUTINE = [
       { name: 'DB overhead triceps extension', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Both hands on one DB, overhead, deep stretch at the bottom.' },
       { name: 'DB curl', kind: 'main', sets: 3, reps: '10–12' },
+      { name: 'Incline reverse grip DB press', kind: 'main', sets: 3, reps: '10–12',
+        detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
       { name: 'Close-grip push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
         detail: 'One hard set. Hands narrow, elbows tucked. Add the vest if 15+ reps comes easy.' }
     ]
@@ -1764,6 +1777,8 @@ const ROUTINE = [
       { name: 'DB skullcrusher', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Lying on the bench, lower the DBs beside/behind the head, elbows tucked.' },
       { name: 'Hammer curl', kind: 'main', sets: 3, reps: '10–12' },
+      { name: 'Incline reverse grip DB press', kind: 'main', sets: 3, reps: '10–12',
+        detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
       { name: 'Squeeze push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
         detail: 'One hard set. Hands close, press them together. Vest optional.' }
     ]
