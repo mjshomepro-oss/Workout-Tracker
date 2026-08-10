@@ -2004,6 +2004,7 @@ function switchMainTab(tab) {
   if (tab === 'workout') {
     pill.classList.add('visible');
     fab.classList.remove('visible');
+    ensureWOWeek().then(() => renderWOContent());
   } else if (tab === 'nutrition') {
     pill.classList.remove('visible');
     updateNtHeader(); // sets FAB based on current day offset
@@ -2068,9 +2069,17 @@ function loadStored(dow, offset) {
     return dataMatchesRoutine(d, ROUTINE[dow]) ? d : null;
   } catch { return null; }
 }
+function dowToDateStr(dow, offset) {
+  offset = offset !== undefined ? offset : weekOffset;
+  const d = new Date(nowD);
+  d.setDate(d.getDate() - d.getDay() + dow + offset * 7);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const _woCache = {};
 function loadWOData(dow, offset) {
   const r = ROUTINE[dow];
-  let d = loadStored(dow, offset);
+  const dateStr = dowToDateStr(dow, offset);
+  let d = _woCache[dateStr] ?? loadStored(dow, offset);
   if (!d) d = freshData(r);
   else reconcileWOData(d, r);
   if (r.type === 'strength' && !d.extras) d.extras = [];
@@ -2078,7 +2087,40 @@ function loadWOData(dow, offset) {
 }
 function saveWOData(dow, data, offset) {
   offset = offset !== undefined ? offset : weekOffset;
+  const dateStr = dowToDateStr(dow, offset);
+  _woCache[dateStr] = data;
   localStorage.setItem(storageKey(dow, offset), JSON.stringify(data));
+  sbPost('workout_log', {log_date: dateStr, workout_data: data}, true).catch(() => {});
+}
+async function ensureWOWeek(offset) {
+  offset = offset !== undefined ? offset : weekOffset;
+  const dates = Array.from({length: 7}, (_, i) => dowToDateStr(i, offset));
+  try {
+    const rows = await sbGet('workout_log', {log_date: `in.(${dates.join(',')})`});
+    rows.forEach(row => { if (row.workout_data) _woCache[row.log_date] = row.workout_data; });
+  } catch {}
+}
+async function migrateWOToSupabase() {
+  if (localStorage.getItem('wt_migrated_v2')) return;
+  const upserts = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    const match = key.match(/^wt_(\d{4}-\d{2}-\d{2})_(\d)$/);
+    if (!match) continue;
+    const dow = parseInt(match[2]);
+    const sunDate = new Date(match[1] + 'T12:00:00');
+    const actual = new Date(sunDate); actual.setDate(sunDate.getDate() + dow);
+    const dateStr = actual.toISOString().split('T')[0];
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data) upserts.push({log_date: dateStr, workout_data: data});
+    } catch {}
+  }
+  if (upserts.length) {
+    try { await sbPost('workout_log', upserts, true); } catch {}
+  }
+  localStorage.setItem('wt_migrated_v2', '1');
 }
 function isDayDone(dow, offset) {
   const d = loadStored(dow, offset);
@@ -2579,8 +2621,8 @@ document.getElementById('unitToggle').addEventListener('click', () => {
 });
 
 // Week nav
-document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; renderWOTabs(); renderWOContent(); });
-document.getElementById('nextWeek').addEventListener('click', () => { weekOffset++; renderWOTabs(); renderWOContent(); });
+document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; renderWOTabs(); ensureWOWeek().then(() => renderWOContent()); });
+document.getElementById('nextWeek').addEventListener('click', () => { weekOffset++; renderWOTabs(); ensureWOWeek().then(() => renderWOContent()); });
 
 // ── Form Guide ────────────────────────────────────────
 function openFormGuide(exName) {
@@ -3577,32 +3619,48 @@ function renderHistory(rows) {
   window._histRows = rows;
 }
 
-function loadWorkoutHistory() {
+async function loadWorkoutHistory() {
   const root = document.getElementById('history-workouts-root');
   root.innerHTML = '<div class="s-loading">Loading workouts…</div>';
-  const entries = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    const match = key.match(/^wt_(\d{4}-\d{2}-\d{2})_(\d)$/);
-    if (!match) continue;
-    const dow = parseInt(match[2]);
-    const sunDate = new Date(match[1] + 'T12:00:00');
-    const actual = new Date(sunDate);
-    actual.setDate(sunDate.getDate() + dow);
-    const dateStr = actual.toISOString().split('T')[0];
-    try {
-      const data = JSON.parse(localStorage.getItem(key));
-      if (!data) continue;
-      // only include days with at least one logged set or checked item
+  let entries = [];
+  try {
+    const rows = await sbGet('workout_log', {order: 'log_date.desc', limit: '120'});
+    rows.forEach(row => {
+      const dateStr = row.log_date;
+      const d = new Date(dateStr + 'T12:00:00');
+      const dow = d.getDay();
+      const data = row.workout_data;
+      if (!data) return;
       const hasData = data.exercises
         ? data.exercises.some(e => e.sets ? e.sets.some(s => s.w || s.r || s.done) : e.checked)
         : (data.items || []).some(it => it.checked);
-      if (!hasData) continue;
+      if (!hasData) return;
       entries.push({ dateStr, dow, data });
-    } catch {}
+    });
+  } catch {
+    // fallback to localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const match = key.match(/^wt_(\d{4}-\d{2}-\d{2})_(\d)$/);
+      if (!match) continue;
+      const dow = parseInt(match[2]);
+      const sunDate = new Date(match[1] + 'T12:00:00');
+      const actual = new Date(sunDate);
+      actual.setDate(sunDate.getDate() + dow);
+      const dateStr = actual.toISOString().split('T')[0];
+      try {
+        const data = JSON.parse(localStorage.getItem(key));
+        if (!data) continue;
+        const hasData = data.exercises
+          ? data.exercises.some(e => e.sets ? e.sets.some(s => s.w || s.r || s.done) : e.checked)
+          : (data.items || []).some(it => it.checked);
+        if (!hasData) continue;
+        entries.push({ dateStr, dow, data });
+      } catch {}
+    }
+    entries.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
   }
-  entries.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
   if (!entries.length) {
     root.innerHTML = '<div class="food-empty" style="padding:24px;text-align:center;color:var(--muted)">No workout data logged yet.</div>';
     return;
@@ -3766,7 +3824,7 @@ async function downloadCSV() {
 
 // ══ INIT ═══════════════════════════════════════════════
 renderWOTabs();
-renderWOContent();
+migrateWOToSupabase().then(() => ensureWOWeek().then(() => renderWOContent()));
 updateTimer();
 load();
 
