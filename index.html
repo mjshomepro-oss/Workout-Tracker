@@ -490,6 +490,20 @@ body {
 .hist-set-row { display:flex; gap:12px; font-size:12px; color:var(--muted); padding:2px 0; }
 .hist-set-num { min-width:42px; font-weight:600; }
 .hist-set-val { color:var(--text); }
+.wo-hist-day { background:var(--surface); border-radius:12px; margin-bottom:10px; overflow:hidden; }
+.wo-hist-day-hdr { display:flex; align-items:baseline; gap:8px; padding:10px 14px 8px; border-bottom:1px solid var(--border); }
+.wo-hist-day-date { font-size:13px; font-weight:700; }
+.wo-hist-day-session { font-size:12px; color:var(--accent); font-weight:600; }
+.wo-hist-day-done { font-size:11px; color:var(--muted); margin-left:auto; }
+.wo-hist-ex { padding:8px 14px; border-bottom:1px solid var(--border); }
+.wo-hist-ex:last-child { border-bottom:none; }
+.wo-hist-ex-name { font-size:13px; font-weight:600; margin-bottom:4px; }
+.wo-hist-set { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); padding:2px 0; }
+.wo-hist-set-num { min-width:38px; font-weight:600; }
+.wo-hist-set-val { color:var(--text); font-weight:500; }
+.wo-hist-set-done { color:var(--accent); font-size:11px; }
+.wo-hist-set-skip { color:var(--muted); font-style:italic; font-size:11px; }
+.wo-hist-empty { font-size:12px; color:var(--muted); font-style:italic; }
 .add-lift-btn {
   display: block; width: calc(100% - 28px); margin: 10px 14px;
   padding: 12px; background: var(--surface); border: 1.5px dashed var(--border);
@@ -828,9 +842,11 @@ body {
   <div class="hist-sub-tabs">
     <button class="hst-btn active" id="hst-daily" onclick="switchHistTab('daily')">Daily Log</button>
     <button class="hst-btn" id="hst-meals" onclick="switchHistTab('meals')">Meal Items</button>
+    <button class="hst-btn" id="hst-workouts" onclick="switchHistTab('workouts')">Workouts</button>
   </div>
   <div id="history-root"><div class="s-loading">Loading history…</div></div>
   <div id="history-meals-root" style="display:none"></div>
+  <div id="history-workouts-root" style="display:none"></div>
 </div>
 
 <!-- ══ OVERLAYS ════════════════════════════════════════ -->
@@ -2016,16 +2032,32 @@ function freshData(r) {
   return { items: r.items.map(() => ({checked:false, log:''})) };
 }
 function dataMatchesRoutine(d, r) {
+  if (r.type === 'strength') return !!(d && Array.isArray(d.exercises));
+  return !!(d && Array.isArray(d.items));
+}
+function reconcileWOData(d, r) {
   if (r.type === 'strength') {
-    if (!d || !Array.isArray(d.exercises) || d.exercises.length !== r.items.length) return false;
-    return r.items.every((ex, i) => {
+    const fresh = freshData(r);
+    while (d.exercises.length < r.items.length) {
+      d.exercises.push(fresh.exercises[d.exercises.length]);
+    }
+    d.exercises.length = r.items.length;
+    r.items.forEach((ex, i) => {
       const ed = d.exercises[i];
-      if (!ed) return false;
-      if (ex.track === false) return ed.note === true;
-      return Array.isArray(ed.sets) && ed.sets.length > 0;
+      if (ex.track === false) {
+        if (!ed || !ed.note) d.exercises[i] = { note: true, checked: false, log: '' };
+      } else {
+        if (!ed || !Array.isArray(ed.sets) || ed.sets.length === 0)
+          d.exercises[i] = { sets: Array.from({length: ex.sets}, () => ({w:'', r:'', done:false})) };
+      }
     });
+  } else {
+    if (!Array.isArray(d.items)) d.items = [];
+    const fresh = freshData(r);
+    while (d.items.length < r.items.length) d.items.push(fresh.items[d.items.length]);
+    d.items.length = r.items.length;
   }
-  return !!d && Array.isArray(d.items) && d.items.length === r.items.length;
+  return d;
 }
 function loadStored(dow, offset) {
   offset = offset !== undefined ? offset : weekOffset;
@@ -2037,8 +2069,11 @@ function loadStored(dow, offset) {
   } catch { return null; }
 }
 function loadWOData(dow, offset) {
-  const d = loadStored(dow, offset) || freshData(ROUTINE[dow]);
-  if (ROUTINE[dow].type === 'strength' && !d.extras) d.extras = [];
+  const r = ROUTINE[dow];
+  let d = loadStored(dow, offset);
+  if (!d) d = freshData(r);
+  else reconcileWOData(d, r);
+  if (r.type === 'strength' && !d.extras) d.extras = [];
   return d;
 }
 function saveWOData(dow, data, offset) {
@@ -3313,15 +3348,19 @@ function relogItem(name, cal, prot, sugar, fat, carbs, fiber, sodium, potassium)
 
 let histSubTab = 'daily';
 let histMealsLoaded = false;
+let histWorkoutsLoaded = false;
 
 function switchHistTab(tab) {
   histSubTab = tab;
   localStorage.setItem('histSubTab', tab);
   document.getElementById('hst-daily').classList.toggle('active', tab === 'daily');
   document.getElementById('hst-meals').classList.toggle('active', tab === 'meals');
-  document.getElementById('history-root').style.display       = tab === 'daily' ? '' : 'none';
-  document.getElementById('history-meals-root').style.display = tab === 'meals' ? '' : 'none';
-  if (tab === 'meals' && !histMealsLoaded) { histMealsLoaded = true; loadMealItems(); }
+  document.getElementById('hst-workouts').classList.toggle('active', tab === 'workouts');
+  document.getElementById('history-root').style.display          = tab === 'daily'    ? '' : 'none';
+  document.getElementById('history-meals-root').style.display    = tab === 'meals'    ? '' : 'none';
+  document.getElementById('history-workouts-root').style.display = tab === 'workouts' ? '' : 'none';
+  if (tab === 'meals'    && !histMealsLoaded)    { histMealsLoaded = true; loadMealItems(); }
+  if (tab === 'workouts' && !histWorkoutsLoaded) { histWorkoutsLoaded = true; loadWorkoutHistory(); }
 }
 
 async function loadMealItems() {
@@ -3536,6 +3575,114 @@ function renderHistory(rows) {
   html += '</div>';
   document.getElementById('history-root').innerHTML = html;
   window._histRows = rows;
+}
+
+function loadWorkoutHistory() {
+  const root = document.getElementById('history-workouts-root');
+  root.innerHTML = '<div class="s-loading">Loading workouts…</div>';
+  const entries = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    const match = key.match(/^wt_(\d{4}-\d{2}-\d{2})_(\d)$/);
+    if (!match) continue;
+    const dow = parseInt(match[2]);
+    const sunDate = new Date(match[1] + 'T12:00:00');
+    const actual = new Date(sunDate);
+    actual.setDate(sunDate.getDate() + dow);
+    const dateStr = actual.toISOString().split('T')[0];
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (!data) continue;
+      // only include days with at least one logged set or checked item
+      const hasData = data.exercises
+        ? data.exercises.some(e => e.sets ? e.sets.some(s => s.w || s.r || s.done) : e.checked)
+        : (data.items || []).some(it => it.checked);
+      if (!hasData) continue;
+      entries.push({ dateStr, dow, data });
+    } catch {}
+  }
+  entries.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+  if (!entries.length) {
+    root.innerHTML = '<div class="food-empty" style="padding:24px;text-align:center;color:var(--muted)">No workout data logged yet.</div>';
+    return;
+  }
+  let html = '';
+  let lastWeek = null;
+  for (const { dateStr, dow, data } of entries) {
+    const wk = isoWeek(dateStr);
+    if (wk !== lastWeek) { lastWeek = wk; html += `<div class="week-hd">${weekLabel(dateStr)}</div>`; }
+    const routine = ROUTINE[dow];
+    const d = new Date(dateStr + 'T12:00:00');
+    const label = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+    const totalSets = data.exercises ? data.exercises.filter(e => e.sets).reduce((s, e) => s + e.sets.filter(s => s.done).length, 0) : 0;
+    const totalTracked = data.exercises ? data.exercises.filter(e => e.sets).reduce((s, e) => s + e.sets.length, 0) : 0;
+    html += `<div class="wo-hist-day">
+      <div class="wo-hist-day-hdr">
+        <span class="wo-hist-day-date">${label}</span>
+        <span class="wo-hist-day-session">${routine.label}</span>
+        ${routine.type === 'strength' ? `<span class="wo-hist-day-done">${totalSets}/${totalTracked} sets</span>` : ''}
+      </div>`;
+    if (routine.type === 'strength' && data.exercises) {
+      routine.items.forEach((ex, i) => {
+        if (ex.track === false) return;
+        const ed = data.exercises[i];
+        if (!ed || !ed.sets) return;
+        const hasSets = ed.sets.some(s => s.w || s.r || s.done);
+        if (!hasSets) return;
+        html += `<div class="wo-hist-ex">
+          <div class="wo-hist-ex-name">${ex.name}</div>`;
+        ed.sets.forEach((s, si) => {
+          const hasVal = s.w || s.r;
+          html += `<div class="wo-hist-set">
+            <span class="wo-hist-set-num">Set ${si + 1}</span>
+            ${hasVal
+              ? `<span class="wo-hist-set-val">${s.w ? s.w + ' lbs' : '—'} &times; ${s.r || '—'} reps</span>
+                 <span class="${s.done ? 'wo-hist-set-done' : 'wo-hist-set-skip'}">${s.done ? '&#10003;' : 'skipped'}</span>`
+              : `<span class="wo-hist-set-skip">not logged</span>`}
+          </div>`;
+        });
+        // extras for this exercise if any
+        if (data.extras) {
+          data.extras.filter(xtr => xtr.name === ex.name).forEach(xtr => {
+            xtr.sets_data && xtr.sets_data.forEach((s, si) => {
+              if (!s.w && !s.r && !s.done) return;
+              html += `<div class="wo-hist-set">
+                <span class="wo-hist-set-num">+${si + 1}</span>
+                <span class="wo-hist-set-val">${s.w ? s.w + ' lbs' : '—'} &times; ${s.r || '—'} reps</span>
+                <span class="${s.done ? 'wo-hist-set-done' : 'wo-hist-set-skip'}">${s.done ? '&#10003;' : 'skipped'}</span>
+              </div>`;
+            });
+          });
+        }
+        html += '</div>';
+      });
+      // extra lifts added that day
+      if (data.extras && data.extras.length) {
+        data.extras.forEach(xtr => {
+          if (routine.items.some(ex => ex.name === xtr.name)) return; // already shown above
+          const hasSets = xtr.sets_data && xtr.sets_data.some(s => s.w || s.r || s.done);
+          if (!hasSets) return;
+          html += `<div class="wo-hist-ex">
+            <div class="wo-hist-ex-name">${xtr.name} <span style="font-size:10px;color:var(--muted)">(added)</span></div>`;
+          xtr.sets_data.forEach((s, si) => {
+            if (!s.w && !s.r && !s.done) return;
+            html += `<div class="wo-hist-set">
+              <span class="wo-hist-set-num">Set ${si + 1}</span>
+              <span class="wo-hist-set-val">${s.w ? s.w + ' lbs' : '—'} &times; ${s.r || '—'} reps</span>
+              <span class="${s.done ? 'wo-hist-set-done' : 'wo-hist-set-skip'}">${s.done ? '&#10003;' : 'skipped'}</span>
+            </div>`;
+          });
+          html += '</div>';
+        });
+      }
+    } else if (data.items) {
+      const checked = data.items.filter(it => it.checked).length;
+      html += `<div class="wo-hist-ex"><div class="wo-hist-ex-name" style="color:var(--muted);font-weight:400">${checked} / ${data.items.length} items completed</div></div>`;
+    }
+    html += '</div>';
+  }
+  root.innerHTML = html;
 }
 
 async function downloadCSV() {
