@@ -1,4 +1,4 @@
-const CACHE = 'wt-v24';
+const CACHE = 'wt-v25';
 
 self.addEventListener('install', e => {
   e.waitUntil(

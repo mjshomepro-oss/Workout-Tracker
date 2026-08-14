@@ -2821,7 +2821,7 @@ async function load() {
       sbGet('daily_log', {'log_date': `eq.${dateStr}`}),
       sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
     ]);
-    daily = dl[0] || {labor_level:'light',omega3_taken:false,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
+    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
     foods = fe;
     render();
   } catch(e) {
@@ -2966,9 +2966,16 @@ function render() {
       <div class="card-lbl">Supplements</div>
       <div class="card-body">
         <div class="supp-list">
-          <div class="supp ${daily?.omega3_taken?'on':''}" onclick="toggleSupp('omega3_taken')">
+          <div class="supp ${daily?.omega3_taken?'on':''}" style="cursor:default;pointer-events:none">
             <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Omega-3 &middot; Fish Oil</div><div class="supp-desc">CVS 1 softgel &middot; 500mg / 300mg Omega-3 &middot; with a meal</div></div>
+            <div style="flex:1">
+              <div class="supp-name">Omega-3</div>
+              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'CVS softgel · 500mg / 300mg · with a meal'}</div>
+              <div style="display:flex;gap:6px;margin-top:6px;pointer-events:all">
+                <button onclick="toggleOmega3('pill')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='pill'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='pill'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='pill'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">Softgel</button>
+                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#127925; Fish</button>
+              </div>
+            </div>
           </div>
           <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
             <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
@@ -3067,6 +3074,22 @@ async function toggleSupp(field) {
   await sbPatch('daily_log', {log_date: ntDateStr()}, {[field]: v});
   if (v && SUPP_FOOD[field]) {
     const row = await sbPost('food_log', { log_date: ntDateStr(), meal_time: 'Morning', ...SUPP_FOOD[field] });
+    if (Array.isArray(row) && row[0]) foods.push(row[0]);
+    else foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'});
+    render();
+  }
+}
+async function toggleOmega3(source) {
+  // tapping active source turns it off; tapping inactive source switches to it
+  const alreadyOn = daily?.omega3_taken && daily?.omega3_source === source;
+  const newVal = !alreadyOn;
+  const newSource = newVal ? source : null;
+  if (daily) { daily.omega3_taken = newVal; daily.omega3_source = newSource; }
+  render();
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {omega3_taken: newVal, omega3_source: newSource});
+  // only log a food entry for the pill, not for fish (already in food log via salmon)
+  if (newVal && source === 'pill') {
+    const row = await sbPost('food_log', { log_date: ntDateStr(), meal_time: 'Morning', ...SUPP_FOOD['omega3_taken'] });
     if (Array.isArray(row) && row[0]) foods.push(row[0]);
     else foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'});
     render();
