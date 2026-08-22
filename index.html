@@ -2934,16 +2934,110 @@ function bpCategory(sys, dia) {
 }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
 
+// Draw staircase calorie bar: base + other (general activity) + walk + run
+function drawCalStaircase(eaten, base, run, walk, other) {
+  const canvas = document.getElementById('cal-staircase');
+  if (!canvas) return;
+  const W = canvas.offsetWidth;
+  const H = 68;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const total = base + run + walk + other;
+  if (!total) return;
+
+  const PAD_T = 14, PAD_B = 18;
+  const drawH = H - PAD_T - PAD_B;
+
+  const segs = [
+    { cal: base,  color: '#374151', label: '2,000' },
+    ...(other > 0 ? [{ cal: other, color: '#fbbf24', label: '+' + other  }] : []),
+    ...(walk  > 0 ? [{ cal: walk,  color: '#60a5fa', label: '+' + walk   }] : []),
+    ...(run   > 0 ? [{ cal: run,   color: '#22c55e', label: '+' + run    }] : []),
+  ];
+  const n = segs.length;
+  const stepH = drawH / n;
+  const scale = W / total;
+
+  // Build segment boxes (bottom-aligned, each step shorter than the one before it)
+  let x = 0;
+  const boxes = segs.map((sg, i) => {
+    const segW = sg.cal * scale;
+    const segH = (n - i) * stepH;
+    const box = { x, segW, segH, ...sg };
+    x += segW;
+    return box;
+  });
+
+  // Draw fills
+  for (const b of boxes) {
+    const top = H - PAD_B - b.segH;
+    ctx.fillStyle = b.color;
+    ctx.globalAlpha = 0.2;
+    ctx.fillRect(b.x, top, b.segW, b.segH);
+    ctx.globalAlpha = 1;
+    // Colored top line
+    ctx.beginPath();
+    ctx.moveTo(b.x, top);
+    ctx.lineTo(b.x + b.segW, top);
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Label above top line
+    if (b.segW > 32) {
+      ctx.fillStyle = b.color;
+      ctx.globalAlpha = 0.9;
+      ctx.font = '500 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.label, b.x + b.segW / 2, top - 3);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Eaten fill at the bottom tier
+  const eatenW = Math.min((eaten / total) * W, W);
+  const bottomTop = H - PAD_B - stepH;
+  if (eatenW > 0) {
+    ctx.fillStyle = '#f87171';
+    ctx.globalAlpha = 0.88;
+    ctx.beginPath();
+    const r = 4;
+    const rr = eatenW >= W - 1 ? r : 0;
+    ctx.roundRect(0, bottomTop, eatenW, stepH, [r, rr, rr, r]);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if (eatenW > 48) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '600 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(eaten.toLocaleString(), eatenW / 2, bottomTop + stepH / 2 + 4);
+    }
+  }
+
+  // Tick labels at bottom
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('0', 2, H - 2);
+  ctx.textAlign = 'right';
+  ctx.fillText(total.toLocaleString(), W - 2, H - 2);
+}
+
 // Render nutrition today view
 function render() {
   const t  = totals();
   const tg = target();
   const lab = daily?.labor_level || 'light';
+  const runCal      = ghData?.runCal  ?? 0;
+  const walkCal     = ghData?.walkCal ?? 0;
   const burnBonus   = ghData ? Math.max(0, ghData.calories - RESTING_BURN) : 0;
+  const otherCal    = Math.max(0, burnBonus - runCal - walkCal);
   const totalBudget = tg + burnBonus;
   const remaining   = totalBudget - t.cal;
-  const eatenPct    = Math.min(t.cal / totalBudget * 100, 100);
-  const baselinePct = tg / totalBudget * 100;
   const remClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--accent)';
   const calClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--blue)';
   const protClr  = t.prot  >= 150 ? 'var(--accent)'  : 'var(--yellow)';
@@ -2989,13 +3083,10 @@ function render() {
             <span class="prog-lbl">Calories</span>
             <span style="font-family:monospace;font-size:13px;color:${remClr};font-weight:600">${remaining > 0 ? remaining.toLocaleString()+' left' : Math.abs(remaining).toLocaleString()+' over'}</span>
           </div>
-          <div style="position:relative;height:20px;border-radius:6px;background:var(--surface2);overflow:hidden">
-            ${burnBonus > 0 ? `<div style="position:absolute;top:0;left:${baselinePct}%;right:0;bottom:0;background:rgba(74,222,128,0.35);border-radius:0 6px 6px 0"></div>` : ''}
-            <div style="position:absolute;top:0;left:0;bottom:0;width:${eatenPct}%;background:var(--red);border-radius:6px;opacity:0.85"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <canvas id="cal-staircase" style="width:100%;display:block;border-radius:6px" height="68"></canvas>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;flex-wrap:wrap;gap:2px">
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${t.cal.toLocaleString()} eaten</span>
-            ${burnBonus > 0 ? `<span style="font-size:10px;color:var(--accent);font-family:monospace">+${burnBonus.toLocaleString()} burn bonus · ${tg.toLocaleString()} target</span>` : `<span style="font-size:10px;color:var(--muted);font-family:monospace">${tg.toLocaleString()} target</span>`}
+            <span style="font-size:10px;color:${burnBonus>0?'var(--accent)':'var(--muted)'};font-family:monospace">${totalBudget.toLocaleString()} budget${burnBonus > 0 ? ' (+'+burnBonus+' active)' : ''}</span>
           </div>
         </div>
         <div class="prog">
@@ -3181,6 +3272,7 @@ function render() {
         </div>` :
         `<div class="food-empty">${ntDayOffset === 0 ? 'No food logged yet — tap + Log Food to start' : 'Nothing logged this day.'}</div>`}
     </div>`;
+  setTimeout(() => drawCalStaircase(t.cal, tg, runCal, walkCal, otherCal), 0);
 }
 
 // Nutrition actions
