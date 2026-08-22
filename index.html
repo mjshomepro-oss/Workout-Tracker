@@ -4381,6 +4381,27 @@ async function downloadCSV() {
     });
   }
 
+  // Sheet 3: sleep + recovery
+  const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
+  if (sleepRows.length) {
+    lines.push('');
+    lines.push('=== SLEEP & RECOVERY ===');
+    lines.push(['Date','Day','Bed Time','Wake Time','Asleep (min)','Awake (min)',
+                'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
+                'Resting HR','HRV (ms)','Breathing (br/min)'].join(','));
+    for (const s of sleepRows) {
+      const d = new Date(s.log_date + 'T12:00:00');
+      const restPct = s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '';
+      lines.push([
+        s.log_date, d.toLocaleDateString('en-US',{weekday:'long'}),
+        fmtClock(s.start_time), fmtClock(s.end_time),
+        s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
+        restPct, s.awakenings,
+        s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
+      ].join(','));
+    }
+  }
+
   const blob = new Blob([lines.join('\n')], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
