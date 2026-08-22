@@ -1153,7 +1153,11 @@ function startGHAutoSync() {
 function connectGoogleHealth() {
   const clientId = '1060102663729-h4npgd4pp7hfslt5tr77iiohehpb4rmv.apps.googleusercontent.com';
   const redirectUri = encodeURIComponent('https://mjshomepro-oss.github.io/Workout-Tracker/health-callback.html');
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly');
+  const scope = encodeURIComponent([
+    'https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly',
+    'https://www.googleapis.com/auth/googlehealth.sleep.readonly',
+    'https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly',
+  ].join(' '));
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&access_type=offline&scope=${scope}&prompt=consent`;
 }
 
@@ -3245,6 +3249,7 @@ function render() {
         ${ghConnected ? `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <span style="font-size:12px;color:var(--muted);flex:1">${ghSyncedLabel()}</span>
+            <button onclick="connectGoogleHealth()" title="Re-grant permissions" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#128273;</button>
             <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
           </div>
           ${ghData ? `
