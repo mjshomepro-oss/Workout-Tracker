@@ -3384,66 +3384,10 @@ function render() {
       </div>
     </div>
     <div class="card">
-      <div class="card-lbl">Supplements</div>
+      <div class="card-lbl">Day Notes</div>
       <div class="card-body">
-        <div class="supp-list">
-          <div class="supp ${daily?.omega3_taken?'on':''}" style="cursor:default;pointer-events:none">
-            <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
-            <div style="flex:1">
-              <div class="supp-name">Omega-3</div>
-              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'CVS softgel · 500mg / 300mg · with a meal'}</div>
-              <div style="display:flex;gap:6px;margin-top:6px;pointer-events:all">
-                <button onclick="toggleOmega3('pill')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='pill'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='pill'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='pill'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">Softgel</button>
-                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#127925; Fish</button>
-              </div>
-            </div>
-          </div>
-          <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
-            <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">Nature Made 1 gummy &middot; 2500 IU D3 / 50mcg K2 &middot; with a meal</div></div>
-          </div>
-          <div class="supp ${daily?.magnesium_taken?'on':''}" onclick="toggleSupp('magnesium_taken')">
-            <div class="supp-box">${daily?.magnesium_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc">Nature Made 2 caps &middot; 200mg &middot; before bed</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-lbl">Google Health</div>
-      <div class="card-body" id="gh-card-body">
-        ${ghConnected ? `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:12px;color:var(--muted);flex:1">${ghSyncedLabel()}</span>
-            <button onclick="connectGoogleHealth()" title="Re-grant permissions" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#128273;</button>
-            <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
-          </div>
-          ${ghData ? `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.steps.toLocaleString()}</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.calories}</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px">Cal Burned</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.activeMinutes}</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px">Active Min</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.restingHR ?? '—'}</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px">Resting HR</div>
-              </div>
-            </div>
-          ` : ''}
-        ` : `
-          <div style="text-align:center;padding:8px 0">
-            <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Connect your Fitbit / Google Health data</div>
-            <button onclick="connectGoogleHealth()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer">Connect Google Health</button>
-          </div>
-        `}
+        <textarea class="notes-area" id="day-notes" placeholder="How'd today go? Energy, lifts, anything worth remembering..." oninput="scheduleNotesSave()">${(daily?.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        <div class="notes-saved" id="notes-saved"></div>
       </div>
     </div>
     <div class="card">
@@ -3484,10 +3428,40 @@ function render() {
       </div>
     </div>` : ''}
     <div class="card">
-      <div class="card-lbl">Day Notes</div>
-      <div class="card-body">
-        <textarea class="notes-area" id="day-notes" placeholder="How'd today go? Energy, lifts, anything worth remembering..." oninput="scheduleNotesSave()">${(daily?.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-        <div class="notes-saved" id="notes-saved"></div>
+      <div class="card-lbl">Google Health</div>
+      <div class="card-body" id="gh-card-body">
+        ${ghConnected ? `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:12px;color:var(--muted);flex:1">${ghSyncedLabel()}</span>
+            <button onclick="connectGoogleHealth()" title="Re-grant permissions" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#128273;</button>
+            <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
+          </div>
+          ${ghData ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.steps.toLocaleString()}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.calories}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Cal Burned</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.activeMinutes}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Active Min</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.restingHR ?? '—'}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Resting HR</div>
+              </div>
+            </div>
+          ` : ''}
+        ` : `
+          <div style="text-align:center;padding:8px 0">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Connect your Fitbit / Google Health data</div>
+            <button onclick="connectGoogleHealth()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer">Connect Google Health</button>
+          </div>
+        `}
       </div>
     </div>
     <div class="card">
@@ -3501,6 +3475,32 @@ function render() {
           ${(()=>{ const c=bpCategory(daily?.bp_systolic,daily?.bp_diastolic); return c?`<span class="bp-cat" style="color:${c.color}">${c.label}</span>`:''; })()}
         </div>
         <div class="notes-saved" id="bp-saved"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Supplements</div>
+      <div class="card-body">
+        <div class="supp-list">
+          <div class="supp ${daily?.omega3_taken?'on':''}" style="cursor:default;pointer-events:none">
+            <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
+            <div style="flex:1">
+              <div class="supp-name">Omega-3</div>
+              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'CVS softgel · 500mg / 300mg · with a meal'}</div>
+              <div style="display:flex;gap:6px;margin-top:6px;pointer-events:all">
+                <button onclick="toggleOmega3('pill')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='pill'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='pill'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='pill'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">Softgel</button>
+                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#127925; Fish</button>
+              </div>
+            </div>
+          </div>
+          <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
+            <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
+            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">Nature Made 1 gummy &middot; 2500 IU D3 / 50mcg K2 &middot; with a meal</div></div>
+          </div>
+          <div class="supp ${daily?.magnesium_taken?'on':''}" onclick="toggleSupp('magnesium_taken')">
+            <div class="supp-box">${daily?.magnesium_taken?'&#10003;':''}</div>
+            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc">Nature Made 2 caps &middot; 200mg &middot; before bed</div></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card" style="margin-bottom:80px">
