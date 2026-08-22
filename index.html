@@ -3287,6 +3287,11 @@ function render() {
   const runSeg      = Math.min(runCal, burnBonus);
   const walkSeg     = Math.min(walkCal, burnBonus - runSeg);
   const otherCal    = Math.max(0, burnBonus - runSeg - walkSeg);
+  // Carb refill earned: ~55% of activity calories came from glycogen, 4 cal/g
+  const carbG       = c => Math.round(c * 0.55 / 4 / 5) * 5;
+  const carbRun     = carbG(runSeg), carbWalk = carbG(walkSeg), carbOther = carbG(otherCal);
+  const carbEarn    = carbRun + carbWalk + carbOther;
+  const carbBudget  = 250 + carbEarn;
   const totalBudget = tg + burnBonus;
   const remaining   = totalBudget - t.cal;
   const remClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--accent)';
@@ -3350,12 +3355,15 @@ function render() {
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.fat,80)}%;background:${t.fat > 80 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
         </div>
-        <div class="prog">
-          <div class="prog-row">
-            <span class="prog-lbl">Carbs</span>
-            <span class="prog-val" style="color:${t.carbs > 250 ? 'var(--yellow)' : 'var(--muted)'}">${t.carbs.toFixed(0)}g / 250g</span>
+        <div style="margin:14px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span class="prog-lbl">Carb Staircase</span>
+            <span style="font-family:monospace;font-size:13px;font-weight:600;color:${t.carbs > carbBudget ? 'var(--yellow)' : 'var(--muted)'}">${t.carbs <= carbBudget ? (carbBudget - t.carbs).toFixed(0)+'g remaining' : (t.carbs - carbBudget).toFixed(0)+'g over'}</span>
           </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.carbs,250)}%;background:${t.carbs > 250 ? 'var(--yellow)' : 'var(--accent)'}"></div></div>
+          <canvas id="cb-staircase" style="width:100%;display:block" height="68"></canvas>
+          ${carbEarn > 0 ? `<div style="display:flex;justify-content:flex-end;margin-top:2px">
+            <span style="font-size:10px;color:var(--accent);font-family:monospace">${carbBudget}g w/ activity</span>
+          </div>` : ''}
         </div>
         <div class="prog">
           <div class="prog-row">
@@ -3518,6 +3526,11 @@ function render() {
     </div>`;
   setTimeout(() => {
     drawCalStaircase(t.cal, tg, runSeg, walkSeg, otherCal);
+    drawStaircase('cb-staircase', t.carbs, 250, [
+      { cal: carbOther, color: '#fbbf24', label: '+' + carbOther },
+      { cal: carbWalk,  color: '#60a5fa', label: '+' + carbWalk  },
+      { cal: carbRun,   color: '#22c55e', label: '+' + carbRun   },
+    ], t.carbs.toFixed(0) + 'g eaten');
     drawNaStaircase(t.sodium, sweatBonus());
   }, 0);
 }
