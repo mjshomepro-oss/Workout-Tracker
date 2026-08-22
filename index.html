@@ -3033,7 +3033,28 @@ function renderSleep() {
       </div>`;
   }).join('');
 
+  // Recovery sparkline rows — last 7 nights, oldest → newest
+  const wk = slNights.slice(0, 7).reverse();
+  const sparkRow = (id, label, val, unit, color) => val == null ? '' : `
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--muted)">${label}</span>
+        <span style="font-family:monospace;font-size:14px;font-weight:600;color:${color}">${val}<span style="font-size:10px;color:var(--muted)"> ${unit}</span></span>
+      </div>
+      <canvas id="${id}" style="width:100%;display:block" height="44"></canvas>
+    </div>`;
+  const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null) ? `
+    <div class="card">
+      <div class="card-lbl">Recovery — Last 7 Nights</div>
+      <div class="card-body" style="padding-top:2px">
+        ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa')}
+        ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e')}
+        ${sparkRow('sp-resp', 'Breathing Rate', n.resp_rate, 'br/min', '#a78bfa')}
+      </div>
+    </div>` : '';
+
   document.getElementById('sleep-root').innerHTML = `
+    ${recoveryHTML}
     <div class="card">
       <div class="card-lbl-row">
         <div class="card-lbl">${nightLabel}</div>
@@ -3075,7 +3096,58 @@ function renderSleep() {
       <div class="card-lbl">Recent Nights</div>
       <div class="card-body">${trendRows}</div>
     </div>`;
-  setTimeout(() => drawHypno(n), 0);
+  setTimeout(() => {
+    drawHypno(n);
+    drawSpark('sp-rhr',  wk.map(x => ({ d: x.log_date, v: x.resting_hr })), '#60a5fa');
+    drawSpark('sp-hrv',  wk.map(x => ({ d: x.log_date, v: x.hrv_ms })),     '#22c55e');
+    drawSpark('sp-resp', wk.map(x => ({ d: x.log_date, v: x.resp_rate })),  '#a78bfa');
+  }, 0);
+}
+
+// Small 7-night line graph with dots; skips null values
+function drawSpark(canvasId, pts, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.offsetWidth, H = 44;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const valid = pts.map((p, i) => ({ ...p, i })).filter(p => p.v != null);
+  if (!valid.length) return;
+
+  const PAD_X = 8, PAD_T = 8, PAD_B = 8;
+  const n = pts.length;
+  const xOf = i => n > 1 ? PAD_X + i / (n - 1) * (W - 2 * PAD_X) : W / 2;
+  const vals = valid.map(p => p.v);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 1) { lo -= 1; hi += 1; } // flat line guard
+  const yOf = v => PAD_T + (1 - (v - lo) / (hi - lo)) * (H - PAD_T - PAD_B);
+
+  // line
+  if (valid.length > 1) {
+    ctx.beginPath();
+    valid.forEach((p, k) => {
+      const x = xOf(p.i), y = yOf(p.v);
+      k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.85;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // dots (latest one emphasized)
+  valid.forEach((p, k) => {
+    ctx.beginPath();
+    ctx.arc(xOf(p.i), yOf(p.v), k === valid.length - 1 ? 3.5 : 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
 }
 
 function drawHypno(night) {
