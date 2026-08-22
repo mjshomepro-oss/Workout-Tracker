@@ -4236,11 +4236,17 @@ async function loadMealItems() {
   }
 }
 
+// Stats are computed from this date forward — the "fresh start" with accurate
+// Fitbit tracking. Older rows still display but don't drag the averages.
+const STATS_START = '2026-08-22';
+
 async function loadHistory() {
   try {
-    const [rows, noteRows] = await Promise.all([
+    const [rows, noteRows, actRows, sleepRows] = await Promise.all([
       sbGet('daily_summary', {order: 'log_date.desc', limit: '120'}),
       sbGet('daily_log',     {order: 'log_date.desc', limit: '120'}),
+      sbGet('activity_log',  {log_date: `gte.${STATS_START}`, order: 'start_time.desc', limit: '500'}).catch(() => []),
+      sbGet('sleep_log',     {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
     ]);
     window._histNotes = {};
     window._histBP = {};
@@ -4250,6 +4256,18 @@ async function loadHistory() {
       if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic };
       if (r.run_miles || r.run_minutes) window._histRun[r.log_date] = { miles: r.run_miles, minutes: r.run_minutes, weather: r.run_weather };
     });
+    // Per-date activity: session calories widen that day's budget
+    window._histAct = {};
+    actRows.forEach(a => {
+      const m = window._histAct[a.log_date] || (window._histAct[a.log_date] = { cal: 0, runMi: 0, runSec: 0, runs: 0 });
+      m.cal += a.calories || 0;
+      if (a.type === 'RUNNING') {
+        m.runs++;
+        m.runMi  += (a.distance_mm || 0) / 1609344;
+        m.runSec += a.duration_sec || 0;
+      }
+    });
+    window._histSleep = sleepRows;
     renderHistory(rows);
   } catch(e) {
     document.getElementById('history-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
@@ -4271,45 +4289,62 @@ function weekLabel(dateStr) {
 }
 
 function renderHistory(rows) {
+  window._histStartMarked = false;
   if (!rows.length) {
     document.getElementById('history-root').innerHTML = '<div class="food-empty">No history yet.</div>';
     return;
   }
-  const recent = rows.filter(r => r.total_calories > 0).slice(0, 30);
+  // Stats window: fresh-start days with food logged
+  const recent = rows.filter(r => r.log_date >= STATS_START && r.total_calories > 0);
   const n = recent.length || 1;
   const avg = key => (recent.reduce((s,r) => s + parseFloat(r[key]||0), 0) / n);
-  const avgCal   = Math.round(avg('total_calories'));
-  const avgProt  = avg('total_protein_g').toFixed(0);
-  const avgSugar = avg('total_added_sugar_g').toFixed(1);
-  const woComp   = Math.round(recent.filter(r => r.workout_done).length / n * 100);
-  const o3Comp   = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
-  const d3Comp   = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
-  const mgComp   = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
+  const act = window._histAct || {};
+  const dayBudget = ds => 2000 + ((act[ds]?.cal) || 0);
+  const avgCal    = Math.round(avg('total_calories'));
+  const avgBudget = Math.round(recent.reduce((s,r) => s + dayBudget(r.log_date), 0) / n);
+  const avgProt   = avg('total_protein_g').toFixed(0);
+  const avgSugar  = avg('total_added_sugar_g').toFixed(1);
+  const avgNa     = Math.round(avg('total_sodium_mg'));
+  const woComp    = Math.round(recent.filter(r => r.workout_done).length / n * 100);
+  const o3Comp    = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
+  const d3Comp    = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
+  const mgComp    = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
   const daysOverSugar = recent.filter(r => parseFloat(r.total_added_sugar_g) > 36).length;
-  const daysLowProt   = recent.filter(r => parseFloat(r.total_protein_g) < 150 && r.total_calories > 0).length;
+  const daysLowProt   = recent.filter(r => parseFloat(r.total_protein_g) < 150).length;
+  const deficitDays   = recent.filter(r => r.total_calories < dayBudget(r.log_date)).length;
+
+  // Running + sleep totals since fresh start
+  let runs = 0, runMi = 0, runSec = 0;
+  Object.values(act).forEach(m => { runs += m.runs; runMi += m.runMi; runSec += m.runSec; });
+  const runPace = runMi > 0.1 ? fmtPace(runSec, runMi) : '';
+  const sleepRows2 = window._histSleep || [];
+  const avgSleepMin = sleepRows2.length ? Math.round(sleepRows2.reduce((s,x) => s + x.min_asleep, 0) / sleepRows2.length) : 0;
 
   const flags = [];
-  if (parseFloat(avgProt)  < 140) flags.push('&#9888; Avg protein below 150g — prioritize protein at each meal');
-  if (parseFloat(avgSugar) > 30)  flags.push('&#9888; Avg added sugar trending high — watch sauces, dressings, drinks');
-  if (daysOverSugar > 5)          flags.push(`&#9888; Sugar limit exceeded ${daysOverSugar} of last ${n} days`);
-  if (daysLowProt   > 7)          flags.push(`&#9888; Protein under target ${daysLowProt} of last ${n} days`);
-  if (mgComp < 60)                flags.push('&#9888; Magnesium compliance low — affects sleep and recovery');
-  if (o3Comp < 60)                flags.push('&#9888; Omega-3 compliance low — take with any meal');
-  if (woComp >= 80)               flags.push('&#10003; Strong workout consistency — keep it up');
+  if (deficitDays === n && n >= 3)      flags.push(`&#10003; In a calorie deficit all ${n} tracked days`);
+  if (parseFloat(avgProt)  < 140)       flags.push('&#9888; Avg protein below 150g — prioritize protein at each meal');
+  if (parseFloat(avgSugar) > 30)        flags.push('&#9888; Avg added sugar trending high — watch sauces, dressings, drinks');
+  if (daysOverSugar > Math.ceil(n/6))   flags.push(`&#9888; Sugar limit exceeded ${daysOverSugar} of ${n} days`);
+  if (daysLowProt   > Math.ceil(n/4))   flags.push(`&#9888; Protein under target ${daysLowProt} of ${n} days`);
+  if (mgComp < 60 && n >= 5)            flags.push('&#9888; Magnesium compliance low — affects sleep and recovery');
+  if (o3Comp < 60 && n >= 5)            flags.push('&#9888; Omega-3 compliance low — take with any meal');
+  if (woComp >= 80 && n >= 5)           flags.push('&#10003; Strong workout consistency — keep it up');
+  if (avgSleepMin && avgSleepMin < 390) flags.push('&#9888; Avg sleep under 6.5h — recovery suffers first');
 
   const insClr = (val, good, bad, higher) =>
     higher ? (val >= good ? 'ok' : val >= bad ? 'warn' : 'bad')
            : (val <= good ? 'ok' : val <= bad ? 'warn' : 'bad');
 
+  const startLbl = new Date(STATS_START + 'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
   let html = `
     <div class="card">
-      <div class="card-lbl">30-Day Averages</div>
+      <div class="card-lbl">Since ${startLbl} &middot; ${n} day${n===1?'':'s'} tracked</div>
       <div class="card-body">
         <div class="insight-grid">
-          <div class="ins ${insClr(avgCal, 2300, 1700, false)}">
+          <div class="ins ${insClr(avgCal, avgBudget, avgBudget + 200, false)}">
             <div class="ins-val">${avgCal.toLocaleString()}</div>
             <div class="ins-lbl">Avg Calories</div>
-            <div class="ins-sub">target ${CAL_TARGET.toLocaleString()}</div>
+            <div class="ins-sub">avg budget ${avgBudget.toLocaleString()} &middot; ${deficitDays}/${n} deficit</div>
           </div>
           <div class="ins ${insClr(parseFloat(avgProt), 150, 130, true)}">
             <div class="ins-val">${avgProt}g</div>
@@ -4321,12 +4356,27 @@ function renderHistory(rows) {
             <div class="ins-lbl">Avg Added Sugar</div>
             <div class="ins-sub">limit 36g &middot; ${daysOverSugar} days over</div>
           </div>
+          <div class="ins ${insClr(avgNa, 2300, 3200, false)}">
+            <div class="ins-val">${avgNa.toLocaleString()}</div>
+            <div class="ins-lbl">Avg Sodium (mg)</div>
+            <div class="ins-sub">baseline 2,300</div>
+          </div>
           <div class="ins ${insClr(woComp, 75, 50, true)}">
             <div class="ins-val">${woComp}%</div>
             <div class="ins-lbl">Workout Rate</div>
             <div class="ins-sub">&#937; ${o3Comp}% &middot; D3 ${d3Comp}% &middot; Mg ${mgComp}%</div>
           </div>
+          <div class="ins ${avgSleepMin ? insClr(avgSleepMin, 420, 360, true) : ''}">
+            <div class="ins-val">${avgSleepMin ? fmtHM(avgSleepMin) : '—'}</div>
+            <div class="ins-lbl">Avg Sleep</div>
+            <div class="ins-sub">goal 7h+</div>
+          </div>
         </div>
+        ${runs ? `<div style="margin-top:10px;background:var(--surface2);border-radius:8px;padding:9px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline">
+          <span style="font-size:12px">🏃 <b>${runs}</b> run${runs===1?'':'s'}</span>
+          <span style="font-family:monospace;font-size:12px;color:var(--accent)">${runMi.toFixed(1)} mi</span>
+          ${runPace ? `<span style="font-family:monospace;font-size:12px;color:var(--muted)">avg ${runPace}</span>` : ''}
+        </div>` : ''}
         ${flags.length ? `<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
           ${flags.map(f => `<div style="font-size:12px;color:${f.startsWith('&#10003;')?'var(--accent)':'var(--yellow)'};line-height:1.4">${f}</div>`).join('')}
         </div>` : ''}
@@ -4346,18 +4396,27 @@ function renderHistory(rows) {
     if (wk !== lastWeek) { lastWeek = wk; html += `<div class="week-hd">${weekLabel(r.log_date)}</div>`; }
     const d     = new Date(r.log_date + 'T12:00:00');
     const cal   = r.total_calories;
-    const tg    = r.calorie_target;
+    const tg    = dayBudget(r.log_date); // 2000 + that day's tracked activity
     const prot  = parseFloat(r.total_protein_g);
     const sugar = parseFloat(r.total_added_sugar_g);
     const hasData = cal > 0;
-    const calClr   = !hasData ? 'var(--muted)' : cal > tg + 150 ? 'var(--red)' : cal > tg ? 'var(--yellow)' : cal < tg - 300 ? 'var(--yellow)' : 'var(--blue)';
+    const preStart = r.log_date < STATS_START;
+    const calClr   = !hasData || preStart ? 'var(--muted)' : cal > tg + 150 ? 'var(--red)' : cal > tg ? 'var(--yellow)' : 'var(--accent)';
     const protClr  = !hasData ? 'var(--muted)' : prot >= 150 ? 'var(--accent)' : prot < 130 ? 'var(--red)' : 'var(--yellow)';
     const sugarClr = !hasData ? 'var(--muted)' : sugar > 36 ? 'var(--red)' : 'var(--accent)';
     const mo = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const dy = d.toLocaleDateString('en-US',{weekday:'short'});
     const note = (window._histNotes||{})[r.log_date] || '';
+    if (preStart && !window._histStartMarked) {
+      window._histStartMarked = true;
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">Fresh start ${new Date(STATS_START+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} — older days below excluded from stats</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>`;
+    }
     html += `
-      <div class="hist-row">
+      <div class="hist-row" ${preStart ? 'style="opacity:0.55"' : ''}>
         <div class="hr-date">${mo}<span>${dy}</span></div>
         <div class="hr-session">${r.session_type}</div>
         <div class="hr-cal" style="color:${calClr}">${hasData ? cal.toLocaleString() : '—'}</div>
