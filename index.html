@@ -2100,6 +2100,7 @@ function switchMainTab(tab) {
   } else if (tab === 'nutrition') {
     pill.classList.remove('visible');
     updateNtHeader(); // sets FAB based on current day offset
+    if (daily) render(); // redraw staircase canvases now that the view is visible
   } else if (tab === 'sleep') {
     pill.classList.remove('visible');
     fab.classList.remove('visible');
