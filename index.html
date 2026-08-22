@@ -2965,13 +2965,16 @@ function target() { return CAL_TARGET; }
 function sweatBonus() {
   const s = ghData?.sweat;
   if (!s) return 0;
-  let mg = (s.modSec||0)/60*8 + (s.vigSec||0)/60*17 + (s.peakSec||0)/60*20;
+  // Two independent estimates of the same sweat — take the larger, never both
+  // (all-day activity levels already include exercise session minutes):
+  const sessionMg = (s.modSec||0)/60*8 + (s.vigSec||0)/60*17 + (s.peakSec||0)/60*20;
+  let levelMg = 0;
   for (const [name, min] of Object.entries(s.levels||{})) {
     const n = name.toUpperCase();
-    if (n.includes('VIGOROUS') || n.includes('VERY'))        mg += min*17;
-    else if (n.includes('MODERATE') || n.includes('FAIRLY')) mg += min*8;
+    if (n.includes('VIGOROUS') || n.includes('VERY'))        levelMg += min*17;
+    else if (n.includes('MODERATE') || n.includes('FAIRLY')) levelMg += min*8;
   }
-  return Math.min(1500, Math.round(mg/50)*50);
+  return Math.min(1500, Math.round(Math.max(sessionMg, levelMg)/50)*50);
 }
 function sodiumTarget() { return 2300 + sweatBonus(); }
 function bpCategory(sys, dia) {
