@@ -1109,7 +1109,10 @@ const SB_URL = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
 const FN_URL = `${SB_URL}/functions/v1/analyze-food`;
 const CAL_TARGET  = 2000;
-const RESTING_BURN = 1900;
+// Burn on a normal NO-exercise day (resting + everyday movement). The 2,000
+// target already assumes this much activity, so only burn ABOVE it is "earned".
+// Calibrate after a few weeks: average Fitbit total burn on days with no sessions.
+const BASE_BURN   = 2450;
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core','Running'];
 const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
@@ -3548,19 +3551,18 @@ function render() {
   const tg = target();
   const runCal      = ghData?.runCal  ?? 0;
   const walkCal     = ghData?.walkCal ?? 0;
-  // Prorate resting burn by how far into the day we are, so activity credit
-  // accrues all day instead of only after total burn passes the full 1,900.
-  // Past days count the full resting burn.
+  // Runs/walks are always earned in full. "Everything else" only earns when
+  // total burn exceeds a normal no-exercise day's burn (prorated by time of day
+  // so credit can accrue during the day; past days use the full baseline).
   const now = new Date();
   const dayFrac = ntDayOffset === 0
     ? (now.getHours() * 60 + now.getMinutes()) / 1440
     : 1;
-  const restingSoFar = Math.round(RESTING_BURN * dayFrac);
-  const burnBonus   = ghData ? Math.max(0, Math.round(ghData.calories - restingSoFar)) : 0;
-  // Clamp so run + walk + other always sums to exactly burnBonus
-  const runSeg      = Math.min(runCal, burnBonus);
-  const walkSeg     = Math.min(walkCal, burnBonus - runSeg);
-  const otherCal    = Math.max(0, burnBonus - runSeg - walkSeg);
+  const baseSoFar   = Math.round(BASE_BURN * dayFrac);
+  const runSeg      = ghData ? runCal  : 0;
+  const walkSeg     = ghData ? walkCal : 0;
+  const otherCal    = ghData ? Math.max(0, Math.round(ghData.calories - baseSoFar) - runSeg - walkSeg) : 0;
+  const burnBonus   = runSeg + walkSeg + otherCal;
   // Carb refill earned: ~55% of activity calories came from glycogen, 4 cal/g
   const carbG       = c => Math.round(c * 0.55 / 4 / 5) * 5;
   const carbRun     = carbG(runSeg), carbWalk = carbG(walkSeg), carbOther = carbG(otherCal);
