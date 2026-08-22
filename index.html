@@ -1107,11 +1107,47 @@ let pendingStaple = null;
 
 // ── Google Health ──────────────────────────────────────
 let ghConnected = false;
-let ghData = null;
+let ghData = JSON.parse(localStorage.getItem('ghData') || 'null');
+let ghSyncedAt = localStorage.getItem('ghSyncedAt') || null;
+let ghSyncTimer = null;
 
 async function checkGHConnected() {
   const rows = await sbGet('google_health_tokens', {'id': 'eq.1'});
   ghConnected = rows.length > 0;
+}
+
+function ghSyncedLabel() {
+  if (!ghSyncedAt) return 'Never synced';
+  const d = new Date(ghSyncedAt);
+  const now = new Date();
+  const diffMin = Math.round((now - d) / 60000);
+  if (diffMin < 1) return 'Synced just now';
+  if (diffMin < 60) return `Synced ${diffMin}m ago`;
+  const diffH = Math.floor(diffMin / 60);
+  return `Synced ${diffH}h ago`;
+}
+
+async function bgSync() {
+  if (!ghConnected) return;
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-health-sync`, {
+      headers: { 'apikey': SB_KEY },
+    });
+    const data = await res.json();
+    if (!data.error) {
+      ghData = data;
+      ghSyncedAt = new Date().toISOString();
+      localStorage.setItem('ghData', JSON.stringify(ghData));
+      localStorage.setItem('ghSyncedAt', ghSyncedAt);
+      render();
+    }
+  } catch(_) {}
+}
+
+function startGHAutoSync() {
+  bgSync();
+  if (ghSyncTimer) clearInterval(ghSyncTimer);
+  ghSyncTimer = setInterval(bgSync, 20 * 60 * 1000); // every 20 min
 }
 
 function connectGoogleHealth() {
@@ -1131,6 +1167,9 @@ async function syncGoogleHealth() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     ghData = data;
+    ghSyncedAt = new Date().toISOString();
+    localStorage.setItem('ghData', JSON.stringify(ghData));
+    localStorage.setItem('ghSyncedAt', ghSyncedAt);
     render();
   } catch(e) {
     alert('Sync failed: ' + e.message);
@@ -3041,7 +3080,7 @@ function render() {
       <div class="card-body" id="gh-card-body">
         ${ghConnected ? `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:12px;color:var(--muted);flex:1">${ghData ? 'Last synced just now' : 'Tap Sync to load today\'s data'}</span>
+            <span style="font-size:12px;color:var(--muted);flex:1">${ghSyncedLabel()}</span>
             <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
           </div>
           ${ghData ? `
@@ -3932,7 +3971,7 @@ async function downloadCSV() {
 // ══ INIT ═══════════════════════════════════════════════
 renderWOTabs();
 migrateWOToSupabase().then(() => ensureWOWeek().then(() => renderWOContent()));
-checkGHConnected().then(() => render());
+checkGHConnected().then(() => { render(); startGHAutoSync(); });
 updateTimer();
 load();
 
