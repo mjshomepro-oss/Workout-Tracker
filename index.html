@@ -2957,7 +2957,7 @@ function drawCalStaircase(eaten, base, run, walk, other) {
   const risePx = bonus > 0 ? Math.min(MAX_RISE / bonus, 0.12) : 0;
   const totalRise = bonus * risePx;
 
-  const PAD_T = 14, PAD_B = 4;
+  const PAD_T = 14, PAD_B = 14;
   const H = Math.round(PAD_T + totalRise + BAR + PAD_B);
   const W = canvas.offsetWidth;
   const dpr = window.devicePixelRatio || 1;
@@ -3061,6 +3061,19 @@ function drawCalStaircase(eaten, base, run, walk, other) {
       ctx.fillText(b.label, b.x + b.w / 2, b.y - 4);
     }
   }
+  // baseline tag pinned to the END of the base bar — slides left as activity grows
+  const baseEnd = boxes[0].x + boxes[0].w;
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '500 9px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(base.toLocaleString() + ' baseline', Math.max(baseEnd, 70), baseY + BAR + 11);
+  // small notch marking where the baseline stops
+  ctx.beginPath();
+  ctx.moveTo(baseEnd, baseY + BAR);
+  ctx.lineTo(baseEnd, baseY + BAR + 4);
+  ctx.strokeStyle = '#9ca3af';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 }
 
 // Render nutrition today view
@@ -3116,14 +3129,13 @@ function render() {
       <div class="card-body">
         <div style="margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <span class="prog-lbl">Calories</span>
+            <span class="prog-lbl">Calorie Staircase</span>
             <span style="font-family:monospace;font-size:13px;font-weight:600">${burnBonus > 0 ? `<span style="color:var(--accent)">+${burnBonus.toLocaleString()} earned</span><span style="color:var(--muted)"> / </span>` : ''}<span style="color:${remClr}">${remaining > 0 ? remaining.toLocaleString()+' remaining' : Math.abs(remaining).toLocaleString()+' over'}</span></span>
           </div>
           <canvas id="cal-staircase" style="width:100%;display:block" height="68"></canvas>
-          <div style="display:flex;justify-content:space-between;margin-top:4px;flex-wrap:wrap;gap:2px">
-            <span style="font-size:10px;color:var(--muted);font-family:monospace">${tg.toLocaleString()} baseline</span>
-            ${burnBonus > 0 ? `<span style="font-size:10px;color:var(--accent);font-family:monospace">${totalBudget.toLocaleString()} w/ activity</span>` : ''}
-          </div>
+          ${burnBonus > 0 ? `<div style="display:flex;justify-content:flex-end;margin-top:2px">
+            <span style="font-size:10px;color:var(--accent);font-family:monospace">${totalBudget.toLocaleString()} w/ activity</span>
+          </div>` : ''}
         </div>
         <div class="prog">
           <div class="prog-row">
