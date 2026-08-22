@@ -1117,7 +1117,7 @@ async function checkGHConnected() {
 function connectGoogleHealth() {
   const clientId = '1060102663729-h4npgd4pp7hfslt5tr77iiohehpb4rmv.apps.googleusercontent.com';
   const redirectUri = encodeURIComponent('https://mjshomepro-oss.github.io/Workout-Tracker/health-callback.html');
-  const scope = encodeURIComponent('profile email'); // TEST: using basic scope to verify OAuth flow
+  const scope = encodeURIComponent('https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly');
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&access_type=offline&scope=${scope}&prompt=consent`;
 }
 
