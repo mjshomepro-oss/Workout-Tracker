@@ -850,7 +850,7 @@ body {
   <div class="hist-tab-hdr">
     <div class="hdr-row">
       <span class="hdr-title">📊 History</span>
-      <button class="dl-btn" onclick="downloadCSV()">&#8595; CSV</button>
+      <button class="dl-btn" onclick="downloadExcel()">&#8595; Excel</button>
     </div>
   </div>
   <div class="hist-sub-tabs">
@@ -4307,6 +4307,120 @@ async function loadWorkoutHistory() {
     html += '</div>';
   }
   root.innerHTML = html;
+}
+
+// Load SheetJS on demand for real .xlsx export
+function ensureXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// Full app export: one Excel sheet per data set
+async function downloadExcel() {
+  try {
+    await ensureXLSX();
+  } catch(_) {
+    return downloadCSV(); // offline fallback: single CSV with sections
+  }
+  if (!window._histRows) { await loadHistory(); }
+  const rows = window._histRows || [];
+  const dayName = ds => new Date(ds + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long'});
+
+  // ── Sheet 1: Daily Summary ──
+  const daily = [['Date','Day','Session','Calories','Cal Target','Protein (g)','Added Sugar (g)',
+                  'Workout','Omega-3','D3+K2','Magnesium','Food Entries',
+                  'Run Miles','Run Minutes','Run Weather','BP Systolic','BP Diastolic','BP Category']];
+  for (const r of [...rows].reverse()) {
+    const run = (window._histRun||{})[r.log_date];
+    const bp  = (window._histBP||{})[r.log_date];
+    daily.push([
+      r.log_date, dayName(r.log_date), r.session_type,
+      r.total_calories, r.calorie_target, r.total_protein_g, r.total_added_sugar_g,
+      r.workout_done?'Yes':'No', r.omega3_taken?'Yes':'No', r.d3_k2_taken?'Yes':'No',
+      r.magnesium_taken?'Yes':'No', r.food_entries,
+      run?.miles||'', run?.minutes||'', run?.weather||'',
+      bp?.sys||'', bp?.dia||'', bp ? (bpCategory(bp.sys,bp.dia)?.label || '') : '',
+    ]);
+  }
+
+  // ── Sheet 2: Food Log ──
+  const food = [['Date','Day','Meal','Food','Calories','Protein (g)','Added Sugar (g)',
+                 'Fat (g)','Carbs (g)','Fiber (g)','Sodium (mg)','Potassium (mg)']];
+  const items = await sbGet('food_log', {
+    'food_name': 'neq.Historical Import',
+    'order': 'log_date.asc,created_at.asc',
+    'limit': '5000',
+  }).catch(() => []);
+  for (const i of items) {
+    food.push([
+      i.log_date, dayName(i.log_date), i.meal_time, i.food_name,
+      i.calories||0, parseFloat(i.protein_g||0), parseFloat(i.added_sugar_g||0),
+      parseFloat(i.fat_g||0), parseFloat(i.carbs_g||0), parseFloat(i.fiber_g||0),
+      parseInt(i.sodium_mg||0), parseInt(i.potassium_mg||0),
+    ]);
+  }
+
+  // ── Sheet 3: Workouts (every set) ──
+  const workouts = [['Date','Day','Session','Exercise','Set','Weight (lbs)','Reps','Done']];
+  const woRows = await sbGet('workout_log', {order: 'log_date.asc', limit: '400'}).catch(() => []);
+  for (const row of woRows) {
+    const data = row.workout_data;
+    if (!data) continue;
+    const dow = new Date(row.log_date + 'T12:00:00').getDay();
+    const routine = ROUTINE[dow];
+    if (routine.type === 'strength' && data.exercises) {
+      routine.items.forEach((ex, i) => {
+        if (ex.track === false) return;
+        const ed = data.exercises[i];
+        if (!ed || !ed.sets) return;
+        ed.sets.forEach((s, si) => {
+          if (!s.w && !s.r && !s.done) return;
+          workouts.push([row.log_date, dayName(row.log_date), routine.label, ex.name,
+                         si+1, s.w||'', s.r||'', s.done?'Yes':'No']);
+        });
+      });
+      (data.extras||[]).forEach(xtr => {
+        (xtr.sets_data||[]).forEach((s, si) => {
+          if (!s.w && !s.r && !s.done) return;
+          workouts.push([row.log_date, dayName(row.log_date), routine.label, xtr.name + ' (extra)',
+                         si+1, s.w||'', s.r||'', s.done?'Yes':'No']);
+        });
+      });
+    } else if (data.items) {
+      data.items.forEach((it, i) => {
+        if (!it.checked) return;
+        const label = routine.items?.[i]?.name || routine.items?.[i] || `Item ${i+1}`;
+        workouts.push([row.log_date, dayName(row.log_date), routine.label,
+                       typeof label === 'string' ? label : (label.name || ''), '', '', '', 'Yes']);
+      });
+    }
+  }
+
+  // ── Sheet 4: Sleep & Recovery ──
+  const sleep = [['Date','Day','Bed Time','Wake Time','Asleep (min)','Awake (min)',
+                  'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
+                  'Resting HR','HRV (ms)','Breathing (br/min)']];
+  const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
+  for (const s of sleepRows) {
+    sleep.push([
+      s.log_date, dayName(s.log_date), fmtClock(s.start_time), fmtClock(s.end_time),
+      s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
+      s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '',
+      s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
+    ]);
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(daily),    'Daily Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(food),     'Food Log');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(workouts), 'Workouts');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sleep),    'Sleep & Recovery');
+  XLSX.writeFile(wb, `fitness-log-${TODAY}.xlsx`);
 }
 
 async function downloadCSV() {
