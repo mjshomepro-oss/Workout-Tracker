@@ -780,6 +780,9 @@ body {
   <button class="nav-btn" data-tab="nutrition" onclick="switchMainTab('nutrition')">
     <span class="nav-ico">🍎</span><span>Nutrition</span>
   </button>
+  <button class="nav-btn" data-tab="sleep" onclick="switchMainTab('sleep')">
+    <span class="nav-ico">😴</span><span>Sleep</span>
+  </button>
   <button class="nav-btn" data-tab="history" onclick="switchMainTab('history')">
     <span class="nav-ico">📊</span><span>History</span>
   </button>
@@ -830,6 +833,17 @@ body {
 
 <!-- FAB — Log Food (shown only on nutrition tab) -->
 <button class="fab" id="fab" onclick="openSheet()">+ Log Food</button>
+
+<!-- ── SLEEP TAB ───────────────────────────────────── -->
+<div id="sleep-view" class="tab-view" style="display:none">
+  <div class="nt-hdr">
+    <div class="hdr-row">
+      <span class="hdr-title">😴 Sleep</span>
+      <button class="refresh-btn" onclick="slNights=null;loadSleep()" title="Refresh">&#8635; Refresh</button>
+    </div>
+  </div>
+  <div id="sleep-root"><div class="s-loading">Loading…</div></div>
+</div>
 
 <!-- ── HISTORY TAB ─────────────────────────────────── -->
 <div id="history-view" class="tab-view" style="display:none">
@@ -2086,6 +2100,10 @@ function switchMainTab(tab) {
   } else if (tab === 'nutrition') {
     pill.classList.remove('visible');
     updateNtHeader(); // sets FAB based on current day offset
+  } else if (tab === 'sleep') {
+    pill.classList.remove('visible');
+    fab.classList.remove('visible');
+    loadSleep();
   } else {
     pill.classList.remove('visible');
     fab.classList.remove('visible');
@@ -2946,6 +2964,153 @@ function bpCategory(sys, dia) {
   return { label: 'Normal', color: 'var(--accent)' };
 }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
+
+// ══ SLEEP TAB ═════════════════════════════════════
+let slNights = JSON.parse(localStorage.getItem('slNights') || 'null');
+let slLoading = false;
+
+const SL_COLORS = { AWAKE:'#f9a8d4', REM:'#bae6fd', LIGHT:'#60a5fa', DEEP:'#a78bfa' };
+const SL_LEVELS = { AWAKE:0, REM:1, LIGHT:2, DEEP:3 };
+
+function fmtHM(min) { const h=Math.floor(min/60), m=Math.round(min%60); return h ? `${h}h ${m}m` : `${m}m`; }
+function fmtClock(iso) {
+  const d = new Date(iso);
+  let h = d.getHours(); const m = String(d.getMinutes()).padStart(2,'0');
+  const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+  return `${h}:${m} ${ap}`;
+}
+
+async function loadSleep() {
+  if (slNights) renderSleep();
+  if (slLoading) return;
+  slLoading = true;
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-health-sleep`, { headers: { 'apikey': SB_KEY } });
+    const data = await res.json();
+    if (data.nights && data.nights.length) {
+      slNights = data.nights;
+      localStorage.setItem('slNights', JSON.stringify(slNights));
+      renderSleep();
+    } else if (!slNights) {
+      document.getElementById('sleep-root').innerHTML =
+        `<div class="s-err">&#9888; ${data.error || 'No sleep data yet — wear the Fitbit tonight!'}</div>`;
+    }
+  } catch(e) {
+    if (!slNights) document.getElementById('sleep-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
+  }
+  slLoading = false;
+}
+
+function renderSleep() {
+  const n = slNights[0];
+  const inBed = n.min_asleep + n.min_awake;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const isLastNight = n.log_date === todayStr;
+  const nightLabel = isLastNight ? 'Last Night' : new Date(n.log_date + 'T12:00').toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  const restorative = inBed ? Math.round((n.min_deep + n.min_rem) / n.min_asleep * 100) : 0;
+  const durClr = n.min_asleep >= 420 ? 'var(--accent)' : n.min_asleep >= 360 ? 'var(--yellow)' : 'var(--red)';
+
+  const stageRow = (label, min, color) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <span style="font-size:11px;color:var(--muted);width:52px;flex-shrink:0">${label}</span>
+      <div style="flex:1;height:8px;border-radius:4px;background:var(--surface2);overflow:hidden">
+        <div style="width:${Math.min(min/inBed*100,100)}%;height:100%;background:${color};border-radius:4px"></div>
+      </div>
+      <span style="font-family:monospace;font-size:11px;color:${color};width:64px;text-align:right;flex-shrink:0">${fmtHM(min)}</span>
+    </div>`;
+
+  const trendRows = slNights.slice(0, 14).map(t => {
+    const clr = t.min_asleep >= 420 ? 'var(--accent)' : t.min_asleep >= 360 ? 'var(--yellow)' : 'var(--red)';
+    const d = new Date(t.log_date + 'T12:00');
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px">
+        <span style="font-size:11px;color:var(--muted);width:64px;flex-shrink:0;font-family:monospace">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}</span>
+        <div style="flex:1;height:10px;border-radius:5px;background:var(--surface2);overflow:hidden">
+          <div style="width:${Math.min(t.min_asleep/540*100,100)}%;height:100%;background:${clr};border-radius:5px;opacity:0.85"></div>
+        </div>
+        <span style="font-family:monospace;font-size:11px;color:${clr};width:58px;text-align:right;flex-shrink:0">${fmtHM(t.min_asleep)}</span>
+      </div>`;
+  }).join('');
+
+  document.getElementById('sleep-root').innerHTML = `
+    <div class="card">
+      <div class="card-lbl-row">
+        <div class="card-lbl">${nightLabel}</div>
+        <span style="font-size:11px;color:var(--muted);font-family:monospace">${fmtClock(n.start_time)} &ndash; ${fmtClock(n.end_time)}</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+          <span style="font-size:32px;font-weight:700;color:${durClr};font-family:monospace">${fmtHM(n.min_asleep)}</span>
+          <span style="font-size:12px;color:var(--muted)">asleep</span>
+        </div>
+        <canvas id="sl-hypno" style="width:100%;display:block;margin-top:6px" height="120"></canvas>
+        <div style="display:flex;justify-content:space-between;margin-top:2px">
+          <span style="font-size:10px;color:var(--muted);font-family:monospace">${fmtClock(n.start_time)}</span>
+          <span style="font-size:10px;color:var(--muted);font-family:monospace">${fmtClock(n.end_time)}</span>
+        </div>
+        <div style="margin-top:10px">
+          ${stageRow('Awake', n.min_awake, SL_COLORS.AWAKE)}
+          ${stageRow('REM',   n.min_rem,   SL_COLORS.REM)}
+          ${stageRow('Light', n.min_light, SL_COLORS.LIGHT)}
+          ${stageRow('Deep',  n.min_deep,  SL_COLORS.DEEP)}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+          <div style="background:var(--surface2);border-radius:8px;padding:9px 6px;text-align:center">
+            <div style="font-family:monospace;font-size:16px;font-weight:600;color:var(--text)">${restorative}%</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Deep + REM</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:9px 6px;text-align:center">
+            <div style="font-family:monospace;font-size:16px;font-weight:600;color:var(--text)">${n.awakenings}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Restless</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:9px 6px;text-align:center">
+            <div style="font-family:monospace;font-size:16px;font-weight:600;color:var(--text)">${fmtHM(inBed)}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">In Bed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:80px">
+      <div class="card-lbl">Recent Nights</div>
+      <div class="card-body">${trendRows}</div>
+    </div>`;
+  setTimeout(() => drawHypno(n), 0);
+}
+
+function drawHypno(night) {
+  const canvas = document.getElementById('sl-hypno');
+  if (!canvas || !night.stages || !night.stages.length) return;
+  const W = canvas.offsetWidth, H = 120;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const totalMin = (new Date(night.end_time) - new Date(night.start_time)) / 60000;
+  const rowH = H / 4, bandH = rowH * 0.6;
+
+  let prevCy = null;
+  for (const s of night.stages) {
+    const x = s.o / totalMin * W;
+    const w = Math.max(s.d / totalMin * W, 1.5);
+    const y = SL_LEVELS[s.t] * rowH + (rowH - bandH) / 2;
+    const cy = y + bandH / 2;
+    if (prevCy !== null) {
+      ctx.strokeStyle = 'rgba(148,163,184,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, prevCy);
+      ctx.lineTo(x, cy);
+      ctx.stroke();
+    }
+    ctx.fillStyle = SL_COLORS[s.t] || '#6b7280';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, bandH, Math.min(5, w / 2));
+    ctx.fill();
+    prevCy = cy;
+  }
+}
 
 // Generic staircase bar: thin base bar whose bonus segments step UP.
 // Both the width AND the rise of each step are proportional to its value.
