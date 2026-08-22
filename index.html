@@ -2918,12 +2918,21 @@ function totals() {
   }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0, potassium:0});
 }
 function target() { return CAL_TARGET; }
-function sodiumTarget() {
-  const lab = daily?.labor_level || 'light';
-  if (lab === 'heavy')    return 3200;
-  if (lab === 'moderate') return 2800;
-  return 2300;
+// Sodium bonus from measured heart-rate effort (sweat proxy):
+// HR zones during exercise sessions + moderate/vigorous active minutes all day.
+// Roughly 500mg/hr moderate, 1000mg/hr vigorous, 1200mg/hr peak; capped +1500.
+function sweatBonus() {
+  const s = ghData?.sweat;
+  if (!s) return 0;
+  let mg = (s.modSec||0)/60*8 + (s.vigSec||0)/60*17 + (s.peakSec||0)/60*20;
+  for (const [name, min] of Object.entries(s.levels||{})) {
+    const n = name.toUpperCase();
+    if (n.includes('VIGOROUS') || n.includes('VERY'))        mg += min*17;
+    else if (n.includes('MODERATE') || n.includes('FAIRLY')) mg += min*8;
+  }
+  return Math.min(1500, Math.round(mg/50)*50);
 }
+function sodiumTarget() { return 2300 + sweatBonus(); }
 function bpCategory(sys, dia) {
   if (!sys || !dia) return null;
   if (sys >= 180 || dia >= 120) return { label: 'Crisis — seek care', color: 'var(--red)' };
@@ -3093,7 +3102,6 @@ function drawNaStaircase(sodium, laborBonus) {
 function render() {
   const t  = totals();
   const tg = target();
-  const lab = daily?.labor_level || 'light';
   const runCal      = ghData?.runCal  ?? 0;
   const walkCal     = ghData?.walkCal ?? 0;
   // Prorate resting burn by how far into the day we are, so activity credit
@@ -3138,16 +3146,6 @@ function render() {
       </div>`).join('');
 
   document.getElementById('nutrition-root').innerHTML = `
-    <div class="card">
-      <div class="card-lbl">Labor Today</div>
-      <div class="card-body">
-        <div class="labor-grid">
-          <button class="lbr ${lab==='light'?'on':''}" onclick="setLabor('light')">Light<span>Na 2300mg</span></button>
-          <button class="lbr ${lab==='moderate'?'on':''}" onclick="setLabor('moderate')">Moderate<span>Na 2800mg</span></button>
-          <button class="lbr ${lab==='heavy'?'on':''}" onclick="setLabor('heavy')">Heavy<span>Na 3200mg</span></button>
-        </div>
-      </div>
-    </div>
     <div class="card">
       <div class="card-lbl">Today's Targets</div>
       <div class="card-body">
@@ -3210,7 +3208,7 @@ function render() {
           </div>
           <canvas id="na-staircase" style="width:100%;display:block" height="68"></canvas>
           ${sodiumTarget() > 2300 ? `<div style="display:flex;justify-content:flex-end;margin-top:2px">
-            <span style="font-size:10px;color:#fbbf24;font-family:monospace">${sodiumTarget().toLocaleString()} w/ ${lab} labor</span>
+            <span style="font-size:10px;color:#fbbf24;font-family:monospace">${sodiumTarget().toLocaleString()} w/ sweat</span>
           </div>` : ''}
         </div>
       </div>
@@ -3349,15 +3347,11 @@ function render() {
     </div>`;
   setTimeout(() => {
     drawCalStaircase(t.cal, tg, runSeg, walkSeg, otherCal);
-    drawNaStaircase(t.sodium, sodiumTarget() - 2300);
+    drawNaStaircase(t.sodium, sweatBonus());
   }, 0);
 }
 
 // Nutrition actions
-async function setLabor(lv) {
-  daily.labor_level = lv; render();
-  await sbPatch('daily_log', {log_date: ntDateStr()}, {labor_level: lv});
-}
 const SUPP_FOOD = {
   omega3_taken:   { food_name:'Fish Oil (1 softgel)',  calories:5,  protein_g:0, added_sugar_g:0, fat_g:0.5, carbs_g:0,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
   d3_k2_taken:    { food_name:'D3+K2 Gummy (1)',       calories:8,  protein_g:0, added_sugar_g:1, fat_g:0,   carbs_g:1.5, fiber_g:0, sodium_mg:3,  potassium_mg:0  },
