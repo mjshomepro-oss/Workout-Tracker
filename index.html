@@ -1080,8 +1080,8 @@ body {
 const SB_URL = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
 const FN_URL = `${SB_URL}/functions/v1/analyze-food`;
-const CAL_BASE  = [1750,2050,2200,1900,2050,2200,2000];
-const LABOR_ADD = {light:0, moderate:250, heavy:500};
+const CAL_TARGET  = 2000;
+const RESTING_BURN = 1900;
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const SESSIONS  = ['Rest / Mobility','Upper Body A','Lower A — Squat + Core','Easy Cardio','Upper Body B','Lower B — Hinge + Core','Intervals + Core','Running'];
 const MEALS     = ['Morning','Lunch','Afternoon','Evening'];
@@ -2878,7 +2878,7 @@ function totals() {
     potassium: a.potassium + (parseInt(e.potassium_mg)||0),
   }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0, potassium:0});
 }
-function target() { return CAL_BASE[ntDateObj().getDay()] + (LABOR_ADD[daily?.labor_level||'light']||0); }
+function target() { return CAL_TARGET; }
 function sodiumTarget() {
   const lab = daily?.labor_level || 'light';
   if (lab === 'heavy')    return 3200;
@@ -2900,7 +2900,13 @@ function render() {
   const t  = totals();
   const tg = target();
   const lab = daily?.labor_level || 'light';
-  const calClr   = t.cal > tg + 150 ? 'var(--red)' : t.cal > tg ? 'var(--yellow)' : 'var(--blue)';
+  const burnBonus   = ghData ? Math.max(0, ghData.calories - RESTING_BURN) : 0;
+  const totalBudget = tg + burnBonus;
+  const remaining   = totalBudget - t.cal;
+  const eatenPct    = Math.min(t.cal / totalBudget * 100, 100);
+  const baselinePct = tg / totalBudget * 100;
+  const remClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--accent)';
+  const calClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--blue)';
   const protClr  = t.prot  >= 150 ? 'var(--accent)'  : 'var(--yellow)';
   const sugarClr = t.sugar > 36   ? 'var(--red)'    : 'var(--accent)';
 
@@ -2930,21 +2936,28 @@ function render() {
       <div class="card-lbl">Labor Today</div>
       <div class="card-body">
         <div class="labor-grid">
-          <button class="lbr ${lab==='light'?'on':''}" onclick="setLabor('light')">Light<span>+0 cal</span></button>
-          <button class="lbr ${lab==='moderate'?'on':''}" onclick="setLabor('moderate')">Moderate<span>+250 cal</span></button>
-          <button class="lbr ${lab==='heavy'?'on':''}" onclick="setLabor('heavy')">Heavy<span>+500 cal</span></button>
+          <button class="lbr ${lab==='light'?'on':''}" onclick="setLabor('light')">Light<span>Na 2300mg</span></button>
+          <button class="lbr ${lab==='moderate'?'on':''}" onclick="setLabor('moderate')">Moderate<span>Na 2800mg</span></button>
+          <button class="lbr ${lab==='heavy'?'on':''}" onclick="setLabor('heavy')">Heavy<span>Na 3200mg</span></button>
         </div>
       </div>
     </div>
     <div class="card">
       <div class="card-lbl">Today's Targets</div>
       <div class="card-body">
-        <div class="prog">
-          <div class="prog-row">
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
             <span class="prog-lbl">Calories</span>
-            <span class="prog-val" style="color:${calClr}">${t.cal.toLocaleString()} / ${tg.toLocaleString()}</span>
+            <span style="font-family:monospace;font-size:13px;color:${remClr};font-weight:600">${remaining > 0 ? remaining.toLocaleString()+' left' : Math.abs(remaining).toLocaleString()+' over'}</span>
           </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.cal,tg)}%;background:${calClr}"></div></div>
+          <div style="position:relative;height:20px;border-radius:6px;background:var(--surface2);overflow:hidden">
+            ${burnBonus > 0 ? `<div style="position:absolute;top:0;left:${baselinePct}%;right:0;bottom:0;background:rgba(74,222,128,0.35);border-radius:0 6px 6px 0"></div>` : ''}
+            <div style="position:absolute;top:0;left:0;bottom:0;width:${eatenPct}%;background:var(--red);border-radius:6px;opacity:0.85"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${t.cal.toLocaleString()} eaten</span>
+            ${burnBonus > 0 ? `<span style="font-size:10px;color:var(--accent);font-family:monospace">+${burnBonus.toLocaleString()} burn bonus · ${tg.toLocaleString()} target</span>` : `<span style="font-size:10px;color:var(--muted);font-family:monospace">${tg.toLocaleString()} target</span>`}
+          </div>
         </div>
         <div class="prog">
           <div class="prog-row">
@@ -3517,7 +3530,7 @@ async function loadMealItems() {
     if (!items.length) { root.innerHTML = '<div class="food-empty">No meals logged yet.</div>'; return; }
 
     const targetByDate = {};
-    summaries.forEach(s => { targetByDate[s.log_date] = s.calorie_target || 2050; });
+    summaries.forEach(s => { targetByDate[s.log_date] = s.calorie_target || 2000; });
 
     const byDate = {};
     items.forEach(i => { (byDate[i.log_date] = byDate[i.log_date] || []).push(i); });
