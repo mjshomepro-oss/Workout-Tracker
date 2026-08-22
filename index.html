@@ -2934,21 +2934,20 @@ function bpCategory(sys, dia) {
 }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
 
-// Caloric staircase: thin bar that steps UP at each activity segment.
-// Both the width AND the rise of each step are proportional to its calories.
-function drawCalStaircase(eaten, base, run, walk, other) {
-  const canvas = document.getElementById('cal-staircase');
+// Generic staircase bar: thin base bar whose bonus segments step UP.
+// Both the width AND the rise of each step are proportional to its value.
+function drawStaircase(canvasId, filled, base, bonusSegs, fillText) {
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
-  const bonus = run + walk + other;
+  const realSegs = bonusSegs.filter(s => s.cal > 0);
+  const bonus = realSegs.reduce((s, x) => s + x.cal, 0);
   const total = base + bonus;
   if (!total) return;
 
   const segs = [
-    { cal: base,  color: '#6b7280', label: null },
-    ...(other > 0 ? [{ cal: other, color: '#fbbf24', label: '+' + other }] : []),
-    ...(walk  > 0 ? [{ cal: walk,  color: '#60a5fa', label: '+' + walk  }] : []),
-    ...(run   > 0 ? [{ cal: run,   color: '#22c55e', label: '+' + run   }] : []),
+    { cal: base, color: '#6b7280', label: null },
+    ...realSegs,
   ];
 
   const BAR = 16;              // bar thickness
@@ -2991,7 +2990,7 @@ function drawCalStaircase(eaten, base, run, walk, other) {
   }
 
   // Eaten fill — clipped to the staircase shape so it fills each fat bar fully
-  const eatenW = Math.min((eaten / total) * W, W);
+  const eatenW = Math.min((filled / total) * W, W);
   if (eatenW > 0) {
     ctx.save();
     ctx.beginPath();
@@ -3046,11 +3045,11 @@ function drawCalStaircase(eaten, base, run, walk, other) {
 
   // Labels
   ctx.font = '600 10px monospace';
-  // eaten label inside red fill
+  // fill label inside red fill
   if (eatenW > 60) {
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.textAlign = 'left';
-    ctx.fillText(eaten.toLocaleString() + ' eaten', 6, baseY + BAR / 2 + 3.5);
+    ctx.fillText(fillText, 6, baseY + BAR / 2 + 3.5);
   }
   // bonus labels above their bars
   for (const b of boxes.slice(1)) {
@@ -3074,6 +3073,20 @@ function drawCalStaircase(eaten, base, run, walk, other) {
   ctx.strokeStyle = '#9ca3af';
   ctx.lineWidth = 1;
   ctx.stroke();
+}
+
+function drawCalStaircase(eaten, base, run, walk, other) {
+  drawStaircase('cal-staircase', eaten, base, [
+    { cal: other, color: '#fbbf24', label: '+' + other },
+    { cal: walk,  color: '#60a5fa', label: '+' + walk  },
+    { cal: run,   color: '#22c55e', label: '+' + run   },
+  ], eaten.toLocaleString() + ' eaten');
+}
+
+function drawNaStaircase(sodium, laborBonus) {
+  drawStaircase('na-staircase', sodium, 2300, [
+    { cal: laborBonus, color: '#fbbf24', label: '+' + laborBonus },
+  ], sodium.toLocaleString() + 'mg');
 }
 
 // Render nutrition today view
@@ -3185,17 +3198,20 @@ function render() {
         </div>
         <div class="prog">
           <div class="prog-row">
-            <span class="prog-lbl">Sodium</span>
-            <span class="prog-val" style="color:${t.sodium > sodiumTarget() ? 'var(--red)' : 'var(--muted)'}">${t.sodium.toLocaleString()}mg / ${sodiumTarget().toLocaleString()}mg</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${pct(t.sodium,sodiumTarget())}%;background:${t.sodium > sodiumTarget() ? 'var(--red)' : 'var(--accent)'}"></div></div>
-        </div>
-        <div class="prog">
-          <div class="prog-row">
             <span class="prog-lbl">Potassium</span>
             <span class="prog-val" style="color:${t.potassium >= 3500 ? 'var(--accent)' : 'var(--muted)'}">${t.potassium.toLocaleString()}mg / 3500mg</span>
           </div>
           <div class="prog-track"><div class="prog-fill" style="width:${pct(t.potassium,3500)}%;background:${t.potassium >= 3500 ? 'var(--accent)' : 'var(--blue)'}"></div></div>
+        </div>
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span class="prog-lbl">Sodium Staircase</span>
+            <span style="font-family:monospace;font-size:13px;font-weight:600;color:${t.sodium > sodiumTarget() ? 'var(--red)' : (sodiumTarget() - t.sodium) < 400 ? 'var(--yellow)' : 'var(--accent)'}">${t.sodium <= sodiumTarget() ? (sodiumTarget() - t.sodium).toLocaleString()+'mg remaining' : (t.sodium - sodiumTarget()).toLocaleString()+'mg over'}</span>
+          </div>
+          <canvas id="na-staircase" style="width:100%;display:block" height="68"></canvas>
+          ${sodiumTarget() > 2300 ? `<div style="display:flex;justify-content:flex-end;margin-top:2px">
+            <span style="font-size:10px;color:#fbbf24;font-family:monospace">${sodiumTarget().toLocaleString()} w/ ${lab} labor</span>
+          </div>` : ''}
         </div>
       </div>
     </div>
@@ -3331,7 +3347,10 @@ function render() {
         </div>` :
         `<div class="food-empty">${ntDayOffset === 0 ? 'No food logged yet — tap + Log Food to start' : 'Nothing logged this day.'}</div>`}
     </div>`;
-  setTimeout(() => drawCalStaircase(t.cal, tg, runSeg, walkSeg, otherCal), 0);
+  setTimeout(() => {
+    drawCalStaircase(t.cal, tg, runSeg, walkSeg, otherCal);
+    drawNaStaircase(t.sodium, sodiumTarget() - 2300);
+  }, 0);
 }
 
 // Nutrition actions
