@@ -3083,8 +3083,19 @@ function render() {
   const lab = daily?.labor_level || 'light';
   const runCal      = ghData?.runCal  ?? 0;
   const walkCal     = ghData?.walkCal ?? 0;
-  const burnBonus   = ghData ? Math.max(0, ghData.calories - RESTING_BURN) : 0;
-  const otherCal    = Math.max(0, burnBonus - runCal - walkCal);
+  // Prorate resting burn by how far into the day we are, so activity credit
+  // accrues all day instead of only after total burn passes the full 1,900.
+  // Past days count the full resting burn.
+  const now = new Date();
+  const dayFrac = ntDayOffset === 0
+    ? (now.getHours() * 60 + now.getMinutes()) / 1440
+    : 1;
+  const restingSoFar = Math.round(RESTING_BURN * dayFrac);
+  const burnBonus   = ghData ? Math.max(0, Math.round(ghData.calories - restingSoFar)) : 0;
+  // Clamp so run + walk + other always sums to exactly burnBonus
+  const runSeg      = Math.min(runCal, burnBonus);
+  const walkSeg     = Math.min(walkCal, burnBonus - runSeg);
+  const otherCal    = Math.max(0, burnBonus - runSeg - walkSeg);
   const totalBudget = tg + burnBonus;
   const remaining   = totalBudget - t.cal;
   const remClr      = remaining < 0 ? 'var(--red)' : remaining < 300 ? 'var(--yellow)' : 'var(--accent)';
@@ -3320,7 +3331,7 @@ function render() {
         </div>` :
         `<div class="food-empty">${ntDayOffset === 0 ? 'No food logged yet — tap + Log Food to start' : 'Nothing logged this day.'}</div>`}
     </div>`;
-  setTimeout(() => drawCalStaircase(t.cal, tg, runCal, walkCal, otherCal), 0);
+  setTimeout(() => drawCalStaircase(t.cal, tg, runSeg, walkSeg, otherCal), 0);
 }
 
 // Nutrition actions
