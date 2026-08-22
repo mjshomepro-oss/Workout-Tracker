@@ -780,6 +780,9 @@ body {
   <button class="nav-btn" data-tab="nutrition" onclick="switchMainTab('nutrition')">
     <span class="nav-ico">🍎</span><span>Nutrition</span>
   </button>
+  <button class="nav-btn" data-tab="activity" onclick="switchMainTab('activity')">
+    <span class="nav-ico">🏃</span><span>Activity</span>
+  </button>
   <button class="nav-btn" data-tab="sleep" onclick="switchMainTab('sleep')">
     <span class="nav-ico">😴</span><span>Sleep</span>
   </button>
@@ -833,6 +836,17 @@ body {
 
 <!-- FAB — Log Food (shown only on nutrition tab) -->
 <button class="fab" id="fab" onclick="openSheet()">+ Log Food</button>
+
+<!-- ── ACTIVITY TAB ────────────────────────────────── -->
+<div id="activity-view" class="tab-view" style="display:none">
+  <div class="nt-hdr">
+    <div class="hdr-row">
+      <span class="hdr-title">🏃 Activity</span>
+      <button class="refresh-btn" onclick="actData=null;loadActivity()" title="Refresh">&#8635; Refresh</button>
+    </div>
+  </div>
+  <div id="activity-root"><div class="s-loading">Loading…</div></div>
+</div>
 
 <!-- ── SLEEP TAB ───────────────────────────────────── -->
 <div id="sleep-view" class="tab-view" style="display:none">
@@ -2101,6 +2115,10 @@ function switchMainTab(tab) {
     pill.classList.remove('visible');
     updateNtHeader(); // sets FAB based on current day offset
     if (daily) render(); // redraw staircase canvases now that the view is visible
+  } else if (tab === 'activity') {
+    pill.classList.remove('visible');
+    fab.classList.remove('visible');
+    loadActivity();
   } else if (tab === 'sleep') {
     pill.classList.remove('visible');
     fab.classList.remove('visible');
@@ -2965,6 +2983,187 @@ function bpCategory(sys, dia) {
   return { label: 'Normal', color: 'var(--accent)' };
 }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
+
+// ══ ACTIVITY TAB ══════════════════════════════════
+let actData = JSON.parse(localStorage.getItem('actData') || 'null');
+let actLoading = false;
+
+const ACT_ICONS = { RUNNING:'🏃', WALKING:'🚶', HIKING:'🥾', BIKING:'🚴' };
+
+function fmtDur(sec) {
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return h ? `${h}h ${m}m` : `${m}m ${s}s`;
+}
+function fmtPace(sec, mi) {
+  if (!mi) return '';
+  const spm = sec / mi;
+  return `${Math.floor(spm/60)}:${String(Math.round(spm%60)).padStart(2,'0')} /mi`;
+}
+function actDateLabel(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const time = fmtClock(iso);
+  if (sameDay) return `Today ${time}`;
+  return `${d.toLocaleDateString('en-US',{weekday:'short', month:'numeric', day:'numeric'})} ${time}`;
+}
+
+async function loadActivity() {
+  if (actData) renderActivity();
+  if (actLoading) return;
+  actLoading = true;
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-health-activity`, { headers: { 'apikey': SB_KEY } });
+    const data = await res.json();
+    if (!data.error) {
+      actData = data;
+      localStorage.setItem('actData', JSON.stringify(actData));
+      renderActivity();
+    } else if (!actData) {
+      document.getElementById('activity-root').innerHTML = `<div class="s-err">&#9888; ${data.error}</div>`;
+    }
+  } catch(e) {
+    if (!actData) document.getElementById('activity-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
+  }
+  actLoading = false;
+}
+
+function renderActivity() {
+  const s = actData.summary;
+  const miles = (s.distanceMm / 1609344).toFixed(2);
+  const chip = (val, lbl) => `
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 6px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:var(--accent);font-family:monospace">${val}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${lbl}</div>
+    </div>`;
+
+  const sessionHTML = (actData.sessions || []).map(x => {
+    const mi = x.distance_mm / 1609344;
+    const zoneTotal = x.mod_sec + x.vig_sec + x.peak_sec;
+    const zoneBar = zoneTotal ? `
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:8px;background:var(--surface2)">
+        <div style="width:${x.mod_sec/zoneTotal*100}%;background:#fbbf24"></div>
+        <div style="width:${x.vig_sec/zoneTotal*100}%;background:#fb923c"></div>
+        <div style="width:${x.peak_sec/zoneTotal*100}%;background:#f87171"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <span style="font-size:9px;color:#fbbf24;font-family:monospace">${Math.round(x.mod_sec/60)}m mod</span>
+        <span style="font-size:9px;color:#fb923c;font-family:monospace">${Math.round(x.vig_sec/60)}m vig</span>
+        <span style="font-size:9px;color:#f87171;font-family:monospace">${Math.round(x.peak_sec/60)}m peak</span>
+      </div>` : '';
+    return `
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${ACT_ICONS[x.type] || '🏋️'}</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600">${x.display_name || x.type}</div>
+            <div style="font-size:11px;color:var(--muted)">${actDateLabel(x.start_time)}</div>
+          </div>
+          <span style="font-family:monospace;font-size:15px;font-weight:600;color:var(--accent)">${x.calories} cal</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+          ${mi > 0.05 ? `<span style="font-size:12px;color:var(--text);font-family:monospace">${mi.toFixed(2)} mi</span>` : ''}
+          <span style="font-size:12px;color:var(--text);font-family:monospace">${fmtDur(x.duration_sec)}</span>
+          ${mi > 0.05 ? `<span style="font-size:12px;color:var(--text);font-family:monospace">${fmtPace(x.duration_sec, mi)}</span>` : ''}
+          ${x.avg_hr ? `<span style="font-size:12px;color:var(--red);font-family:monospace">&#10084; ${x.avg_hr} bpm</span>` : ''}
+          ${x.azm ? `<span style="font-size:12px;color:var(--yellow);font-family:monospace">${x.azm} zone min</span>` : ''}
+        </div>
+        ${zoneBar}
+      </div>`;
+  }).join('');
+
+  document.getElementById('activity-root').innerHTML = `
+    <div class="card">
+      <div class="card-lbl">Today</div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          ${chip(s.steps.toLocaleString(), 'Steps')}
+          ${chip(miles, 'Miles')}
+          ${chip(s.calories.toLocaleString(), 'Cal Burned')}
+          ${chip(s.azm, 'Zone Min')}
+          ${chip(s.activeMinutes, 'Active Min')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Heart Rate Today</div>
+      <div class="card-body">
+        ${(actData.hr || []).length > 1 ? `
+          <canvas id="act-hr" style="width:100%;display:block" height="140"></canvas>
+        ` : `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px 0">Not enough heart rate data yet today</div>`}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:80px">
+      <div class="card-lbl">Exercise Log</div>
+      <div class="card-body" style="padding-top:0">
+        ${sessionHTML || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px 0">No tracked sessions yet</div>'}
+      </div>
+    </div>`;
+  setTimeout(() => drawHRChart(actData.hr || []), 0);
+}
+
+function drawHRChart(series) {
+  const canvas = document.getElementById('act-hr');
+  if (!canvas || series.length < 2) return;
+  const W = canvas.offsetWidth, H = 140;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD_L = 28, PAD_R = 6, PAD_T = 10, PAD_B = 18;
+  const xs = series.map(p => p[0]), ys = series.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  lo = Math.floor((lo - 5) / 10) * 10;
+  hi = Math.ceil((hi + 5) / 10) * 10;
+  const xOf = m => PAD_L + (m - x0) / (x1 - x0) * (W - PAD_L - PAD_R);
+  const yOf = v => PAD_T + (1 - (v - lo) / (hi - lo)) * (H - PAD_T - PAD_B);
+
+  // y grid lines + labels
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#6b7280';
+  ctx.textAlign = 'right';
+  for (let v = lo; v <= hi; v += Math.max(10, Math.round((hi - lo) / 4 / 10) * 10)) {
+    const y = yOf(v);
+    ctx.strokeStyle = 'rgba(148,163,184,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(W - PAD_R, y); ctx.stroke();
+    ctx.fillText(String(v), PAD_L - 4, y + 3);
+  }
+
+  // area fill + line
+  ctx.beginPath();
+  series.forEach((p, i) => {
+    const x = xOf(p[0]), y = yOf(p[1]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#f87171';
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.lineTo(xOf(x1), yOf(lo));
+  ctx.lineTo(xOf(x0), yOf(lo));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(248,113,113,0.1)';
+  ctx.fill();
+
+  // x time labels: start / mid / end
+  const tLbl = m => {
+    let h = Math.floor(m / 60);
+    const ap = h >= 12 ? 'p' : 'a';
+    h = h % 12 || 12;
+    return `${h}${ap}`;
+  };
+  ctx.fillStyle = '#6b7280';
+  ctx.textAlign = 'left';
+  ctx.fillText(tLbl(x0), PAD_L, H - 5);
+  ctx.textAlign = 'center';
+  ctx.fillText(tLbl(Math.round((x0 + x1) / 2)), PAD_L + (W - PAD_L - PAD_R) / 2, H - 5);
+  ctx.textAlign = 'right';
+  ctx.fillText(tLbl(x1), W - PAD_R, H - 5);
+}
 
 // ══ SLEEP TAB ═════════════════════════════════════
 let slNights = JSON.parse(localStorage.getItem('slNights') || 'null');
@@ -4415,10 +4614,25 @@ async function downloadExcel() {
     ]);
   }
 
+  // ── Sheet 5: Activity (Fitbit exercise sessions) ──
+  const activity = [['Date','Day','Start','Type','Name','Duration (min)','Distance (mi)',
+                     'Steps','Calories','Avg HR','Zone Min','Moderate (min)','Vigorous (min)','Peak (min)']];
+  const actRows = await sbGet('activity_log', { 'order': 'start_time.asc', 'limit': '1000' }).catch(() => []);
+  for (const a of actRows) {
+    activity.push([
+      a.log_date, dayName(a.log_date), fmtClock(a.start_time), a.type, a.display_name,
+      Math.round(a.duration_sec / 60 * 10) / 10,
+      Math.round(a.distance_mm / 1609344 * 100) / 100,
+      a.steps, a.calories, a.avg_hr ?? '', a.azm,
+      Math.round(a.mod_sec / 60), Math.round(a.vig_sec / 60), Math.round(a.peak_sec / 60),
+    ]);
+  }
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(daily),    'Daily Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(food),     'Food Log');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(workouts), 'Workouts');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(activity), 'Activity');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sleep),    'Sleep & Recovery');
   XLSX.writeFile(wb, `fitness-log-${TODAY}.xlsx`);
 }
