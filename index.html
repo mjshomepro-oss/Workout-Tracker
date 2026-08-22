@@ -2971,13 +2971,15 @@ function drawCalStaircase(eaten, base, run, walk, other) {
   const sc = W / total;
   const baseY = H - PAD_B - BAR;  // top of the base bar (lowest step)
 
-  // Position each thin bar: base at bottom, each bonus segment raised by its own cal * risePx
+  // Position each bar: tops step up with earned cals, bottoms ALL flat on the
+  // baseline floor — so bonus bars get fatter as they climb.
+  const floorY = baseY + BAR;
   let x = 0, cumBonus = 0;
   const boxes = segs.map((sg, i) => {
     const w = sg.cal * sc;
     const y = i === 0 ? baseY : baseY - (cumBonus + sg.cal) * risePx;
     if (i > 0) cumBonus += sg.cal;
-    const b = { x, w, y, ...sg };
+    const b = { x, w, y, h: floorY - y, ...sg };
     x += w;
     return b;
   });
@@ -2985,15 +2987,15 @@ function drawCalStaircase(eaten, base, run, walk, other) {
   // Track fills (dark) for each bar
   for (const b of boxes) {
     ctx.fillStyle = '#1a2232';
-    ctx.fillRect(b.x, b.y, b.w, BAR);
+    ctx.fillRect(b.x, b.y, b.w, b.h);
   }
 
-  // Eaten fill — clipped to the union of the thin bars so it follows the staircase
+  // Eaten fill — clipped to the staircase shape so it fills each fat bar fully
   const eatenW = Math.min((eaten / total) * W, W);
   if (eatenW > 0) {
     ctx.save();
     ctx.beginPath();
-    for (const b of boxes) ctx.rect(b.x, b.y, b.w, BAR);
+    for (const b of boxes) ctx.rect(b.x, b.y, b.w, b.h);
     ctx.clip();
     ctx.fillStyle = '#f87171';
     ctx.globalAlpha = 0.9;
@@ -3002,36 +3004,34 @@ function drawCalStaircase(eaten, base, run, walk, other) {
     ctx.restore();
   }
 
-  // Outlines + risers
+  // Outlines: stepped tops, one flat floor line, risers between tops
   ctx.strokeStyle = '#4b5563';
   ctx.lineWidth = 1.5;
   for (let i = 0; i < boxes.length; i++) {
     const b = boxes[i];
-    // top + bottom edges
     ctx.beginPath();
     ctx.moveTo(b.x, b.y);
     ctx.lineTo(b.x + b.w, b.y);
-    ctx.moveTo(b.x, b.y + BAR);
-    ctx.lineTo(b.x + b.w, b.y + BAR);
     ctx.stroke();
-    // riser connecting to previous bar
+    // riser connecting this top to the previous top
     if (i > 0) {
       const prev = boxes[i - 1];
       ctx.beginPath();
       ctx.moveTo(b.x, prev.y);
       ctx.lineTo(b.x, b.y);
-      ctx.moveTo(b.x, prev.y + BAR);
-      ctx.lineTo(b.x, b.y + BAR);
       ctx.stroke();
     }
   }
-  // left cap on base, right cap on last bar
-  ctx.beginPath();
-  ctx.moveTo(boxes[0].x, boxes[0].y);
-  ctx.lineTo(boxes[0].x, boxes[0].y + BAR);
   const last = boxes[boxes.length - 1];
+  ctx.beginPath();
+  // flat floor across everything
+  ctx.moveTo(0, floorY);
+  ctx.lineTo(W, floorY);
+  // left cap on base, right cap on last bar
+  ctx.moveTo(boxes[0].x, boxes[0].y);
+  ctx.lineTo(boxes[0].x, floorY);
   ctx.moveTo(last.x + last.w, last.y);
-  ctx.lineTo(last.x + last.w, last.y + BAR);
+  ctx.lineTo(last.x + last.w, floorY);
   ctx.stroke();
 
   // Colored accent on top edge of each bonus bar
