@@ -1104,6 +1104,39 @@ const STAPLES = [
 const STAPLE_NAMES = new Set(STAPLES.map(s => s.name));
 
 let pendingStaple = null;
+
+// ── Google Health ──────────────────────────────────────
+let ghConnected = false;
+let ghData = null;
+
+async function checkGHConnected() {
+  const rows = await sbGet('google_health_tokens', {'id': 'eq.1'});
+  ghConnected = rows.length > 0;
+}
+
+function connectGoogleHealth() {
+  const clientId = '1060102663729-h4npgd4pp7hfslt5tr77iiohehpb4rmv.apps.googleusercontent.com';
+  const redirectUri = encodeURIComponent('https://mjshomepro-oss.github.io/Workout-Tracker/health-callback.html');
+  const scope = encodeURIComponent('https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly');
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&access_type=offline&scope=${scope}&prompt=consent`;
+}
+
+async function syncGoogleHealth() {
+  const btn = document.querySelector('#gh-card-body button');
+  if (btn) { btn.textContent = 'Syncing...'; btn.disabled = true; }
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-health-sync`, {
+      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    ghData = data;
+    render();
+  } catch(e) {
+    alert('Sync failed: ' + e.message);
+    if (btn) { btn.textContent = 'Sync'; btn.disabled = false; }
+  }
+}
 function renderStaples() {
   document.getElementById('staples-scroll').innerHTML = STAPLES.map((s, i) =>
     `<button class="recent-chip staple-chip" onclick="pickStapleFraction(${i})">
@@ -2991,6 +3024,42 @@ function render() {
       </div>
     </div>
     <div class="card">
+      <div class="card-lbl">Google Health</div>
+      <div class="card-body" id="gh-card-body">
+        ${ghConnected ? `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:12px;color:var(--muted);flex:1">${ghData ? 'Last synced just now' : 'Tap Sync to load today\'s data'}</span>
+            <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
+          </div>
+          ${ghData ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.steps.toLocaleString()}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.calories_burned}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Cal Burned</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.active_minutes}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Active Min</div>
+              </div>
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.resting_hr ?? '—'}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Resting HR</div>
+              </div>
+            </div>
+          ` : ''}
+        ` : `
+          <div style="text-align:center;padding:8px 0">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Connect your Fitbit / Google Health data</div>
+            <button onclick="connectGoogleHealth()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer">Connect Google Health</button>
+          </div>
+        `}
+      </div>
+    </div>
+    <div class="card">
       <div class="card-lbl">Workout</div>
       <div class="card-body">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -3850,6 +3919,7 @@ async function downloadCSV() {
 // ══ INIT ═══════════════════════════════════════════════
 renderWOTabs();
 migrateWOToSupabase().then(() => ensureWOWeek().then(() => renderWOContent()));
+checkGHConnected().then(() => render());
 updateTimer();
 load();
 

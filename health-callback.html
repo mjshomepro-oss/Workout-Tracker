@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connecting Google Health...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center;
+           min-height: 100vh; margin: 0; background: #0f1117; color: #fff; text-align: center; }
+    .card { padding: 40px; max-width: 320px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #4ade80;
+               border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .msg { font-size: 16px; color: #aaa; }
+    .success { color: #4ade80; font-size: 20px; font-weight: 700; }
+    .error { color: #f87171; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner" id="spinner"></div>
+    <div class="msg" id="msg">Connecting to Google Health...</div>
+  </div>
+  <script>
+    const SB_URL = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
+
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
+      const spinner = document.getElementById('spinner');
+      const msg = document.getElementById('msg');
+
+      if (error) {
+        spinner.style.display = 'none';
+        msg.className = 'error';
+        msg.textContent = 'Authorization denied: ' + error;
+        return;
+      }
+
+      if (!code) {
+        spinner.style.display = 'none';
+        msg.className = 'error';
+        msg.textContent = 'No authorization code received.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${SB_URL}/functions/v1/google-health-auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          spinner.style.display = 'none';
+          msg.className = 'success';
+          msg.textContent = '✓ Google Health connected!';
+          setTimeout(() => {
+            window.location.href = 'https://mjshomepro-oss.github.io/Workout-Tracker/';
+          }, 1500);
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+      } catch (e) {
+        spinner.style.display = 'none';
+        msg.className = 'error';
+        msg.textContent = 'Connection failed: ' + e.message;
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>
