@@ -2934,132 +2934,133 @@ function bpCategory(sys, dia) {
 }
 function pct(v,max) { return Math.min(100, Math.round(v/max*100)); }
 
-// Draw staircase calorie bar: base (low/left) → other → walk → run (high/right)
+// Caloric staircase: thin bar that steps UP at each activity segment.
+// Both the width AND the rise of each step are proportional to its calories.
 function drawCalStaircase(eaten, base, run, walk, other) {
   const canvas = document.getElementById('cal-staircase');
   if (!canvas) return;
-  const W = canvas.offsetWidth;
-  const H = 68;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, W, H);
 
-  const total = base + run + walk + other;
+  const bonus = run + walk + other;
+  const total = base + bonus;
   if (!total) return;
 
-  const PAD_T = 12, PAD_B = 16;
-  const floor = H - PAD_B;
-  const drawH = floor - PAD_T;
-  const sc = W / total;
-
-  // Segments in order left→right, level rises with each one
-  // base=step 1 (lowest), run=step n (highest)
   const segs = [
-    { cal: base,  color: '#374151', label: '2,000' },
+    { cal: base,  color: '#6b7280', label: null },
     ...(other > 0 ? [{ cal: other, color: '#fbbf24', label: '+' + other }] : []),
     ...(walk  > 0 ? [{ cal: walk,  color: '#60a5fa', label: '+' + walk  }] : []),
     ...(run   > 0 ? [{ cal: run,   color: '#22c55e', label: '+' + run   }] : []),
   ];
-  const n = segs.length;
-  const stepH = drawH / n;
 
-  let x = 0;
+  const BAR = 16;              // bar thickness
+  const MAX_RISE = 44;         // total vertical climb when bonus is large
+  // rise per calorie — scaled so the whole climb fits, capped for small bonuses
+  const risePx = bonus > 0 ? Math.min(MAX_RISE / bonus, 0.12) : 0;
+  const totalRise = bonus * risePx;
+
+  const PAD_T = 14, PAD_B = 4;
+  const H = Math.round(PAD_T + totalRise + BAR + PAD_B);
+  const W = canvas.offsetWidth;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const sc = W / total;
+  const baseY = H - PAD_B - BAR;  // top of the base bar (lowest step)
+
+  // Position each thin bar: base at bottom, each bonus segment raised by its own cal * risePx
+  let x = 0, cumBonus = 0;
   const boxes = segs.map((sg, i) => {
-    const segW = sg.cal * sc;
-    const topY = floor - (i + 1) * stepH; // base: floor-1*stepH (low), run: PAD_T (high)
-    const b = { x, segW, topY, ...sg };
-    x += segW;
+    const w = sg.cal * sc;
+    const y = i === 0 ? baseY : baseY - (cumBonus + sg.cal) * risePx;
+    if (i > 0) cumBonus += sg.cal;
+    const b = { x, w, y, ...sg };
+    x += w;
     return b;
   });
 
-  // Background fill
-  ctx.fillStyle = '#1a2232';
-  ctx.fillRect(0, PAD_T, W, drawH);
-
-  // Each segment: fill from its top down to floor
+  // Track fills (dark) for each bar
   for (const b of boxes) {
-    ctx.fillStyle = b.color;
-    ctx.globalAlpha = 0.18;
-    ctx.fillRect(b.x, b.topY, b.segW, floor - b.topY);
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#1a2232';
+    ctx.fillRect(b.x, b.y, b.w, BAR);
   }
 
-  // Staircase outline (left to right, rising with each step)
-  ctx.save();
-  ctx.beginPath();
-  let cx = 0;
-  ctx.moveTo(0, floor);
-  for (const b of boxes) {
-    ctx.lineTo(cx, b.topY);           // rise up
-    ctx.lineTo(cx + b.segW, b.topY);  // run right
-    cx += b.segW;
-  }
-  ctx.lineTo(cx, floor);
-  ctx.closePath();
-  ctx.strokeStyle = '#3d4460';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Colored top line for each segment + label
-  for (const b of boxes) {
-    ctx.beginPath();
-    ctx.moveTo(b.x, b.topY);
-    ctx.lineTo(b.x + b.segW, b.topY);
-    ctx.strokeStyle = b.color;
-    ctx.lineWidth = 2.5;
-    ctx.globalAlpha = 0.9;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    if (b.segW > 30) {
-      ctx.fillStyle = b.color;
-      ctx.font = '500 9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(b.label, b.x + b.segW / 2, b.topY - 3);
-    }
-  }
-  ctx.restore();
-
-  // Eaten fill: clip to staircase shape so it naturally fills each step
+  // Eaten fill — clipped to the union of the thin bars so it follows the staircase
   const eatenW = Math.min((eaten / total) * W, W);
   if (eatenW > 0) {
     ctx.save();
     ctx.beginPath();
-    cx = 0;
-    ctx.moveTo(0, floor);
-    for (const b of boxes) {
-      ctx.lineTo(cx, b.topY);
-      ctx.lineTo(cx + b.segW, b.topY);
-      cx += b.segW;
-    }
-    ctx.lineTo(cx, floor);
-    ctx.closePath();
+    for (const b of boxes) ctx.rect(b.x, b.y, b.w, BAR);
     ctx.clip();
-
     ctx.fillStyle = '#f87171';
-    ctx.globalAlpha = 0.85;
-    ctx.fillRect(0, boxes[0].topY, eatenW, floor - boxes[0].topY);
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(0, 0, eatenW, H);
     ctx.globalAlpha = 1;
-
-    if (eatenW > 44) {
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = '600 10px monospace';
-      ctx.textAlign = 'center';
-      const midY = boxes[0].topY + (floor - boxes[0].topY) / 2 + 4;
-      ctx.fillText(eaten.toLocaleString(), eatenW / 2, midY);
-    }
     ctx.restore();
   }
 
-  // Tick labels
-  ctx.fillStyle = '#6b7280';
-  ctx.font = '9px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('0', 2, H - 2);
-  ctx.textAlign = 'right';
-  ctx.fillText(total.toLocaleString(), W - 2, H - 2);
+  // Outlines + risers
+  ctx.strokeStyle = '#4b5563';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < boxes.length; i++) {
+    const b = boxes[i];
+    // top + bottom edges
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x + b.w, b.y);
+    ctx.moveTo(b.x, b.y + BAR);
+    ctx.lineTo(b.x + b.w, b.y + BAR);
+    ctx.stroke();
+    // riser connecting to previous bar
+    if (i > 0) {
+      const prev = boxes[i - 1];
+      ctx.beginPath();
+      ctx.moveTo(b.x, prev.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.moveTo(b.x, prev.y + BAR);
+      ctx.lineTo(b.x, b.y + BAR);
+      ctx.stroke();
+    }
+  }
+  // left cap on base, right cap on last bar
+  ctx.beginPath();
+  ctx.moveTo(boxes[0].x, boxes[0].y);
+  ctx.lineTo(boxes[0].x, boxes[0].y + BAR);
+  const last = boxes[boxes.length - 1];
+  ctx.moveTo(last.x + last.w, last.y);
+  ctx.lineTo(last.x + last.w, last.y + BAR);
+  ctx.stroke();
+
+  // Colored accent on top edge of each bonus bar
+  for (const b of boxes.slice(1)) {
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x + b.w, b.y);
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // Labels
+  ctx.font = '600 10px monospace';
+  // eaten label inside red fill
+  if (eatenW > 60) {
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'left';
+    ctx.fillText(eaten.toLocaleString() + ' eaten', 6, baseY + BAR / 2 + 3.5);
+  }
+  // bonus labels above their bars
+  for (const b of boxes.slice(1)) {
+    if (b.w > 28) {
+      ctx.fillStyle = b.color;
+      ctx.font = '600 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.label, b.x + b.w / 2, b.y - 4);
+    }
+  }
 }
 
 // Render nutrition today view
@@ -3116,12 +3117,12 @@ function render() {
         <div style="margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
             <span class="prog-lbl">Calories</span>
-            <span style="font-family:monospace;font-size:13px;color:${remClr};font-weight:600">${remaining > 0 ? remaining.toLocaleString()+' left' : Math.abs(remaining).toLocaleString()+' over'}</span>
+            <span style="font-family:monospace;font-size:13px;font-weight:600">${burnBonus > 0 ? `<span style="color:var(--accent)">+${burnBonus.toLocaleString()} earned</span><span style="color:var(--muted)"> / </span>` : ''}<span style="color:${remClr}">${remaining > 0 ? remaining.toLocaleString()+' remaining' : Math.abs(remaining).toLocaleString()+' over'}</span></span>
           </div>
-          <canvas id="cal-staircase" style="width:100%;display:block;border-radius:6px" height="68"></canvas>
+          <canvas id="cal-staircase" style="width:100%;display:block" height="68"></canvas>
           <div style="display:flex;justify-content:space-between;margin-top:4px;flex-wrap:wrap;gap:2px">
-            <span style="font-size:10px;color:var(--muted);font-family:monospace">${t.cal.toLocaleString()} eaten</span>
-            <span style="font-size:10px;color:${burnBonus>0?'var(--accent)':'var(--muted)'};font-family:monospace">${totalBudget.toLocaleString()} budget${burnBonus > 0 ? ' (+'+burnBonus+' active)' : ''}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${tg.toLocaleString()} baseline</span>
+            ${burnBonus > 0 ? `<span style="font-size:10px;color:var(--accent);font-family:monospace">${totalBudget.toLocaleString()} w/ activity</span>` : ''}
           </div>
         </div>
         <div class="prog">
