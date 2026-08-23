@@ -1139,6 +1139,8 @@ let pendingStaple = null;
 // ── Google Health ──────────────────────────────────────
 let ghConnected = false;
 let ghData = JSON.parse(localStorage.getItem('ghData') || 'null');
+let ghDay  = null; // snapshot for the day being viewed when it's not today
+function ghForDay() { return ntDayOffset === 0 ? ghData : ghDay; }
 let ghSyncedAt = localStorage.getItem('ghSyncedAt') || null;
 let ghSyncTimer = null;
 
@@ -2941,6 +2943,30 @@ async function load() {
     ]);
     daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
     foods = fe;
+    // Past days render from their own saved Fitbit snapshot, not today's sync
+    ghDay = null;
+    if (ntDayOffset !== 0) {
+      const snap = await sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []);
+      if (snap[0]) {
+        const s = snap[0];
+        ghDay = { steps: s.steps, calories: s.calories, activeMinutes: s.active_minutes, restingHR: s.resting_hr,
+                  runCal: s.run_cal, walkCal: s.walk_cal,
+                  sweat: { modSec: s.mod_sec, vigSec: s.vig_sec, peakSec: s.peak_sec, levels: s.levels || {} } };
+      } else {
+        // No snapshot (day predates snapshots) — rebuild what we can from logged sessions
+        const sess = await sbGet('activity_log', {'log_date': `eq.${dateStr}`}).catch(() => []);
+        if (sess.length) {
+          const g = { steps: 0, calories: 0, activeMinutes: 0, restingHR: null, runCal: 0, walkCal: 0,
+                      sweat: { modSec: 0, vigSec: 0, peakSec: 0, levels: {} }, partial: true };
+          sess.forEach(x => {
+            if (x.type === 'RUNNING') g.runCal += x.calories || 0;
+            else if (x.type === 'WALKING') g.walkCal += x.calories || 0;
+            g.sweat.modSec += x.mod_sec || 0; g.sweat.vigSec += x.vig_sec || 0; g.sweat.peakSec += x.peak_sec || 0;
+          });
+          ghDay = g;
+        }
+      }
+    }
     render();
   } catch(e) {
     document.getElementById('nutrition-root').innerHTML =
@@ -2966,7 +2992,7 @@ function target() { return CAL_TARGET; }
 // HR zones during exercise sessions + moderate/vigorous active minutes all day.
 // Roughly 500mg/hr moderate, 1000mg/hr vigorous, 1200mg/hr peak; capped +1500.
 function sweatBonus() {
-  const s = ghData?.sweat;
+  const s = ghForDay()?.sweat;
   if (!s) return 0;
   // Two independent estimates of the same sweat — take the larger, never both
   // (all-day activity levels already include exercise session minutes):
@@ -3554,8 +3580,9 @@ function drawNaStaircase(sodium, laborBonus) {
 function render() {
   const t  = totals();
   const tg = target();
-  const runCal      = ghData?.runCal  ?? 0;
-  const walkCal     = ghData?.walkCal ?? 0;
+  const gh          = ghForDay();
+  const runCal      = gh?.runCal  ?? 0;
+  const walkCal     = gh?.walkCal ?? 0;
   // Runs/walks are always earned in full. "Everything else" only earns when
   // total burn exceeds a normal no-exercise day's burn (prorated by time of day
   // so credit can accrue during the day; past days use the full baseline).
@@ -3564,9 +3591,10 @@ function render() {
     ? (now.getHours() * 60 + now.getMinutes()) / 1440
     : 1;
   const baseSoFar   = Math.round(BASE_BURN * dayFrac);
-  const runSeg      = ghData ? runCal  : 0;
-  const walkSeg     = ghData ? walkCal : 0;
-  const otherCal    = ghData ? Math.max(0, Math.round(ghData.calories - baseSoFar) - runSeg - walkSeg) : 0;
+  const runSeg      = gh ? runCal  : 0;
+  const walkSeg     = gh ? walkCal : 0;
+  // partial snapshots (rebuilt from sessions only) have no total burn → no "other"
+  const otherCal    = gh && !gh.partial ? Math.max(0, Math.round(gh.calories - baseSoFar) - runSeg - walkSeg) : 0;
   const burnBonus   = runSeg + walkSeg + otherCal;
   // Carb refill earned: ~55% of activity calories came from glycogen, 4 cal/g
   const carbG       = c => Math.round(c * 0.55 / 4 / 5) * 5;
@@ -3725,26 +3753,26 @@ function render() {
             <button onclick="connectGoogleHealth()" title="Re-grant permissions" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#128273;</button>
             <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
           </div>
-          ${ghData ? `
+          ${gh && !gh.partial ? `
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.steps.toLocaleString()}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.steps.toLocaleString()}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps</div>
               </div>
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.calories}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.calories}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px">Cal Burned</div>
               </div>
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.activeMinutes}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.activeMinutes}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px">Active Min</div>
               </div>
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${ghData.restingHR ?? '—'}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.restingHR ?? '—'}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px">Resting HR</div>
               </div>
             </div>
-          ` : ''}
+          ` : ntDayOffset !== 0 ? `<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px 0">${gh?.partial ? 'Only tracked sessions available for this day' : 'No Fitbit snapshot saved for this day'}</div>` : ''}
         ` : `
           <div style="text-align:center;padding:8px 0">
             <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Connect your Fitbit / Google Health data</div>
