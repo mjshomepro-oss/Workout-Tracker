@@ -3412,7 +3412,7 @@ function drawStaircase(canvasId, filled, base, bonusSegs, fillText) {
   const risePx = bonus > 0 ? Math.min(MAX_RISE / bonus, 0.12) : 0;
   const totalRise = bonus * risePx;
 
-  const PAD_T = 14, PAD_B = 14;
+  const PAD_T = 24, PAD_B = 14;
   const H = Math.round(PAD_T + totalRise + BAR + PAD_B);
   const W = canvas.offsetWidth;
   const dpr = window.devicePixelRatio || 1;
@@ -3507,14 +3507,19 @@ function drawStaircase(canvasId, filled, base, bonusSegs, fillText) {
     ctx.textAlign = 'left';
     ctx.fillText(fillText, 6, baseY + BAR / 2 + 3.5);
   }
-  // bonus labels above their bars
+  // bonus labels above their bars — always drawn; narrow steps get their
+  // label lifted a line higher so it doesn't collide with a neighbor's
+  ctx.font = '600 9px monospace';
+  ctx.textAlign = 'center';
+  let lastLabelRight = -Infinity;
   for (const b of boxes.slice(1)) {
-    if (b.w > 28) {
-      ctx.fillStyle = b.color;
-      ctx.font = '600 9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(b.label, b.x + b.w / 2, b.y - 4);
-    }
+    const cx = b.x + b.w / 2;
+    const tw = ctx.measureText(b.label).width;
+    const lift = (cx - tw / 2) < lastLabelRight + 4 || b.w < tw + 6;
+    const ly = b.y - (lift ? 14 : 4);
+    ctx.fillStyle = b.color;
+    ctx.fillText(b.label, cx, ly);
+    if (!lift) lastLabelRight = cx + tw / 2;
   }
   // baseline tag pinned to the END of the base bar — slides left as activity grows
   const baseEnd = boxes[0].x + boxes[0].w;
