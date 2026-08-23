@@ -3235,6 +3235,25 @@ async function loadSleep() {
 
 let slSel = 0; // index into slNights of the night shown in the detail card
 
+let slNotesTimer = null;
+function scheduleSlNotesSave() {
+  clearTimeout(slNotesTimer);
+  const el = document.getElementById('sl-notes-saved');
+  if (el) el.textContent = '';
+  slNotesTimer = setTimeout(async () => {
+    const n = slNights[slSel];
+    const notes = document.getElementById('sl-notes')?.value ?? '';
+    n.notes = notes;
+    localStorage.setItem('slNights', JSON.stringify(slNights));
+    try {
+      await sbPatch('sleep_log', {log_date: n.log_date}, {notes});
+      if (el) el.textContent = 'Saved';
+    } catch(_) {
+      if (el) el.textContent = 'Save failed';
+    }
+  }, 800);
+}
+
 // Nights are stored by WAKE date; people think of them by the evening they
 // started. "Night of" = the day before the wake date.
 function nightOf(logDate) {
@@ -3278,7 +3297,7 @@ function renderSleep() {
     const sel = i === slSel;
     return `
       <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
-        <span style="font-size:11px;color:${sel ? 'var(--text)' : 'var(--muted)'};width:64px;flex-shrink:0;font-family:monospace;font-weight:${sel ? 600 : 400}">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}</span>
+        <span style="font-size:11px;color:${sel ? 'var(--text)' : 'var(--muted)'};width:64px;flex-shrink:0;font-family:monospace;font-weight:${sel ? 600 : 400}">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}${t.notes ? '<span style="color:var(--yellow)" title="has note"> &#9998;</span>' : ''}</span>
         <canvas id="sl-rib-${i}" style="flex:1;display:block;height:14px;min-width:0" height="14"></canvas>
         <span style="font-family:monospace;font-size:11px;color:${clr};width:58px;text-align:right;flex-shrink:0">${fmtHM(t.min_asleep)}</span>
       </div>`;
@@ -3333,6 +3352,8 @@ function renderSleep() {
           ${stageRow('Light', n.min_light, SL_COLORS.LIGHT)}
           ${stageRow('Deep',  n.min_deep,  SL_COLORS.DEEP)}
         </div>
+        <textarea class="notes-area" id="sl-notes" style="margin-top:14px;min-height:52px" placeholder="Night notes — noise, storm, late meal, beers, how you felt waking up..." oninput="scheduleSlNotesSave()">${(n.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        <div class="notes-saved" id="sl-notes-saved"></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
           <div style="background:var(--surface2);border-radius:8px;padding:9px 6px;text-align:center">
             <div style="font-family:monospace;font-size:16px;font-weight:600;color:var(--text)">${restorative}%</div>
@@ -4777,7 +4798,7 @@ async function downloadExcel() {
   // ── Sheet 4: Sleep & Recovery ──
   const sleep = [['Night Of','Day','Wake Date','Bed Time','Wake Time','Asleep (min)','Awake (min)',
                   'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
-                  'Resting HR','HRV (ms)','Breathing (br/min)']];
+                  'Resting HR','HRV (ms)','Breathing (br/min)','Notes']];
   const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
   for (const s of sleepRows) {
     const no = nightOf(s.log_date);
@@ -4786,7 +4807,7 @@ async function downloadExcel() {
       noStr, dayName(noStr), s.log_date, fmtClock(s.start_time), fmtClock(s.end_time),
       s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
       s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '',
-      s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
+      s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '', s.notes ?? '',
     ]);
   }
 
