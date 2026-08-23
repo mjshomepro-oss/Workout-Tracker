@@ -3254,22 +3254,24 @@ function renderSleep() {
       <span style="font-family:monospace;font-size:11px;color:${color};width:64px;text-align:right;flex-shrink:0">${fmtHM(min)}</span>
     </div>`;
 
-  // Night-by-night stage comparison: stacked Deep / REM / Light / Awake, scaled to 10h
-  const SCALE_MIN = 600;
+  // Night-by-night: each night's stage sequence as a ribbon on a shared
+  // clock axis (9 PM → 10 AM) so bedtimes, wake-ups and stage patterns line up
+  const axisHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <span style="width:64px;flex-shrink:0"></span>
+      <div style="flex:1;display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:monospace">
+        <span>9p</span><span>12a</span><span>3a</span><span>6a</span><span>9a</span>
+      </div>
+      <span style="width:58px;flex-shrink:0"></span>
+    </div>`;
   const trendRows = slNights.slice(0, 14).map((t, i) => {
     const clr = t.min_asleep >= 420 ? 'var(--accent)' : t.min_asleep >= 360 ? 'var(--yellow)' : 'var(--red)';
     const d = new Date(t.log_date + 'T12:00');
-    const seg = (min, color) => min > 0 ? `<div style="width:${min/SCALE_MIN*100}%;background:${color}"></div>` : '';
     const sel = i === slSel;
     return `
-      <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:7px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
+      <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
         <span style="font-size:11px;color:${sel ? 'var(--text)' : 'var(--muted)'};width:64px;flex-shrink:0;font-family:monospace;font-weight:${sel ? 600 : 400}">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}</span>
-        <div style="flex:1;height:12px;border-radius:6px;background:var(--surface2);overflow:hidden;display:flex">
-          ${seg(t.min_awake, SL_COLORS.AWAKE)}
-          ${seg(t.min_rem,   SL_COLORS.REM)}
-          ${seg(t.min_light, SL_COLORS.LIGHT)}
-          ${seg(t.min_deep,  SL_COLORS.DEEP)}
-        </div>
+        <canvas id="sl-rib-${i}" style="flex:1;display:block;height:14px;min-width:0" height="14"></canvas>
         <span style="font-family:monospace;font-size:11px;color:${clr};width:58px;text-align:right;flex-shrink:0">${fmtHM(t.min_asleep)}</span>
       </div>`;
   }).join('');
@@ -3341,10 +3343,11 @@ function renderSleep() {
     </div>
     <div class="card" style="margin-bottom:80px">
       <div class="card-lbl">Night by Night</div>
-      <div class="card-body">${trendRows}${legend}</div>
+      <div class="card-body">${axisHTML}${trendRows}${legend}</div>
     </div>`;
   setTimeout(() => {
     drawHypno(n);
+    slNights.slice(0, 14).forEach((t, i) => drawRibbon('sl-rib-' + i, t));
     drawSpark('sp-rhr',  wk.map(x => ({ d: x.log_date, v: x.resting_hr })), '#60a5fa');
     drawSpark('sp-hrv',  wk.map(x => ({ d: x.log_date, v: x.hrv_ms })),     '#22c55e');
     drawSpark('sp-resp', wk.map(x => ({ d: x.log_date, v: x.resp_rate })),  '#a78bfa');
@@ -3408,6 +3411,43 @@ function drawSpark(canvasId, pts, color) {
     const d = new Date(p.d + 'T12:00');
     ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, xOf(p.i), H - 3);
   });
+}
+
+// One night's stages as a thin ribbon on a fixed 9 PM → 10 AM clock axis
+const RIB_START = 21 * 60;   // 9 PM, minutes of day
+const RIB_SPAN  = 13 * 60;   // 13 hours → 10 AM
+function drawRibbon(canvasId, night) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !night.stages || !night.stages.length) return;
+  const W = canvas.offsetWidth, H = 14;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // faint track with hour ticks
+  ctx.fillStyle = '#1a2232';
+  ctx.fillRect(0, 2, W, H - 4);
+  ctx.strokeStyle = 'rgba(148,163,184,0.15)';
+  ctx.lineWidth = 1;
+  for (let h = 3; h < 13; h += 3) {            // 12a, 3a, 6a, 9a
+    const x = Math.round(h * 60 / RIB_SPAN * W) + 0.5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+
+  const start = new Date(night.start_time);
+  const startMin = start.getHours() * 60 + start.getMinutes();
+  // minutes since 9 PM (wrap past midnight)
+  const base = ((startMin - RIB_START) + 1440) % 1440;
+  const xOf = m => Math.max(0, Math.min(W, m / RIB_SPAN * W));
+
+  for (const s of night.stages) {
+    const x0 = xOf(base + s.o), x1 = xOf(base + s.o + s.d);
+    if (x1 <= x0) continue;
+    ctx.fillStyle = SL_COLORS[s.t] || '#6b7280';
+    ctx.fillRect(x0, 2, Math.max(x1 - x0, 0.8), H - 4);
+  }
 }
 
 function drawHypno(night) {
