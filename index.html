@@ -3265,17 +3265,17 @@ function renderSleep() {
       <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:7px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
         <span style="font-size:11px;color:${sel ? 'var(--text)' : 'var(--muted)'};width:64px;flex-shrink:0;font-family:monospace;font-weight:${sel ? 600 : 400}">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}</span>
         <div style="flex:1;height:12px;border-radius:6px;background:var(--surface2);overflow:hidden;display:flex">
-          ${seg(t.min_deep,  SL_COLORS.DEEP)}
+          ${seg(t.min_awake, SL_COLORS.AWAKE)}
           ${seg(t.min_rem,   SL_COLORS.REM)}
           ${seg(t.min_light, SL_COLORS.LIGHT)}
-          ${seg(t.min_awake, SL_COLORS.AWAKE)}
+          ${seg(t.min_deep,  SL_COLORS.DEEP)}
         </div>
         <span style="font-family:monospace;font-size:11px;color:${clr};width:58px;text-align:right;flex-shrink:0">${fmtHM(t.min_asleep)}</span>
       </div>`;
   }).join('');
   const legend = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
-      ${[['Deep',SL_COLORS.DEEP],['REM',SL_COLORS.REM],['Light',SL_COLORS.LIGHT],['Awake',SL_COLORS.AWAKE]].map(([l,c]) =>
+      ${[['Awake',SL_COLORS.AWAKE],['REM',SL_COLORS.REM],['Light',SL_COLORS.LIGHT],['Deep',SL_COLORS.DEEP]].map(([l,c]) =>
         `<span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)"><span style="width:9px;height:9px;border-radius:2px;background:${c};display:inline-block"></span>${l}</span>`).join('')}
       <span style="font-size:10px;color:var(--muted);margin-left:auto">tap a night to view it</span>
     </div>`;
