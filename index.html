@@ -3235,13 +3235,21 @@ async function loadSleep() {
 
 let slSel = 0; // index into slNights of the night shown in the detail card
 
+// Nights are stored by WAKE date; people think of them by the evening they
+// started. "Night of" = the day before the wake date.
+function nightOf(logDate) {
+  const d = new Date(logDate + 'T12:00');
+  d.setDate(d.getDate() - 1);
+  return d;
+}
+
 function renderSleep() {
   if (slSel >= slNights.length) slSel = 0;
   const n = slNights[slSel];
   const inBed = n.min_asleep + n.min_awake;
   const todayStr = new Date().toISOString().slice(0,10);
   const isLastNight = n.log_date === todayStr;
-  const nightLabel = isLastNight ? 'Last Night' : new Date(n.log_date + 'T12:00').toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  const nightLabel = isLastNight ? 'Last Night' : 'Night of ' + nightOf(n.log_date).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
   const restorative = inBed ? Math.round((n.min_deep + n.min_rem) / n.min_asleep * 100) : 0;
   const durClr = n.min_asleep >= 420 ? 'var(--accent)' : n.min_asleep >= 360 ? 'var(--yellow)' : 'var(--red)';
 
@@ -3266,7 +3274,7 @@ function renderSleep() {
     </div>`;
   const trendRows = slNights.slice(0, 14).map((t, i) => {
     const clr = t.min_asleep >= 420 ? 'var(--accent)' : t.min_asleep >= 360 ? 'var(--yellow)' : 'var(--red)';
-    const d = new Date(t.log_date + 'T12:00');
+    const d = nightOf(t.log_date);
     const sel = i === slSel;
     return `
       <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
@@ -3408,7 +3416,7 @@ function drawSpark(canvasId, pts, color) {
   ctx.font = '8px monospace';
   ctx.fillStyle = '#6b7280';
   valid.forEach(p => {
-    const d = new Date(p.d + 'T12:00');
+    const d = nightOf(p.d);
     ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, xOf(p.i), H - 3);
   });
 }
@@ -4767,13 +4775,15 @@ async function downloadExcel() {
   }
 
   // ── Sheet 4: Sleep & Recovery ──
-  const sleep = [['Date','Day','Bed Time','Wake Time','Asleep (min)','Awake (min)',
+  const sleep = [['Night Of','Day','Wake Date','Bed Time','Wake Time','Asleep (min)','Awake (min)',
                   'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
                   'Resting HR','HRV (ms)','Breathing (br/min)']];
   const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
   for (const s of sleepRows) {
+    const no = nightOf(s.log_date);
+    const noStr = `${no.getFullYear()}-${String(no.getMonth()+1).padStart(2,'0')}-${String(no.getDate()).padStart(2,'0')}`;
     sleep.push([
-      s.log_date, dayName(s.log_date), fmtClock(s.start_time), fmtClock(s.end_time),
+      noStr, dayName(noStr), s.log_date, fmtClock(s.start_time), fmtClock(s.end_time),
       s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
       s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '',
       s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
