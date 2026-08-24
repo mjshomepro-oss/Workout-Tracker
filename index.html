@@ -4395,12 +4395,15 @@ const STATS_START = '2026-08-22';
 
 async function loadHistory() {
   try {
-    const [rows, noteRows, actRows, sleepRows] = await Promise.all([
+    const [rows, noteRows, actRows, sleepRows, ghRows] = await Promise.all([
       sbGet('daily_summary', {order: 'log_date.desc', limit: '120'}),
       sbGet('daily_log',     {order: 'log_date.desc', limit: '120'}),
       sbGet('activity_log',  {log_date: `gte.${STATS_START}`, order: 'start_time.desc', limit: '500'}).catch(() => []),
       sbGet('sleep_log',     {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
+      sbGet('gh_daily',      {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
     ]);
+    window._histGh = {};
+    ghRows.forEach(g => { window._histGh[g.log_date] = g; });
     window._histNotes = {};
     window._histBP = {};
     window._histRun = {};
@@ -4452,7 +4455,17 @@ function renderHistory(rows) {
   const n = recent.length || 1;
   const avg = key => (recent.reduce((s,r) => s + parseFloat(r[key]||0), 0) / n);
   const act = window._histAct || {};
-  const dayBudget = ds => 2000 + ((act[ds]?.cal) || 0);
+  const ghd = window._histGh || {};
+  // Same math as the staircase: sessions earn in full, "other" is burn above a
+  // normal no-exercise day (2,450). Falls back to session calories when no snapshot.
+  const dayBudget = ds => {
+    const g = ghd[ds];
+    if (g && g.calories) {
+      const sess = (g.run_cal || 0) + (g.walk_cal || 0);
+      return 2000 + sess + Math.max(0, g.calories - 2450 - sess);
+    }
+    return 2000 + ((act[ds]?.cal) || 0);
+  };
   const avgCal    = Math.round(avg('total_calories'));
   const avgBudget = Math.round(recent.reduce((s,r) => s + dayBudget(r.log_date), 0) / n);
   const avgProt   = avg('total_protein_g').toFixed(0);
