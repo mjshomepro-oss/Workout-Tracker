@@ -1145,8 +1145,23 @@ let ghSyncedAt = localStorage.getItem('ghSyncedAt') || null;
 let ghSyncTimer = null;
 
 async function checkGHConnected() {
-  const rows = await sbGet('google_health_tokens', {'id': 'eq.1'});
-  ghConnected = rows.length > 0;
+  // Tokens table is locked to the service role; probe the sync function instead
+  // (doubles as the initial sync when connected).
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-health-sync`, { headers: { 'apikey': SB_KEY } });
+    const data = await res.json();
+    if (!data.error) {
+      ghConnected = true;
+      ghData = data;
+      ghSyncedAt = new Date().toISOString();
+      localStorage.setItem('ghData', JSON.stringify(ghData));
+      localStorage.setItem('ghSyncedAt', ghSyncedAt);
+    } else {
+      ghConnected = false;
+    }
+  } catch(_) {
+    ghConnected = !!ghData; // offline: assume prior state
+  }
 }
 
 function ghSyncedLabel() {
@@ -1178,7 +1193,7 @@ async function bgSync() {
 }
 
 function startGHAutoSync() {
-  bgSync();
+  // initial sync already happened inside checkGHConnected
   if (ghSyncTimer) clearInterval(ghSyncTimer);
   ghSyncTimer = setInterval(bgSync, 20 * 60 * 1000); // every 20 min
 }
