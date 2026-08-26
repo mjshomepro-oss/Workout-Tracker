@@ -292,6 +292,20 @@ body {
 .timer-pill.running { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
 .timer-pill.visible { display: flex; }
 
+/* Completed-set lock toggle (bottom-left, above the timer pill) */
+.wo-lock {
+  position: fixed; left: 14px; bottom: calc(var(--nav-h) + 64px);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 18px;
+  align-items: center; justify-content: center;
+  cursor: pointer; z-index: 91; display: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.wo-lock.visible { display: flex; }
+.wo-lock.open { background: var(--acc-d); border-color: var(--acc-b); color: var(--accent); }
+.set-row.done-row .set-input:disabled { opacity: 0.55; }
+
 /* ── Nutrition Header ────────────────────────────────── */
 .nt-hdr, .hist-tab-hdr {
   background: var(--surface); border-bottom: 1px solid var(--border);
@@ -811,6 +825,9 @@ body {
   <div class="day-tabs" id="dayTabs"></div>
   <div class="content" id="workout-content"></div>
 </div>
+
+<!-- Lock toggle for completed sets (workout tab only) -->
+<button class="wo-lock" id="woLockBtn" title="Unlock completed sets to edit">&#128274;</button>
 
 <!-- Timer pill (fixed, shown only when on workout tab) -->
 <button class="timer-pill" id="timerPill">
@@ -2127,9 +2144,12 @@ function switchMainTab(tab) {
 
   const pill = document.getElementById('timerPill');
   const fab  = document.getElementById('fab');
+  const lockBtn = document.getElementById('woLockBtn');
+  lockBtn.classList.toggle('visible', tab === 'workout');
   if (tab === 'workout') {
     pill.classList.add('visible');
     fab.classList.remove('visible');
+    updateLockBtn();
     ensureWOWeek().then(() => renderWOContent());
   } else if (tab === 'nutrition') {
     pill.classList.remove('visible');
@@ -2159,6 +2179,27 @@ function weekKey(offset) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function storageKey(dow, offset) { return `wt_${weekKey(offset)}_${dow}`; }
+
+// Completed-set lock: once a set is checked it can't be edited or unchecked
+// until the padlock (bottom-left) is opened. Re-locks after each new check.
+let woUnlocked = false;
+function updateLockBtn() {
+  const b = document.getElementById('woLockBtn');
+  if (!b) return;
+  b.innerHTML = woUnlocked ? '&#128275;' : '&#128274;';
+  b.classList.toggle('open', woUnlocked);
+}
+function flashLock() {
+  const b = document.getElementById('woLockBtn');
+  if (!b) return;
+  b.style.transform = 'scale(1.25)';
+  setTimeout(() => { b.style.transform = ''; }, 180);
+}
+document.getElementById('woLockBtn').addEventListener('click', () => {
+  woUnlocked = !woUnlocked;
+  updateLockBtn();
+  renderWOContent();
+});
 
 function freshData(r) {
   if (r.type === 'strength')
@@ -2223,6 +2264,7 @@ function loadWOData(dow, offset) {
 function saveWOData(dow, data, offset) {
   offset = offset !== undefined ? offset : weekOffset;
   const dateStr = dowToDateStr(dow, offset);
+  data.ts = Date.now(); // stamp so sync can tell which copy is newer
   _woCache[dateStr] = data;
   localStorage.setItem(storageKey(dow, offset), JSON.stringify(data));
   sbPost('workout_log', {log_date: dateStr, workout_data: data}, true).catch(() => {});
@@ -2232,7 +2274,24 @@ async function ensureWOWeek(offset) {
   const dates = Array.from({length: 7}, (_, i) => dowToDateStr(i, offset));
   try {
     const rows = await sbGet('workout_log', {log_date: `in.(${dates.join(',')})`});
-    rows.forEach(row => { if (row.workout_data) _woCache[row.log_date] = row.workout_data; });
+    const byDate = {};
+    rows.forEach(row => { if (row.workout_data) byDate[row.log_date] = row.workout_data; });
+    for (let dow = 0; dow < 7; dow++) {
+      const dateStr = dates[dow];
+      const remote = byDate[dateStr];
+      const local  = loadStored(dow, offset);
+      if (remote && (!local || (remote.ts || 0) >= (local.ts || 0))) {
+        // remote is same-or-newer: take it and mirror locally
+        _woCache[dateStr] = remote;
+        localStorage.setItem(storageKey(dow, offset), JSON.stringify(remote));
+      } else if (local && remote && (local.ts || 0) > (remote.ts || 0)) {
+        // local is newer (an earlier upload must have failed): keep it and heal the server
+        _woCache[dateStr] = local;
+        sbPost('workout_log', {log_date: dateStr, workout_data: local}, true).catch(() => {});
+      } else if (local) {
+        _woCache[dateStr] = local;
+      }
+    }
   } catch {}
 }
 async function migrateWOToSupabase() {
@@ -2367,12 +2426,13 @@ function renderItemHTML(r, ei, data) {
     card += `<div class="sets-table">`;
     card += `<div class="set-header"><span>SET</span><span>WT (${unitPref})</span><span>REPS</span><span></span></div>`;
     exData.sets.forEach((set, si) => {
+      const lock = set.done && !woUnlocked ? 'disabled' : '';
       card += `<div class="set-row${set.done ? ' done-row' : ''}">
         <span class="set-num">${si+1}</span>
         <input class="set-input" type="number" inputmode="decimal" placeholder="—"
-          value="${set.w}" data-ex="${ei}" data-si="${si}" data-f="w">
+          value="${set.w}" data-ex="${ei}" data-si="${si}" data-f="w" ${lock}>
         <input class="set-input" type="number" inputmode="numeric" placeholder="—"
-          value="${set.r}" data-ex="${ei}" data-si="${si}" data-f="r">
+          value="${set.r}" data-ex="${ei}" data-si="${si}" data-f="r" ${lock}>
         <button class="set-done-btn${set.done ? ' active' : ''}" data-ex="${ei}" data-si="${si}">
           ${set.done ? '&#10003;' : '&#9675;'}
         </button>
@@ -2517,12 +2577,13 @@ function renderExtraHTML(extra, xi) {
   <div class="sets-table">
     <div class="set-header"><span>SET</span><span>WT (${unitPref})</span><span>REPS</span><span></span></div>`;
   extra.sets_data.forEach((set, si) => {
+    const lock = set.done && !woUnlocked ? 'disabled' : '';
     card += `<div class="set-row${set.done ? ' done-row' : ''}">
       <span class="set-num">${si+1}</span>
       <input class="set-input" type="number" inputmode="decimal" placeholder="—"
-        value="${set.w}" data-extra="${xi}" data-si="${si}" data-f="w">
+        value="${set.w}" data-extra="${xi}" data-si="${si}" data-f="w" ${lock}>
       <input class="set-input" type="number" inputmode="numeric" placeholder="—"
-        value="${set.r}" data-extra="${xi}" data-si="${si}" data-f="r">
+        value="${set.r}" data-extra="${xi}" data-si="${si}" data-f="r" ${lock}>
       <button class="set-done-btn${set.done ? ' active' : ''}" data-extra="${xi}" data-si="${si}">
         ${set.done ? '&#10003;' : '&#9675;'}
       </button>
@@ -2686,14 +2747,15 @@ function attachWOListeners(data) {
   document.querySelectorAll('.set-done-btn[data-ex]').forEach(btn => {
     btn.addEventListener('click', () => {
       const ei = +btn.dataset.ex, si = +btn.dataset.si;
+      const set = data.exercises[ei].sets[si];
+      if (set.done && !woUnlocked) { flashLock(); return; } // locked: can't uncheck
       const wEl = document.querySelector(`.set-input[data-ex="${ei}"][data-si="${si}"][data-f="w"]`);
       const rEl = document.querySelector(`.set-input[data-ex="${ei}"][data-si="${si}"][data-f="r"]`);
-      if (wEl) data.exercises[ei].sets[si].w = wEl.value;
-      if (rEl) data.exercises[ei].sets[si].r = rEl.value;
-      const set = data.exercises[ei].sets[si];
+      if (wEl) set.w = wEl.value;
+      if (rEl) set.r = rEl.value;
       set.done = !set.done;
+      if (set.done) { woUnlocked = false; updateLockBtn(); autoStartTimer(); }
       saveWOData(currentDay, data);
-      if (set.done) autoStartTimer();
       renderWOContent(); renderWOTabs();
     });
   });
@@ -2701,14 +2763,15 @@ function attachWOListeners(data) {
   document.querySelectorAll('.set-done-btn[data-extra]').forEach(btn => {
     btn.addEventListener('click', () => {
       const xi = +btn.dataset.extra, si = +btn.dataset.si;
+      const set = data.extras[xi].sets_data[si];
+      if (set.done && !woUnlocked) { flashLock(); return; } // locked: can't uncheck
       const wEl = document.querySelector(`.set-input[data-extra="${xi}"][data-si="${si}"][data-f="w"]`);
       const rEl = document.querySelector(`.set-input[data-extra="${xi}"][data-si="${si}"][data-f="r"]`);
-      if (wEl) data.extras[xi].sets_data[si].w = wEl.value;
-      if (rEl) data.extras[xi].sets_data[si].r = rEl.value;
-      const set = data.extras[xi].sets_data[si];
+      if (wEl) set.w = wEl.value;
+      if (rEl) set.r = rEl.value;
       set.done = !set.done;
+      if (set.done) { woUnlocked = false; updateLockBtn(); autoStartTimer(); }
       saveWOData(currentDay, data);
-      if (set.done) autoStartTimer();
       renderWOContent(); renderWOTabs();
     });
   });
