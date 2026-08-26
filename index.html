@@ -3951,6 +3951,23 @@ function render() {
       </div>
     </div>
     <div class="card">
+      <div class="card-lbl">Body</div>
+      <div class="card-body">
+        <div style="display:flex;gap:14px;align-items:flex-end">
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Weight (lbs)</label>
+            <input class="fi" id="body-weight" type="number" inputmode="decimal" step="0.1" placeholder="0.0" value="${daily?.weight_lbs||''}" oninput="scheduleBodySave()">
+          </div>
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Waist (in)</label>
+            <input class="fi" id="body-waist" type="number" inputmode="decimal" step="0.1" placeholder="0.0" value="${daily?.waist_in||''}" oninput="scheduleBodySave()">
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">Best first thing in the morning, before eating — same conditions each time</div>
+        <div class="notes-saved" id="body-saved"></div>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-lbl">Supplements</div>
       <div class="card-body">
         <div class="supp-list">
@@ -4096,6 +4113,19 @@ let _bpSaveTimer = null;
 function scheduleBpSave() {
   clearTimeout(_bpSaveTimer);
   _bpSaveTimer = setTimeout(saveBp, 1200);
+}
+let _bodySaveTimer = null;
+function scheduleBodySave() {
+  clearTimeout(_bodySaveTimer);
+  _bodySaveTimer = setTimeout(saveBody, 1200);
+}
+async function saveBody() {
+  const w  = parseFloat(document.getElementById('body-weight')?.value) || null;
+  const wa = parseFloat(document.getElementById('body-waist')?.value) || null;
+  if (daily) { daily.weight_lbs = w; daily.waist_in = wa; }
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {weight_lbs: w, waist_in: wa});
+  const saved = document.getElementById('body-saved');
+  if (saved) saved.textContent = 'Saved';
 }
 async function saveBp() {
   const sys = parseInt(document.getElementById('bp-sys')?.value) || null;
@@ -4445,10 +4475,12 @@ async function loadHistory() {
     window._histNotes = {};
     window._histBP = {};
     window._histRun = {};
+    window._histBody = {};
     noteRows.forEach(r => {
       if (r.notes) window._histNotes[r.log_date] = r.notes;
       if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic };
       if (r.run_miles || r.run_minutes) window._histRun[r.log_date] = { miles: r.run_miles, minutes: r.run_minutes, weather: r.run_weather };
+      if (r.weight_lbs || r.waist_in) window._histBody[r.log_date] = { w: r.weight_lbs, waist: r.waist_in };
     });
     // Per-date activity: session calories widen that day's budget
     window._histAct = {};
@@ -4575,6 +4607,22 @@ function renderHistory(rows) {
             <div class="ins-lbl">Avg Sleep</div>
             <div class="ins-sub">goal 7h+</div>
           </div>
+          ${(() => {
+            const body = window._histBody || {};
+            const entries = Object.entries(body).filter(([d]) => d >= STATS_START).sort((a,b) => a[0].localeCompare(b[0]));
+            const withW = entries.filter(([,v]) => v.w);
+            if (!withW.length) return '';
+            const first = withW[0][1].w, last = withW[withW.length-1][1].w;
+            const delta = Math.round((last - first) * 10) / 10;
+            const waists = entries.filter(([,v]) => v.waist);
+            const waistTxt = waists.length ? ` · waist ${waists[waists.length-1][1].waist}"` : '';
+            return `
+          <div class="ins">
+            <div class="ins-val">${last}</div>
+            <div class="ins-lbl">Weight (lbs)</div>
+            <div class="ins-sub">${delta === 0 ? 'no change' : (delta < 0 ? delta : '+'+delta) + ' lbs'}${waistTxt}</div>
+          </div>`;
+          })()}
         </div>
         ${runs ? `<div style="margin-top:10px;background:var(--surface2);border-radius:8px;padding:9px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline">
           <span style="font-size:12px">🏃 <b>${runs}</b> run${runs===1?'':'s'}</span>
@@ -4799,10 +4847,12 @@ async function downloadExcel() {
   // ── Sheet 1: Daily Summary ──
   const daily = [['Date','Day','Session','Calories','Cal Target','Protein (g)','Added Sugar (g)',
                   'Workout','Omega-3','D3+K2','Magnesium','Food Entries',
-                  'Run Miles','Run Minutes','Run Weather','BP Systolic','BP Diastolic','BP Category']];
+                  'Run Miles','Run Minutes','Run Weather','BP Systolic','BP Diastolic','BP Category',
+                  'Weight (lbs)','Waist (in)']];
   for (const r of [...rows].reverse()) {
-    const run = (window._histRun||{})[r.log_date];
-    const bp  = (window._histBP||{})[r.log_date];
+    const run  = (window._histRun||{})[r.log_date];
+    const bp   = (window._histBP||{})[r.log_date];
+    const body = (window._histBody||{})[r.log_date];
     daily.push([
       r.log_date, dayName(r.log_date), r.session_type,
       r.total_calories, r.calorie_target, r.total_protein_g, r.total_added_sugar_g,
@@ -4810,6 +4860,7 @@ async function downloadExcel() {
       r.magnesium_taken?'Yes':'No', r.food_entries,
       run?.miles||'', run?.minutes||'', run?.weather||'',
       bp?.sys||'', bp?.dia||'', bp ? (bpCategory(bp.sys,bp.dia)?.label || '') : '',
+      body?.w||'', body?.waist||'',
     ]);
   }
 
