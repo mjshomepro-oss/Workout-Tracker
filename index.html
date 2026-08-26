@@ -2094,9 +2094,9 @@ function updateNtHeader() {
   const dow = d.getDay();
   document.getElementById('h-session').textContent = `${DAY_NAMES[dow]} · ${SESSIONS[dow]}`;
   document.getElementById('ntNextDay').disabled = ntDateStr() >= realTodayStr();
-  // FAB: only show on today
+  // FAB: only show on today, and only while the nutrition tab is active
   const fab = document.getElementById('fab');
-  if (isToday) fab.classList.add('visible');
+  if (isToday && activeTab === 'nutrition') fab.classList.add('visible');
   else fab.classList.remove('visible');
 }
 
