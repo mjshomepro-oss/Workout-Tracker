@@ -3015,16 +3015,17 @@ async function load() {
   const dateStr = ntDateStr();
   try {
     if (ntDayOffset === 0) await sbPost('daily_log', {log_date: dateStr}, true);
-    const [dl, fe] = await Promise.all([
+    // One parallel round trip for everything the day needs
+    const [dl, fe, snap] = await Promise.all([
       sbGet('daily_log', {'log_date': `eq.${dateStr}`}),
       sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
+      ntDayOffset !== 0 ? sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []) : Promise.resolve([]),
     ]);
     daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
     foods = fe;
     // Past days render from their own saved Fitbit snapshot, not today's sync
     ghDay = null;
     if (ntDayOffset !== 0) {
-      const snap = await sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []);
       if (snap[0]) {
         const s = snap[0];
         ghDay = { steps: s.steps, calories: s.calories, activeMinutes: s.active_minutes, restingHR: s.resting_hr,
