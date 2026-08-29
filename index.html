@@ -1215,6 +1215,12 @@ function startGHAutoSync() {
   ghSyncTimer = setInterval(bgSync, 20 * 60 * 1000); // every 20 min
 }
 
+// Best-effort jump into the Google Health app so it syncs the band.
+// Tries the (rebranded) Fitbit package first; harmless no-op if it misses.
+function openGHApp() {
+  window.location.href = 'intent://#Intent;package=com.fitbit.FitbitMobile;end';
+}
+
 function connectGoogleHealth() {
   const clientId = '1060102663729-h4npgd4pp7hfslt5tr77iiohehpb4rmv.apps.googleusercontent.com';
   const redirectUri = encodeURIComponent('https://mjshomepro-oss.github.io/Workout-Tracker/health-callback.html');
@@ -3970,6 +3976,7 @@ function render() {
         ${ghConnected ? `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <span style="font-size:12px;color:var(--muted);flex:1">${ghSyncedLabel()}</span>
+            <button onclick="openGHApp()" title="Open Google Health to force the band to sync" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#8599; GH</button>
             <button onclick="connectGoogleHealth()" title="Re-grant permissions" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">&#128273;</button>
             <button onclick="syncGoogleHealth()" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync</button>
           </div>
