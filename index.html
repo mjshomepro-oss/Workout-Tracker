@@ -1863,24 +1863,25 @@ const ROUTINE = [
       { name: 'External rotations', kind: 'warmup', track: false, detail: 'Mini-DB, 12/side — rotator cuff.' },
       { name: 'Scap push-ups', kind: 'warmup', track: false, detail: 'High plank, pinch & spread, ~10.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1–2 light sets of DB bench.' },
+      // Order alternates push / pull so one group rests while the other works
       { name: 'DB bench press', kind: 'main', sets: 4, reps: '6–10',
         detail: 'Flat bench. Sit with DBs on thighs, kick them up one at a time as you lie back — never lift from the floor bent over. Controlled lower, slight pause; stop 1–2 reps shy of failure. (Barbell returns when there\'s a rack.)' },
       { name: 'Single-arm DB row', kind: 'main', sets: 4, reps: '8–12',
         detail: 'Hand and knee on the bench, back flat and supported; pull the DB to your hip, elbow tight. Per arm. Replaces the barbell row — same muscles, no lumbar load.' },
-      { name: 'Inverted row', kind: 'main', sets: 3, reps: '8–12',
-        detail: 'Body under the converter bar across the bench; pull chest to bar. Elevate feet to make it harder.' },
       { name: 'Incline DB press', kind: 'main', sets: 3, reps: '8–12',
         detail: 'Bench 30–45°; upper-chest bias.' },
+      { name: 'Inverted row', kind: 'main', sets: 3, reps: '8–12',
+        detail: 'Body under the converter bar across the bench; pull chest to bar. Elevate feet to make it harder.' },
       { name: 'Lateral raise', kind: 'main', sets: 3, reps: '12–20', detail: 'Mini-DBs; smooth tempo, no swing.' },
       { name: 'DB overhead triceps extension', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Both hands on one DB, overhead, deep stretch at the bottom.' },
       { name: 'DB curl', kind: 'main', sets: 3, reps: '10–12' },
       { name: 'Incline reverse grip DB press', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
-      { name: 'Close-grip push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
-        detail: 'One hard set. Hands narrow, elbows tucked. Add the vest if 15+ reps comes easy.' },
       { name: 'Spider curl (back of incline bench)', kind: 'main', sets: 3, reps: '10–12',
-        detail: 'Chest against the back of the incline bench, arms hanging straight down; curl with zero swing. Light DBs — the strict angle is the point. Back-friendly (fully supported).' }
+        detail: 'Chest against the back of the incline bench, arms hanging straight down; curl with zero swing. Light DBs — the strict angle is the point. Back-friendly (fully supported).' },
+      { name: 'Close-grip push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
+        detail: 'One hard set. Hands narrow, elbows tucked. Add the vest if 15+ reps comes easy.' }
     ]
   },
   {
@@ -1893,18 +1894,19 @@ const ROUTINE = [
       { name: 'Glute bridges', kind: 'warmup', track: false, detail: '~15 reps; squeeze the glutes.' },
       { name: 'Ankle rocks', kind: 'warmup', track: false, detail: '~10 per side.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1 light set of squats first.' },
+      // Order alternates quad-dominant / hinge so the legs trade off
       { name: 'Squat', kind: 'main', sets: 4, reps: '10–15',
         detail: 'The regular squat you\'ve been doing — bodyweight or a DB at the chest. Stop above the depth where your pelvis tucks; chest tall, spine neutral. If you want a depth check, put the bench behind you and just touch it. Progress with pauses and slow lowers, not big weight jumps.' },
-      { name: 'DB step-up', kind: 'main', sets: 3, reps: '8–10/leg',
-        detail: 'Bench height; drive through the heel, control the lower.' },
-      { name: 'Bulgarian split squat', kind: 'main', sets: 4, reps: '8–10/leg',
-        detail: 'Two 55 lb DBs (add vest). Rear foot on the bench, control the descent.' },
       { name: 'Single-leg DB Romanian deadlift', kind: 'main', sets: 3, reps: '10–12/leg',
         detail: 'Per-leg loading; long stretch, neutral spine.' },
+      { name: 'Bulgarian split squat', kind: 'main', sets: 4, reps: '8–10/leg',
+        detail: 'Two 55 lb DBs (add vest). Rear foot on the bench, control the descent.' },
       { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '12–20', detail: 'Full stretch at the bottom, pause at the top.' },
+      { name: 'DB step-up', kind: 'main', sets: 3, reps: '8–10/leg',
+        detail: 'Bench height; drive through the heel, control the lower.' },
       { name: 'Dead bug', kind: 'core', sets: 3, reps: '8/side' },
       { name: 'KB swing', kind: 'finisher', sets: 3, reps: '20',
-        detail: 'Kettle Gryp on a loaded DB; explosive hip hinge, snap to chest height.' }
+        detail: 'Kettle Gryp on a loaded DB; explosive hip hinge, snap to chest height. Spine rigid-neutral — skip while the back is flaring.' }
     ]
   },
   {
@@ -1931,24 +1933,25 @@ const ROUTINE = [
       { name: 'External rotations', kind: 'warmup', track: false, detail: 'Mini-DB, 12/side.' },
       { name: 'Scap push-ups', kind: 'warmup', track: false, detail: 'High plank, ~10.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1–2 light sets of the incline press.' },
+      // Order alternates push / pull so one group rests while the other works
       { name: 'Incline DB bench press', kind: 'main', sets: 4, reps: '6–10',
         detail: '30–45° bench; upper-chest thickness; deep stretch at the bottom.' },
       { name: 'Chest-supported DB row', kind: 'main', sets: 4, reps: '8–12',
         detail: 'Chest on the inclined bench; pull to the lower ribs.' },
+      { name: 'Arnold press', kind: 'main', sets: 3, reps: '8–10' },
       { name: 'Single-arm DB pullover', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Lats + serratus. Lie across the bench, deep stretch behind the head.' },
       { name: 'DB fly', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Flat or low-incline; big stretch at the bottom.' },
-      { name: 'Arnold press', kind: 'main', sets: 3, reps: '8–10' },
+      { name: 'DB shoulder circles', kind: 'main', sets: 3, reps: '10–12',
+        detail: 'Mini-DBs, arms slightly bent; sweep from thighs out and up over the head in a wide circle, then back down. Slow and controlled — no momentum. Hits all three delt heads.' },
       { name: 'DB skullcrusher', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Lying on the bench, lower the DBs beside/behind the head, elbows tucked.' },
       { name: 'Hammer curl', kind: 'main', sets: 3, reps: '10–12' },
       { name: 'Incline reverse grip DB press', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
       { name: 'Squeeze push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
-        detail: 'One hard set. Hands close, press them together. Vest optional.' },
-      { name: 'DB shoulder circles', kind: 'main', sets: 3, reps: '10–12',
-        detail: 'Mini-DBs, arms slightly bent; sweep from thighs out and up over the head in a wide circle, then back down. Slow and controlled — no momentum. Hits all three delt heads.' }
+        detail: 'One hard set. Hands close, press them together. Vest optional.' }
     ]
   },
   {
@@ -1967,8 +1970,8 @@ const ROUTINE = [
         detail: 'Front foot on a plate/wedge; DBs or vest; quad-biased, long range.' },
       { name: 'Barbell Romanian deadlift', kind: 'main', sets: 3, reps: '10–15',
         detail: 'Back-off hinge. High-rep at the converter cap; long hamstring stretch.' },
-      { name: 'Goblet squat', kind: 'main', sets: 3, reps: '10–12',
-        detail: 'Kettle Gryp on a DB; upright torso, deep, controlled.' },
+      { name: 'Squat', kind: 'main', sets: 3, reps: '10–12',
+        detail: 'Same regular squat as Lower A — bodyweight or DB at the chest, stop above the pelvis-tuck depth, spine neutral.' },
       { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '15–20' },
       { name: 'Side plank', kind: 'core', sets: 3, reps: '20–40s/side' },
       { name: 'Suitcase carry', kind: 'finisher', track: false,
@@ -2214,30 +2217,57 @@ document.getElementById('woLockBtn').addEventListener('click', () => {
 function freshData(r) {
   if (r.type === 'strength')
     return { exercises: r.items.map(ex => ex.track === false
-      ? { note: true, checked: false, log: '' }
-      : { sets: Array.from({length: ex.sets}, () => ({w:'', r:'', done:false})) }) };
+      ? { name: ex.name, note: true, checked: false, log: '' }
+      : { name: ex.name, sets: Array.from({length: ex.sets}, () => ({w:'', r:'', done:false})) }) };
   return { items: r.items.map(() => ({checked:false, log:''})) };
 }
 function dataMatchesRoutine(d, r) {
   if (r.type === 'strength') return !!(d && Array.isArray(d.exercises));
   return !!(d && Array.isArray(d.items));
 }
+
+// Logged exercises are matched to the routine BY NAME, so the routine can be
+// reordered freely without scrambling history. Data saved before Sept 8, 2026
+// was positional; LEGACY_ORDER is the list order on that date and is used once
+// to attach names to those old entries.
+const LEGACY_ORDER = {
+  1: ['Arm circles','Rear-delt raises','External rotations','Scap push-ups','Light ramp sets',
+      'DB bench press','Single-arm DB row','Inverted row','Incline DB press','Lateral raise',
+      'DB overhead triceps extension','DB curl','Incline reverse grip DB press','Close-grip push-up',
+      'Spider curl (back of incline bench)'],
+  2: ['Leg swings','Bodyweight squats','Walking lunges','Glute bridges','Ankle rocks','Light ramp sets',
+      'Squat','DB step-up','Bulgarian split squat','Single-leg DB Romanian deadlift','Standing calf raise',
+      'Dead bug','KB swing'],
+  4: ['Arm circles','Rear-delt raises','External rotations','Scap push-ups','Light ramp sets',
+      'Incline DB bench press','Chest-supported DB row','Single-arm DB pullover','DB fly','Arnold press',
+      'DB skullcrusher','Hammer curl','Incline reverse grip DB press','Squeeze push-up','DB shoulder circles'],
+  5: ['Leg swings','Bodyweight squats','Walking lunges','Glute bridges','Ankle rocks','Light ramp sets',
+      'Barbell hip thrust','Front-foot-elevated split squat','Barbell Romanian deadlift','Squat',
+      'Standing calf raise','Side plank','Suitcase carry'],
+};
+// Returns a copy of d whose exercises array lines up with ROUTINE[dow].items.
+function alignExercises(d, dow) {
+  const r = ROUTINE[dow];
+  if (!d || !Array.isArray(d.exercises) || !r || r.type !== 'strength') return d;
+  const legacy = LEGACY_ORDER[dow] || [];
+  const byName = {};
+  d.exercises.forEach((e, i) => {
+    if (!e) return;
+    const name = e.name || legacy[i];
+    if (name && !byName[name]) byName[name] = { ...e, name };
+  });
+  const fresh = freshData(r).exercises;
+  const aligned = r.items.map((ex, i) => {
+    const e = byName[ex.name];
+    if (ex.track === false) return (e && e.note) ? e : fresh[i];
+    return (e && Array.isArray(e.sets) && e.sets.length) ? e : fresh[i];
+  });
+  return { ...d, exercises: aligned };
+}
 function reconcileWOData(d, r) {
   if (r.type === 'strength') {
-    const fresh = freshData(r);
-    while (d.exercises.length < r.items.length) {
-      d.exercises.push(fresh.exercises[d.exercises.length]);
-    }
-    d.exercises.length = r.items.length;
-    r.items.forEach((ex, i) => {
-      const ed = d.exercises[i];
-      if (ex.track === false) {
-        if (!ed || !ed.note) d.exercises[i] = { note: true, checked: false, log: '' };
-      } else {
-        if (!ed || !Array.isArray(ed.sets) || ed.sets.length === 0)
-          d.exercises[i] = { sets: Array.from({length: ex.sets}, () => ({w:'', r:'', done:false})) };
-      }
-    });
+    const dow = ROUTINE.indexOf(r);
+    d.exercises = alignExercises(d, dow).exercises;
   } else {
     if (!Array.isArray(d.items)) d.items = [];
     const fresh = freshData(r);
@@ -2337,7 +2367,7 @@ function lastWeekBest(dow, exIdx) {
   const raw = localStorage.getItem(storageKey(dow, weekOffset - 1));
   if (!raw) return null;
   try {
-    const d = JSON.parse(raw);
+    const d = alignExercises(JSON.parse(raw), dow);
     const sets = d.exercises?.[exIdx]?.sets;
     if (!sets) return null;
     const done = sets.filter(s => s.done && s.w);
@@ -2903,6 +2933,7 @@ function openProgressSheet() {
     let d;
     try { d = JSON.parse(localStorage.getItem(key)); } catch { continue; }
     if (!d || !Array.isArray(d.exercises)) continue;
+    d = alignExercises(d, dow);
     if (!weeks[wk]) weeks[wk] = {};
     r.items.forEach((ex, ei) => {
       if (ex.track === false) return;
@@ -4836,9 +4867,10 @@ async function loadWorkoutHistory() {
         ${routine.type === 'strength' ? `<span class="wo-hist-day-done">${totalSets}/${totalTracked} sets</span>` : ''}
       </div>`;
     if (routine.type === 'strength' && data.exercises) {
+      const alignedEx = alignExercises(data, dow).exercises;
       routine.items.forEach((ex, i) => {
         if (ex.track === false) return;
-        const ed = data.exercises[i];
+        const ed = alignedEx[i];
         if (!ed || !ed.sets) return;
         const hasSets = ed.sets.some(s => s.w || s.r || s.done);
         if (!hasSets) return;
@@ -4965,9 +4997,10 @@ async function downloadExcel() {
     const dow = new Date(row.log_date + 'T12:00:00').getDay();
     const routine = ROUTINE[dow];
     if (routine.type === 'strength' && data.exercises) {
+      const alignedEx = alignExercises(data, dow).exercises;
       routine.items.forEach((ex, i) => {
         if (ex.track === false) return;
-        const ed = data.exercises[i];
+        const ed = alignedEx[i];
         if (!ed || !ed.sets) return;
         ed.sets.forEach((s, si) => {
           if (!s.w && !s.r && !s.done) return;
