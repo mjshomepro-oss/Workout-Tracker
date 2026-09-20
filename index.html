@@ -3364,6 +3364,27 @@ function drawHRChart(series) {
 let slNights = JSON.parse(localStorage.getItem('slNights') || 'null');
 let slLoading = false;
 
+// Recovery graphs: '7' = last 7 nights, 'all' = every night on record
+let slRange = localStorage.getItem('slRange') === 'all' ? 'all' : '7';
+let slVitals = null;          // full history, oldest → newest (vitals only, no stages)
+let slVitalsLoading = false;
+async function ensureSlVitals() {
+  if (slVitalsLoading) return;
+  slVitalsLoading = true;
+  try {
+    slVitals = await sbGet('sleep_log', {
+      select: 'log_date,resting_hr,hrv_ms,resp_rate', order: 'log_date.asc', limit: '1000',
+    });
+    if (activeTab === 'sleep' && slNights) renderSleep();
+  } catch(_) {}
+  slVitalsLoading = false;
+}
+function setSlRange(r) {
+  slRange = r;
+  localStorage.setItem('slRange', r);
+  renderSleep();
+}
+
 const SL_COLORS = { AWAKE:'#f9a8d4', REM:'#bae6fd', LIGHT:'#60a5fa', DEEP:'#a78bfa' };
 const SL_LEVELS = { AWAKE:0, REM:1, LIGHT:2, DEEP:3 };
 
@@ -3384,6 +3405,7 @@ async function loadSleep() {
     const data = await res.json();
     if (data.nights && data.nights.length) {
       slNights = data.nights;
+      slVitals = null; // fresh sync: refetch the full history on next "All" render
       localStorage.setItem('slNights', JSON.stringify(slNights));
       renderSleep();
     } else if (!slNights) {
@@ -3472,8 +3494,11 @@ function renderSleep() {
       <span style="font-size:10px;color:var(--muted);margin-left:auto">tap a night to view it</span>
     </div>`;
 
-  // Recovery sparkline rows — last 7 nights, oldest → newest
-  const wk = slNights.slice(0, 7).reverse();
+  // Recovery graph rows, oldest → newest: last 7 nights, or the full history
+  if (slRange === 'all' && !slVitals) ensureSlVitals();
+  const showAll = slRange === 'all' && slVitals && slVitals.length > 0;
+  const wk = showAll ? slVitals : slNights.slice(0, 7).reverse();
+  const rangeBtn = (r, txt) => `<button onclick="setSlRange('${r}')" style="background:${slRange===r?'var(--acc-d)':'none'};border:1px solid ${slRange===r?'var(--acc-b)':'var(--border)'};color:${slRange===r?'var(--accent)':'var(--muted)'};border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">${txt}</button>`;
   const sparkRow = (id, label, val, unit, color) => val == null ? '' : `
     <div style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
@@ -3484,7 +3509,10 @@ function renderSleep() {
     </div>`;
   const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null) ? `
     <div class="card">
-      <div class="card-lbl">Recovery — Last 7 Nights</div>
+      <div class="card-lbl-row">
+        <div class="card-lbl">Recovery — ${showAll ? 'All ' + wk.length + ' Nights' : slRange === 'all' ? 'Loading…' : 'Last 7 Nights'}</div>
+        <div style="display:flex;gap:5px">${rangeBtn('7', '7 nights')}${rangeBtn('all', 'All')}</div>
+      </div>
       <div class="card-body" style="padding-top:2px">
         ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa')}
         ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e')}
@@ -3540,17 +3568,21 @@ function renderSleep() {
   setTimeout(() => {
     drawHypno(n);
     slNights.slice(0, 14).forEach((t, i) => drawRibbon('sl-rib-' + i, t));
-    drawSpark('sp-rhr',  wk.map(x => ({ d: x.log_date, v: x.resting_hr })), '#60a5fa');
-    drawSpark('sp-hrv',  wk.map(x => ({ d: x.log_date, v: x.hrv_ms })),     '#22c55e');
-    drawSpark('sp-resp', wk.map(x => ({ d: x.log_date, v: x.resp_rate })),  '#a78bfa');
+    const num = v => v == null ? null : +v;
+    drawSpark('sp-rhr',  wk.map(x => ({ d: x.log_date, v: num(x.resting_hr) })), '#60a5fa');
+    drawSpark('sp-hrv',  wk.map(x => ({ d: x.log_date, v: num(x.hrv_ms) })),     '#22c55e');
+    drawSpark('sp-resp', wk.map(x => ({ d: x.log_date, v: num(x.resp_rate) })),  '#a78bfa');
   }, 0);
 }
 
-// Small 7-night line graph with dots; skips null values
+// Line graph with dots; skips null values. Up to 10 points: every point gets a
+// value + date label. More than that (full history): taller, small dots, and
+// only the high, low and latest values are labeled, with ~5 date ticks.
 function drawSpark(canvasId, pts, color) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const W = canvas.offsetWidth, H = 58;
+  const dense = pts.length > 10;
+  const W = canvas.offsetWidth, H = dense ? 104 : 58;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr; canvas.height = H * dpr;
   canvas.style.height = H + 'px';
@@ -3561,7 +3593,7 @@ function drawSpark(canvasId, pts, color) {
   const valid = pts.map((p, i) => ({ ...p, i })).filter(p => p.v != null);
   if (!valid.length) return;
 
-  const PAD_X = 18, PAD_T = 14, PAD_B = 14;
+  const PAD_X = 18, PAD_T = dense ? 18 : 14, PAD_B = dense ? 28 : 14;
   const n = pts.length;
   const xOf = i => n > 1 ? PAD_X + i / (n - 1) * (W - 2 * PAD_X) : W / 2;
   const vals = valid.map(p => p.v);
@@ -3584,25 +3616,43 @@ function drawSpark(canvasId, pts, color) {
     ctx.globalAlpha = 1;
   }
 
-  // dots (latest one emphasized) + value label above each
+  // dots (latest one emphasized) + value labels
+  const lastK = valid.length - 1;
+  let hiK = 0, loK = 0;
+  valid.forEach((p, k) => { if (p.v > valid[hiK].v) hiK = k; if (p.v < valid[loK].v) loK = k; });
   ctx.font = '600 9px monospace';
   ctx.textAlign = 'center';
   valid.forEach((p, k) => {
     const x = xOf(p.i), y = yOf(p.v);
     ctx.beginPath();
-    ctx.arc(x, y, k === valid.length - 1 ? 3.5 : 2.5, 0, Math.PI * 2);
+    ctx.arc(x, y, k === lastK ? 3.5 : dense ? 1.8 : 2.5, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-    ctx.fillStyle = k === valid.length - 1 ? color : '#9ca3af';
-    ctx.fillText(String(p.v), x, y - 6);
+    if (dense && k !== lastK && k !== hiK && k !== loK) return;
+    ctx.fillStyle = k === lastK ? color : '#9ca3af';
+    // in dense mode the low point is labeled below its dot so it stays clear of the line
+    const below = dense && k === loK && k !== hiK;
+    const lx = Math.max(12, Math.min(W - 12, x));
+    ctx.fillText(String(p.v), lx, below ? y + 12 : y - 6);
   });
-  // date labels under each point (M/D)
+  // date labels (M/D): under every point, or ~5 evenly spaced ticks when dense
   ctx.font = '8px monospace';
   ctx.fillStyle = '#6b7280';
-  valid.forEach(p => {
+  const dateAt = p => {
     const d = nightOf(p.d);
     ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, xOf(p.i), H - 3);
-  });
+  };
+  if (!dense) {
+    valid.forEach(dateAt);
+  } else {
+    const ticks = 5, seen = new Set();
+    for (let t = 0; t < ticks; t++) {
+      const i = Math.round(t / (ticks - 1) * (n - 1));
+      if (seen.has(i)) continue;
+      seen.add(i);
+      dateAt({ d: pts[i].d, i });
+    }
+  }
 }
 
 // One night's stages as a thin ribbon on a fixed 9 PM → 10 AM clock axis
