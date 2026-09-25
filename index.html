@@ -4101,8 +4101,12 @@ function render() {
           <span class="bp-sep">/</span>
           <input class="fi bp-input" id="bp-dia" type="number" inputmode="numeric" placeholder="80" value="${daily?.bp_diastolic||''}" oninput="scheduleBpSave()">
           <span style="font-size:12px;color:var(--muted)">mmHg</span>
-          ${(()=>{ const c=bpCategory(daily?.bp_systolic,daily?.bp_diastolic); return c?`<span class="bp-cat" style="color:${c.color}">${c.label}</span>`:''; })()}
+          ${(()=>{ if (daily?.bp_post_workout) return `<span class="bp-cat" style="color:var(--muted)">Post-workout</span>`; const c=bpCategory(daily?.bp_systolic,daily?.bp_diastolic); return c?`<span class="bp-cat" style="color:${c.color}">${c.label}</span>`:''; })()}
         </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:6px;cursor:pointer">
+          <input type="checkbox" id="bp-post" ${daily?.bp_post_workout ? 'checked' : ''} onchange="saveBp()" style="width:16px;height:16px;accent-color:var(--accent)">
+          Taken after a workout (not a resting reading — kept out of the trend)
+        </label>
         <div class="notes-saved" id="bp-saved"></div>
       </div>
     </div>
@@ -4286,12 +4290,19 @@ async function saveBody() {
 async function saveBp() {
   const sys = parseInt(document.getElementById('bp-sys')?.value) || null;
   const dia = parseInt(document.getElementById('bp-dia')?.value) || null;
-  if (daily) { daily.bp_systolic = sys; daily.bp_diastolic = dia; }
-  await sbPatch('daily_log', {log_date: ntDateStr()}, {bp_systolic: sys, bp_diastolic: dia});
+  const post = !!document.getElementById('bp-post')?.checked;
+  if (daily) { daily.bp_systolic = sys; daily.bp_diastolic = dia; daily.bp_post_workout = post; }
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {bp_systolic: sys, bp_diastolic: dia, bp_post_workout: post});
+  const badge = document.querySelector('.bp-row .bp-cat');
+  if (badge) {
+    const c = post ? null : bpCategory(sys, dia);
+    badge.textContent = post ? 'Post-workout' : (c ? c.label : '');
+    badge.style.color = post ? 'var(--muted)' : (c ? c.color : '');
+  }
   const saved = document.getElementById('bp-saved');
   if (saved) {
-    const c = bpCategory(sys, dia);
-    saved.textContent = c ? c.label : 'Saved';
+    const c = post ? null : bpCategory(sys, dia);
+    saved.textContent = post ? 'Saved (post-workout)' : (c ? c.label : 'Saved');
     saved.style.color = c ? c.color : '';
     setTimeout(() => { if(saved) { saved.textContent = ''; saved.style.color = ''; } }, 2500);
   }
@@ -4634,7 +4645,7 @@ async function loadHistory() {
     window._histBody = {};
     noteRows.forEach(r => {
       if (r.notes) window._histNotes[r.log_date] = r.notes;
-      if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic };
+      if (r.bp_systolic && r.bp_diastolic) window._histBP[r.log_date] = { sys: r.bp_systolic, dia: r.bp_diastolic, post: !!r.bp_post_workout };
       if (r.run_miles || r.run_minutes) window._histRun[r.log_date] = { miles: r.run_miles, minutes: r.run_minutes, weather: r.run_weather };
       if (r.weight_lbs || r.waist_in) window._histBody[r.log_date] = { w: r.weight_lbs, waist: r.waist_in };
     });
@@ -4838,7 +4849,7 @@ function renderHistory(rows) {
         </div>
       </div>
       ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}
-      ${(()=>{ const bp=(window._histBP||{})[r.log_date]; if(!bp) return ''; const c=bpCategory(bp.sys,bp.dia); return `<div class="hist-bp" style="color:${c?c.color:'var(--muted)'}">&#128147; ${bp.sys}/${bp.dia} mmHg${c?' &middot; '+c.label:''}</div>`; })()}
+      ${(()=>{ const bp=(window._histBP||{})[r.log_date]; if(!bp) return ''; if(bp.post) return `<div class="hist-bp" style="color:var(--muted)">&#128147; ${bp.sys}/${bp.dia} mmHg &middot; post-workout</div>`; const c=bpCategory(bp.sys,bp.dia); return `<div class="hist-bp" style="color:${c?c.color:'var(--muted)'}">&#128147; ${bp.sys}/${bp.dia} mmHg${c?' &middot; '+c.label:''}</div>`; })()}
       ${(()=>{
         const run=(window._histRun||{})[r.log_date]; if(!run) return '';
         const parts = [];
@@ -5016,7 +5027,7 @@ async function downloadExcel() {
       r.workout_done?'Yes':'No', r.omega3_taken?'Yes':'No', r.d3_k2_taken?'Yes':'No',
       r.magnesium_taken?'Yes':'No', r.food_entries,
       run?.miles||'', run?.minutes||'', run?.weather||'',
-      bp?.sys||'', bp?.dia||'', bp ? (bpCategory(bp.sys,bp.dia)?.label || '') : '',
+      bp?.sys||'', bp?.dia||'', bp ? (bp.post ? 'Post-workout' : (bpCategory(bp.sys,bp.dia)?.label || '')) : '',
       body?.w||'', body?.waist||'',
     ]);
   }
@@ -5168,7 +5179,7 @@ async function downloadCSV() {
     const pace = run?.miles && run?.minutes
       ? `${Math.floor(run.minutes/run.miles)}:${String(Math.round(((run.minutes/run.miles)%1)*60)).padStart(2,'0')}`
       : '';
-    const bpCat = bp ? (bpCategory(bp.sys,bp.dia)?.label || '') : '';
+    const bpCat = bp ? (bp.post ? 'Post-workout' : (bpCategory(bp.sys,bp.dia)?.label || '')) : '';
     lines.push([
       r.log_date, d.toLocaleDateString('en-US',{weekday:'long'}),
       `"${r.session_type}"`, r.labor_level, r.calorie_target,
