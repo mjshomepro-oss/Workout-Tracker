@@ -964,6 +964,27 @@ body {
   </div>
 </div>
 
+<!-- Sodium : Potassium explainer -->
+<div class="overlay" id="nakOverlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="form-sheet-title">Sodium : Potassium ratio</div>
+    <div class="form-sheet-subtitle">Why the app shows Na:K next to the sodium staircase</div>
+    <div style="font-size:14px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:12px">
+      <p>Potassium doesn't cancel sodium the way one number cancels another. It works the same system from the other side: sodium pulls water into the blood and raises pressure; potassium helps the kidneys get rid of sodium and relaxes the vessel walls. So extra potassium <b>blunts</b> sodium's effect on blood pressure, but it doesn't erase the sodium.</p>
+      <p><b>The target is a ratio, not a trade.</b> Aim for sodium : potassium of <b>1:1 or better by weight</b> &mdash; at least as much potassium as sodium in a day, ideally more. Most people run about 2:1 the wrong way.</p>
+      <p><b>How to read the line:</b><br>
+        <span style="color:var(--accent)">green</span> = 1:1 or better (K &ge; Na)<br>
+        <span style="color:var(--yellow)">yellow</span> = up to 1.5:1<br>
+        <span style="color:var(--red)">red</span> = worse than 1.5:1<br>
+        The "+Xmg K to match" is how much potassium would bring today to 1:1.</p>
+      <p><b>Potassium heavy hitters:</b> a big potato or two bananas &asymp; 800&ndash;900mg. Beans, yogurt, fish, orange juice and spinach are the others.</p>
+      <p><b>Two limits.</b> Potassium from food is safe for healthy kidneys, but don't chase it with supplements &mdash; high-dose potassium pills are the one place this goes wrong. And the bigger lever is still the sodium side: rinsing beans, easy on seasoning, watching deli meat drops the number faster than bananas raise the other.</p>
+    </div>
+    <button class="overlay-close" onclick="document.getElementById('nakOverlay').classList.remove('show')" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
 <!-- Add Lift Sheet -->
 <div class="overlay" id="addLiftOverlay">
   <div class="form-sheet">
@@ -3995,9 +4016,18 @@ function render() {
             <span style="font-family:monospace;font-size:13px;font-weight:600;color:${t.sodium > sodiumTarget() ? 'var(--red)' : (sodiumTarget() - t.sodium) < 400 ? 'var(--yellow)' : 'var(--accent)'}">${t.sodium <= sodiumTarget() ? (sodiumTarget() - t.sodium).toLocaleString()+'mg remaining' : (t.sodium - sodiumTarget()).toLocaleString()+'mg over'}</span>
           </div>
           <canvas id="na-staircase" style="width:100%;display:block" height="68"></canvas>
-          ${sodiumTarget() > 2300 ? `<div style="display:flex;justify-content:flex-end;margin-top:2px">
-            <span style="font-size:10px;color:#fbbf24;font-family:monospace">${sodiumTarget().toLocaleString()} w/ sweat</span>
-          </div>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;gap:8px">
+            ${(() => {
+              if (!t.sodium && !t.potassium) return '<span></span>';
+              const ratio = t.potassium > 0 ? t.sodium / t.potassium : null;
+              const clr = ratio == null ? 'var(--red)' : ratio <= 1 ? 'var(--accent)' : ratio <= 1.5 ? 'var(--yellow)' : 'var(--red)';
+              const txt = ratio == null ? 'Na:K — no K yet' : `Na:K ${ratio.toFixed(1)}:1`;
+              const need = t.sodium > t.potassium ? ` · +${(t.sodium - t.potassium).toLocaleString()}mg K to match` : ' · K matches Na';
+              return `<span style="font-size:10px;font-family:monospace;color:${clr};display:flex;align-items:center;gap:6px">${txt}<span style="color:var(--muted)">${need}</span>
+                <button onclick="document.getElementById('nakOverlay').classList.add('show')" title="What is Na:K?" style="width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;line-height:1;padding:0;cursor:pointer">?</button></span>`;
+            })()}
+            ${sodiumTarget() > 2300 ? `<span style="font-size:10px;color:#fbbf24;font-family:monospace;white-space:nowrap">${sodiumTarget().toLocaleString()} w/ sweat</span>` : '<span></span>'}
+          </div>
         </div>
         <div style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
