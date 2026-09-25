@@ -964,6 +964,17 @@ body {
   </div>
 </div>
 
+<!-- Recovery metric explainer (title/body filled by openRecInfo) -->
+<div class="overlay" id="recOverlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="form-sheet-title" id="recInfoTitle"></div>
+    <div class="form-sheet-subtitle" id="recInfoSub"></div>
+    <div id="recInfoBody" style="font-size:14px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:12px"></div>
+    <button class="overlay-close" onclick="document.getElementById('recOverlay').classList.remove('show')" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
 <!-- Sodium : Potassium explainer -->
 <div class="overlay" id="nakOverlay" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="form-sheet">
@@ -3460,6 +3471,47 @@ function scheduleSlNotesSave() {
   }, 800);
 }
 
+// "?" explainers for the Recovery card
+const REC_INFO = {
+  rhr: {
+    title: 'Resting heart rate',
+    sub: 'Beats per minute when your body is fully at rest',
+    body: `
+      <p>Fitbit works it out from your sleep and quiet periods. It is the best single "overall condition" number a tracker gives you: a lower number means the heart moves the same blood with fewer beats.</p>
+      <p><b>Where you sit.</b> Fitbit's average for men in their late 40s is about 62&ndash;65. Under 60 is good; under 55 is usually only seen in people who train regularly. Your first week was 47&ndash;49.</p>
+      <p><b>How to read it.</b> Your own baseline matters more than the average. A reading 3&ndash;5 beats above your usual means the body is under load: a cold on the way, short sleep, alcohol, dehydration, pain or inflammation (the back), or a hard training block. It is the <b>slow</b> indicator &mdash; it rises with a cold and stays up for days after the symptoms are gone, and it stepped up with the back injury and never came back.</p>
+      <p><b>Provisional for a day or two.</b> Fitbit keeps refining a night's number as more data comes in, so it can move a point after you first see it. Trust the trend line, not one morning.</p>
+      <p><b>Together:</b> HRV warns first, resting HR confirms and lingers, breathing rate rises with a bug.</p>`,
+  },
+  hrv: {
+    title: 'Heart rate variability',
+    sub: 'Variation in the gap between heartbeats, in milliseconds',
+    body: `
+      <p>A relaxed, recovered nervous system lets the gap between beats vary a lot; a stressed one keeps it rigid. So <b>higher is better</b>. Fitbit measures it during sleep.</p>
+      <p><b>Where you sit.</b> Fitbit's typical range for men 45&ndash;50 is about 20&ndash;35 ms. Over 40 is good; over 50 is uncommon at this age. Your baseline runs 50&ndash;65.</p>
+      <p><b>How to read it.</b> This is the <b>fast</b> indicator. It drops a day or two <i>before</i> you feel a cold, and it drops after alcohol, a big late meal, dehydration, pain, or a hard session. It bounces back within a night or two once the cause clears. Yours has dipped to about 38 on cold nights and beer nights, then rebounded each time.</p>
+      <p><b>Single nights are noisy.</b> Band fit, sleeping on the arm, or a short night can move one reading by 10 ms. Read the line, not the dot.</p>
+      <p><b>Rule of thumb:</b> well below your usual = go easy today; back to normal = train normally.</p>
+      <p><b>Together:</b> HRV warns first, resting HR confirms and lingers, breathing rate rises with a bug.</p>`,
+  },
+  resp: {
+    title: 'Breathing rate',
+    sub: 'Breaths per minute while asleep',
+    body: `
+      <p>Fitbit derives it from the heart-rate sensor overnight. Most adults sleep at 13&ndash;16 breaths a minute, and each person is remarkably steady night to night, usually within about one breath. Yours runs 13.8&ndash;15.4, mostly 14.2&ndash;14.6.</p>
+      <p><b>How to read it.</b> A rise of 1&ndash;2 above your usual often comes with a cold or a fever, sometimes before you feel it. It also rises with alcohol, a stuffy nose (mouth breathing), or overtraining, and settles once that clears. A number that stays flat is the normal state.</p>
+      <p><b>Together:</b> HRV warns first, resting HR confirms and lingers, breathing rate rises with a bug.</p>`,
+  },
+};
+function openRecInfo(key) {
+  const info = REC_INFO[key];
+  if (!info) return;
+  document.getElementById('recInfoTitle').textContent = info.title;
+  document.getElementById('recInfoSub').textContent = info.sub;
+  document.getElementById('recInfoBody').innerHTML = info.body;
+  document.getElementById('recOverlay').classList.add('show');
+}
+
 // Nights are stored by WAKE date; people think of them by the evening they
 // started. "Night of" = the day before the wake date.
 function nightOf(logDate) {
@@ -3520,10 +3572,10 @@ function renderSleep() {
   const showAll = slRange === 'all' && slVitals && slVitals.length > 0;
   const wk = showAll ? slVitals : slNights.slice(0, 7).reverse();
   const rangeBtn = (r, txt) => `<button onclick="setSlRange('${r}')" style="background:${slRange===r?'var(--acc-d)':'none'};border:1px solid ${slRange===r?'var(--acc-b)':'var(--border)'};color:${slRange===r?'var(--accent)':'var(--muted)'};border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">${txt}</button>`;
-  const sparkRow = (id, label, val, unit, color) => val == null ? '' : `
+  const sparkRow = (id, label, val, unit, color, key) => val == null ? '' : `
     <div style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-        <span style="font-size:11px;color:var(--muted)">${label}</span>
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px">${label}<button onclick="openRecInfo('${key}')" title="What is this?" style="width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;line-height:1;padding:0;cursor:pointer">?</button></span>
         <span style="font-family:monospace;font-size:14px;font-weight:600;color:${color}">${val}<span style="font-size:10px;color:var(--muted)"> ${unit}</span></span>
       </div>
       <canvas id="${id}" style="width:100%;display:block" height="44"></canvas>
@@ -3535,9 +3587,9 @@ function renderSleep() {
         <div style="display:flex;gap:5px">${rangeBtn('7', '7 nights')}${rangeBtn('all', 'All')}</div>
       </div>
       <div class="card-body" style="padding-top:2px">
-        ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa')}
-        ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e')}
-        ${sparkRow('sp-resp', 'Breathing Rate', n.resp_rate, 'br/min', '#a78bfa')}
+        ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa', 'rhr')}
+        ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e', 'hrv')}
+        ${sparkRow('sp-resp', 'Breathing Rate', n.resp_rate, 'br/min', '#a78bfa', 'resp')}
       </div>
     </div>` : '';
 
