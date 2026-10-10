@@ -3405,7 +3405,7 @@ async function ensureSlVitals() {
   slVitalsLoading = true;
   try {
     slVitals = await sbGet('sleep_log', {
-      select: 'log_date,resting_hr,hrv_ms,resp_rate', order: 'log_date.asc', limit: '1000',
+      select: 'log_date,resting_hr,hrv_ms,resp_rate,skin_temp_dev_c,spo2_avg,vo2_max', order: 'log_date.asc', limit: '1000',
     });
     if (activeTab === 'sleep' && slNights) renderSleep();
   } catch(_) {}
@@ -3502,6 +3502,45 @@ const REC_INFO = {
       <p><b>How to read it.</b> A rise of 1&ndash;2 above your usual often comes with a cold or a fever, sometimes before you feel it. It also rises with alcohol, a stuffy nose (mouth breathing), or overtraining, and settles once that clears. A number that stays flat is the normal state.</p>
       <p><b>Together:</b> HRV warns first, resting HR confirms and lingers, breathing rate rises with a bug.</p>`,
   },
+  temp: {
+    title: 'Skin temperature',
+    sub: 'Tonight vs your own 30-night normal, in °F',
+    body: `
+      <p>The tracker reads your wrist skin temperature all night and compares it with your usual (the middle of your last 30 nights). It is shown as a <b>difference</b>, not a body temperature: <b>0</b> means a normal night, <b>+1.0</b> means a degree warmer than your usual.</p>
+      <p><b>How to read it.</b> Most nights land within about &plusmn;1&deg;F of zero; the room, blankets and a warm shower move it a little. A night <b>+1.5&deg;F or more</b> above your line, especially with a low HRV and a higher breathing rate, is the classic sign your body is fighting something. For some people it shows up a day early.</p>
+      <p><b>What yours did.</b> In the late-September bug it stayed near zero at the start (9/25&ndash;9/26) and peaked on the worst nights: <b>+1.5 on 9/28</b> and +1.4 on 9/30, then dropped back once you turned the corner. So for you it has been a <b>confirmer</b>, not an early warning &mdash; the throat crust and the HRV dip still come first.</p>
+      <p><b>Your set:</b> throat crust and HRV dip warn; a warm night plus a higher breathing rate confirm. Any two = act sick: extra sleep, fluids, no hard session.</p>
+      <p>Wrist skin is not a thermometer: it cannot tell you if you have a fever. Use a real thermometer for that.</p>`,
+  },
+  spo2: {
+    title: 'Blood oxygen (SpO2)',
+    sub: 'Average oxygen saturation while asleep',
+    body: `
+      <p>How full of oxygen your blood is, measured with red and infrared light during sleep. Healthy sleepers usually average <b>95&ndash;100%</b>; the tracker needs a still, snug band and a few hours of sleep to give a number.</p>
+      <p><b>How to read it.</b> Night to night it barely moves. Readings that sit <b>below about 93%</b>, or nights that keep dropping, can point to breathing pauses in sleep (snoring, sleep apnea), a chest infection, or a loose band. One odd night means little; a pattern is worth mentioning to your doctor.</p>
+      <p>New with the Fitbit Air (the Inspire 2 had no oxygen sensor), so the line starts in October 2026.</p>`,
+  },
+  vo2: {
+    title: 'VO2 max (cardio fitness)',
+    sub: 'Estimated oxygen your body can use at full effort, ml/kg/min',
+    body: `
+      <p>Google estimates it from your heart rate during outdoor runs and your resting heart rate. Higher means a fitter heart and lungs. For men 45&ndash;50, roughly 35&ndash;40 is average, 40&ndash;45 good, and over 45 excellent.</p>
+      <p>It moves slowly &mdash; over weeks of consistent cardio, not day to day. It only fills in after a few runs with enough heart-rate data, so it may stay empty.</p>`,
+  },
+  hrvcurve: {
+    title: 'Overnight HRV',
+    sub: 'Heart rate variability every 5 minutes through the night',
+    body: `
+      <p>The Recovery number is the night's average; this is the whole night. It lines up with the sleep chart above it.</p>
+      <p><b>How to read it.</b> HRV usually <b>climbs through the night</b> as the body recovers, with peaks in deep sleep. A line that stays flat and low, or only rises near morning, means recovery started late &mdash; a big or late meal, alcohol, a hard evening session, pain, or a bug brewing. A long dip in the middle often lines up with an awake spell.</p>`,
+  },
+  respstage: {
+    title: 'Breathing by sleep stage',
+    sub: 'Breaths per minute in deep, light and REM sleep',
+    body: `
+      <p>Deep sleep gives the steadiest, most trustworthy breathing rate; REM is naturally faster and more irregular because the brain is active (dreaming).</p>
+      <p><b>How to read it.</b> Watch the <b>deep</b> number: like the nightly breathing rate, a rise of 1&ndash;2 above your usual can come with a cold or fever. A jumpy REM number on its own is normal.</p>`,
+  },
 };
 function openRecInfo(key) {
   const info = REC_INFO[key];
@@ -3572,14 +3611,19 @@ function renderSleep() {
   const showAll = slRange === 'all' && slVitals && slVitals.length > 0;
   const wk = showAll ? slVitals : slNights.slice(0, 7).reverse();
   const rangeBtn = (r, txt) => `<button onclick="setSlRange('${r}')" style="background:${slRange===r?'var(--acc-d)':'none'};border:1px solid ${slRange===r?'var(--acc-b)':'var(--border)'};color:${slRange===r?'var(--accent)':'var(--muted)'};border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">${txt}</button>`;
+  const infoBtn = key => `<button onclick="openRecInfo('${key}')" title="What is this?" style="width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;line-height:1;padding:0;cursor:pointer">?</button>`;
   const sparkRow = (id, label, val, unit, color, key) => val == null ? '' : `
     <div style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px">${label}<button onclick="openRecInfo('${key}')" title="What is this?" style="width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;line-height:1;padding:0;cursor:pointer">?</button></span>
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px">${label}${infoBtn(key)}</span>
         <span style="font-family:monospace;font-size:14px;font-weight:600;color:${color}">${val}<span style="font-size:10px;color:var(--muted)"> ${unit}</span></span>
       </div>
       <canvas id="${id}" style="width:100%;display:block" height="44"></canvas>
     </div>`;
+  // skin temperature is shown as °F above/below his own 30-night normal
+  const tempF = c => c == null ? null : Math.round(c * 1.8 * 10) / 10;
+  const signed = v => v == null ? null : (v > 0 ? '+' : '') + v.toFixed(1);
+  const hasVo2 = wk.some(x => x.vo2_max != null) || n.vo2_max != null;
   const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null) ? `
     <div class="card">
       <div class="card-lbl-row">
@@ -3590,6 +3634,9 @@ function renderSleep() {
         ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa', 'rhr')}
         ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e', 'hrv')}
         ${sparkRow('sp-resp', 'Breathing Rate', n.resp_rate, 'br/min', '#a78bfa', 'resp')}
+        ${sparkRow('sp-temp', 'Skin Temp vs Normal', signed(tempF(n.skin_temp_dev_c)), '°F', '#fb923c', 'temp')}
+        ${sparkRow('sp-spo2', 'Blood Oxygen', n.spo2_avg != null ? n.spo2_avg : (wk.some(x => x.spo2_avg != null) ? '—' : null), '%', '#2dd4bf', 'spo2')}
+        ${hasVo2 ? sparkRow('sp-vo2', 'VO2 Max', n.vo2_max != null ? n.vo2_max : '—', 'ml/kg/min', '#f59e0b', 'vo2') : ''}
       </div>
     </div>` : '';
 
@@ -3610,6 +3657,21 @@ function renderSleep() {
           <span style="font-size:10px;color:var(--muted);font-family:monospace">${fmtClock(n.start_time)}</span>
           <span style="font-size:10px;color:var(--muted);font-family:monospace">${fmtClock(n.end_time)}</span>
         </div>
+        ${n.hrv_curve && n.hrv_curve.length > 2 ? `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px">
+          <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px">Overnight HRV${infoBtn('hrvcurve')}</span>
+          <span style="font-family:monospace;font-size:11px;color:var(--muted)">${(() => { const v = n.hrv_curve.map(p => p.v); return `low ${Math.min(...v)} · avg ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)} · high ${Math.max(...v)} ms`; })()}</span>
+        </div>
+        <canvas id="sl-hrvc" style="width:100%;display:block;margin-top:4px" height="56"></canvas>` : ''}
+        ${n.resp_deep != null || n.resp_light != null || n.resp_rem != null ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted)">Breathing by stage${infoBtn('respstage')}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px">
+          ${[['Deep', n.resp_deep, SL_COLORS.DEEP], ['Light', n.resp_light, SL_COLORS.LIGHT], ['REM', n.resp_rem, SL_COLORS.REM]].map(([l, v, c]) => `
+          <div style="background:var(--surface2);border-radius:8px;padding:7px 6px;text-align:center">
+            <div style="font-family:monospace;font-size:15px;font-weight:600;color:${c}">${v != null ? v : '—'}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${l} br/min</div>
+          </div>`).join('')}
+        </div>` : ''}
         <div style="margin-top:10px">
           ${stageRow('Awake', n.min_awake, SL_COLORS.AWAKE)}
           ${stageRow('REM',   n.min_rem,   SL_COLORS.REM)}
@@ -3645,13 +3707,21 @@ function renderSleep() {
     drawSpark('sp-rhr',  wk.map(x => ({ d: x.log_date, v: num(x.resting_hr) })), '#60a5fa');
     drawSpark('sp-hrv',  wk.map(x => ({ d: x.log_date, v: num(x.hrv_ms) })),     '#22c55e');
     drawSpark('sp-resp', wk.map(x => ({ d: x.log_date, v: num(x.resp_rate) })),  '#a78bfa');
+    drawSpark('sp-temp', wk.map(x => ({ d: x.log_date, v: tempF(num(x.skin_temp_dev_c)) })), '#fb923c', { zero: true, fmt: signed });
+    // blood oxygen only exists from the Fitbit Air on, so its graph starts at the first reading
+    const spo2From = wk.findIndex(x => x.spo2_avg != null);
+    if (spo2From >= 0) drawSpark('sp-spo2', wk.slice(spo2From).map(x => ({ d: x.log_date, v: num(x.spo2_avg) })), '#2dd4bf');
+    if (hasVo2) drawSpark('sp-vo2', wk.map(x => ({ d: x.log_date, v: num(x.vo2_max) })), '#f59e0b');
+    drawHrvCurve(n);
   }, 0);
 }
 
 // Line graph with dots; skips null values. Up to 10 points: every point gets a
 // value + date label. More than that (full history): taller, small dots, and
 // only the high, low and latest values are labeled, with ~5 date ticks.
-function drawSpark(canvasId, pts, color) {
+// opts.fmt formats the value labels; opts.zero draws a dashed 0 line (for "vs normal" values).
+function drawSpark(canvasId, pts, color, opts = {}) {
+  const fmt = opts.fmt || (v => String(v));
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const dense = pts.length > 10;
@@ -3671,8 +3741,19 @@ function drawSpark(canvasId, pts, color) {
   const xOf = i => n > 1 ? PAD_X + i / (n - 1) * (W - 2 * PAD_X) : W / 2;
   const vals = valid.map(p => p.v);
   let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (opts.zero) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
   if (hi - lo < 1) { lo -= 1; hi += 1; } // flat line guard
   const yOf = v => PAD_T + (1 - (v - lo) / (hi - lo)) * (H - PAD_T - PAD_B);
+
+  if (opts.zero) {
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+    ctx.lineWidth = 1;
+    const y0 = Math.round(yOf(0)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(PAD_X / 2, y0); ctx.lineTo(W - PAD_X / 2, y0); ctx.stroke();
+    ctx.restore();
+  }
 
   // line
   if (valid.length > 1) {
@@ -3706,7 +3787,7 @@ function drawSpark(canvasId, pts, color) {
     // in dense mode the low point is labeled below its dot so it stays clear of the line
     const below = dense && k === loK && k !== hiK;
     const lx = Math.max(12, Math.min(W - 12, x));
-    ctx.fillText(String(p.v), lx, below ? y + 12 : y - 6);
+    ctx.fillText(fmt(p.v), lx, below ? y + 12 : y - 6);
   });
   // date labels (M/D): under every point, or ~5 evenly spaced ticks when dense
   ctx.font = '8px monospace';
@@ -3797,6 +3878,57 @@ function drawHypno(night) {
     ctx.roundRect(x, y, w, bandH, Math.min(5, w / 2));
     ctx.fill();
     prevCy = cy;
+  }
+}
+
+// Overnight HRV (5-minute samples) on the same time axis as the sleep chart above it
+function drawHrvCurve(night) {
+  const canvas = document.getElementById('sl-hrvc');
+  const pts = night.hrv_curve;
+  if (!canvas || !pts || pts.length < 3) return;
+  const W = canvas.offsetWidth, H = 56;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const totalMin = (new Date(night.end_time) - new Date(night.start_time)) / 60000;
+  const vals = pts.map(p => p.v);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 5) { lo -= 2.5; hi += 2.5; }
+  const PAD = 4;
+  const xOf = o => Math.max(0, Math.min(W, o / totalMin * W));
+  const yOf = v => PAD + (1 - (v - lo) / (hi - lo)) * (H - 2 * PAD);
+
+  // dashed line at the night's average (the number on the Recovery card)
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, Math.round(yOf(avg)) + 0.5); ctx.lineTo(W, Math.round(yOf(avg)) + 0.5); ctx.stroke();
+  ctx.restore();
+
+  // soft fill under the line, then the line; gaps over 20 min (awake / no reading) break it
+  const segs = [[]];
+  pts.forEach((p, i) => {
+    if (i && p.o - pts[i - 1].o > 20) segs.push([]);
+    segs[segs.length - 1].push(p);
+  });
+  for (const s of segs) {
+    if (!s.length) continue;
+    ctx.beginPath();
+    s.forEach((p, k) => k ? ctx.lineTo(xOf(p.o), yOf(p.v)) : ctx.moveTo(xOf(p.o), yOf(p.v)));
+    ctx.lineTo(xOf(s[s.length - 1].o), H); ctx.lineTo(xOf(s[0].o), H); ctx.closePath();
+    ctx.fillStyle = 'rgba(34,197,94,0.12)';
+    ctx.fill();
+    ctx.beginPath();
+    s.forEach((p, k) => k ? ctx.lineTo(xOf(p.o), yOf(p.v)) : ctx.moveTo(xOf(p.o), yOf(p.v)));
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
   }
 }
 
@@ -5171,7 +5303,8 @@ async function downloadExcel() {
   // ── Sheet 4: Sleep & Recovery ──
   const sleep = [['Night Of','Day','Wake Date','Bed Time','Wake Time','Asleep (min)','Awake (min)',
                   'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
-                  'Resting HR','HRV (ms)','Breathing (br/min)','Notes']];
+                  'Resting HR','HRV (ms)','Breathing (br/min)','Skin Temp vs Normal (°F)','Blood Oxygen (%)',
+                  'Breathing Deep','Breathing Light','Breathing REM','VO2 Max','Notes']];
   const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
   for (const s of sleepRows) {
     const no = nightOf(s.log_date);
@@ -5180,7 +5313,9 @@ async function downloadExcel() {
       noStr, dayName(noStr), s.log_date, fmtClock(s.start_time), fmtClock(s.end_time),
       s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
       s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '',
-      s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '', s.notes ?? '',
+      s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
+      s.skin_temp_dev_c != null ? Math.round(s.skin_temp_dev_c * 1.8 * 10) / 10 : '', s.spo2_avg ?? '',
+      s.resp_deep ?? '', s.resp_light ?? '', s.resp_rem ?? '', s.vo2_max ?? '', s.notes ?? '',
     ]);
   }
 
@@ -5299,7 +5434,7 @@ async function downloadCSV() {
     lines.push('=== SLEEP & RECOVERY ===');
     lines.push(['Date','Day','Bed Time','Wake Time','Asleep (min)','Awake (min)',
                 'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
-                'Resting HR','HRV (ms)','Breathing (br/min)'].join(','));
+                'Resting HR','HRV (ms)','Breathing (br/min)','Skin Temp vs Normal (F)','Blood Oxygen (%)'].join(','));
     for (const s of sleepRows) {
       const d = new Date(s.log_date + 'T12:00:00');
       const restPct = s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '';
@@ -5309,6 +5444,7 @@ async function downloadCSV() {
         s.min_asleep, s.min_awake, s.min_light, s.min_deep, s.min_rem,
         restPct, s.awakenings,
         s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
+        s.skin_temp_dev_c != null ? Math.round(s.skin_temp_dev_c * 1.8 * 10) / 10 : '', s.spo2_avg ?? '',
       ].join(','));
     }
   }
