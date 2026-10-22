@@ -3595,7 +3595,7 @@ function renderSleep() {
       <div onclick="slSel=${i};renderSleep()" style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;padding:3px 4px;border-radius:6px;${sel ? 'background:rgba(255,255,255,0.05)' : ''}">
         <span style="font-size:11px;color:${sel ? 'var(--text)' : 'var(--muted)'};width:64px;flex-shrink:0;font-family:monospace;font-weight:${sel ? 600 : 400}">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}${t.notes ? '<span style="color:var(--yellow)" title="has note"> &#9998;</span>' : ''}</span>
         <canvas id="sl-rib-${i}" style="flex:1;display:block;height:14px;min-width:0" height="14"></canvas>
-        <span style="font-family:monospace;font-size:11px;color:${clr};width:58px;text-align:right;flex-shrink:0">${fmtHM(t.min_asleep)}</span>
+        <span style="font-family:monospace;font-size:11px;color:${t.partial ? 'var(--yellow)' : clr};width:58px;text-align:right;flex-shrink:0" ${t.partial ? 'title="partial night: band off part of the time"' : ''}>${t.partial ? 'partial' : fmtHM(t.min_asleep)}</span>
       </div>`;
   }).join('');
   const legend = `
@@ -3623,18 +3623,20 @@ function renderSleep() {
   const tempF = c => c == null ? null : Math.round(c * 1.8 * 10) / 10;
   const signed = v => v == null ? null : (v > 0 ? '+' : '') + v.toFixed(1);
   const hasVo2 = wk.some(x => x.vo2_max != null) || n.vo2_max != null;
-  const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null) ? `
+  // the selected night has no reading (e.g. a partial night): show "—" but keep the row and its graph
+  const orDash = (val, field) => val != null ? val : (wk.some(x => x[field] != null) ? '—' : null);
+  const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null || wk.some(x => x.hrv_ms != null)) ? `
     <div class="card">
       <div class="card-lbl-row">
         <div class="card-lbl">Recovery — ${showAll ? 'All ' + wk.length + ' Nights' : slRange === 'all' ? 'Loading…' : 'Last 7 Nights'}</div>
         <div style="display:flex;gap:5px">${rangeBtn('7', '7 nights')}${rangeBtn('all', 'All')}</div>
       </div>
       <div class="card-body" style="padding-top:2px">
-        ${sparkRow('sp-rhr',  'Resting Heart Rate', n.resting_hr, 'bpm', '#60a5fa', 'rhr')}
-        ${sparkRow('sp-hrv',  'Heart Rate Variability', n.hrv_ms, 'ms', '#22c55e', 'hrv')}
-        ${sparkRow('sp-resp', 'Breathing Rate', n.resp_rate, 'br/min', '#a78bfa', 'resp')}
-        ${sparkRow('sp-temp', 'Skin Temp vs Normal', signed(tempF(n.skin_temp_dev_c)), '°F', '#fb923c', 'temp')}
-        ${sparkRow('sp-spo2', 'Blood Oxygen', n.spo2_avg != null ? n.spo2_avg : (wk.some(x => x.spo2_avg != null) ? '—' : null), '%', '#2dd4bf', 'spo2')}
+        ${sparkRow('sp-rhr',  'Resting Heart Rate', orDash(n.resting_hr, 'resting_hr'), 'bpm', '#60a5fa', 'rhr')}
+        ${sparkRow('sp-hrv',  'Heart Rate Variability', orDash(n.hrv_ms, 'hrv_ms'), 'ms', '#22c55e', 'hrv')}
+        ${sparkRow('sp-resp', 'Breathing Rate', orDash(n.resp_rate, 'resp_rate'), 'br/min', '#a78bfa', 'resp')}
+        ${sparkRow('sp-temp', 'Skin Temp vs Normal', orDash(signed(tempF(n.skin_temp_dev_c)), 'skin_temp_dev_c'), '°F', '#fb923c', 'temp')}
+        ${sparkRow('sp-spo2', 'Blood Oxygen', orDash(n.spo2_avg, 'spo2_avg'), '%', '#2dd4bf', 'spo2')}
         ${hasVo2 ? sparkRow('sp-vo2', 'VO2 Max', n.vo2_max != null ? n.vo2_max : '—', 'ml/kg/min', '#f59e0b', 'vo2') : ''}
       </div>
     </div>` : '';
@@ -3643,7 +3645,7 @@ function renderSleep() {
     ${recoveryHTML}
     <div class="card">
       <div class="card-lbl-row">
-        <div class="card-lbl">${nightLabel}</div>
+        <div class="card-lbl">${nightLabel}${n.partial ? ' <span style="font-size:10px;font-weight:700;color:var(--yellow);border:1px solid var(--yellow);border-radius:5px;padding:1px 6px;margin-left:6px;text-transform:none;letter-spacing:0">Partial</span>' : ''}</div>
         <span style="font-size:11px;color:var(--muted);font-family:monospace">${fmtClock(n.start_time)} &ndash; ${fmtClock(n.end_time)}</span>
       </div>
       <div class="card-body">
@@ -3651,6 +3653,7 @@ function renderSleep() {
           <span style="font-size:32px;font-weight:700;color:${durClr};font-family:monospace">${fmtHM(n.min_asleep)}</span>
           <span style="font-size:12px;color:var(--muted)">asleep</span>
         </div>
+        ${n.partial ? `<div style="font-size:12px;color:var(--yellow);margin-bottom:4px">Band was off for part of the night &mdash; only the time it was worn is shown, so the totals and recovery numbers for this night are not a full picture.</div>` : ''}
         <canvas id="sl-hypno" style="width:100%;display:block;margin-top:6px" height="120"></canvas>
         <div style="display:flex;justify-content:space-between;margin-top:2px">
           <span style="font-size:10px;color:var(--muted);font-family:monospace">${fmtClock(n.start_time)}</span>
@@ -5303,7 +5306,7 @@ async function downloadExcel() {
   const sleep = [['Night Of','Day','Wake Date','Bed Time','Wake Time','Asleep (min)','Awake (min)',
                   'Light (min)','Deep (min)','REM (min)','Deep+REM %','Awakenings',
                   'Resting HR','HRV (ms)','Breathing (br/min)','Skin Temp vs Normal (°F)','Blood Oxygen (%)',
-                  'Breathing Deep','Breathing Light','Breathing REM','VO2 Max','Notes']];
+                  'Breathing Deep','Breathing Light','Breathing REM','VO2 Max','Partial Night','Notes']];
   const sleepRows = await sbGet('sleep_log', { 'order': 'log_date.asc', 'limit': '400' }).catch(() => []);
   for (const s of sleepRows) {
     const no = nightOf(s.log_date);
@@ -5314,7 +5317,7 @@ async function downloadExcel() {
       s.min_asleep ? Math.round((s.min_deep + s.min_rem) / s.min_asleep * 100) : '',
       s.awakenings, s.resting_hr ?? '', s.hrv_ms ?? '', s.resp_rate ?? '',
       s.skin_temp_dev_c != null ? Math.round(s.skin_temp_dev_c * 1.8 * 10) / 10 : '', s.spo2_avg ?? '',
-      s.resp_deep ?? '', s.resp_light ?? '', s.resp_rem ?? '', s.vo2_max ?? '', s.notes ?? '',
+      s.resp_deep ?? '', s.resp_light ?? '', s.resp_rem ?? '', s.vo2_max ?? '', s.partial ? 'Yes' : '', s.notes ?? '',
     ]);
   }
 
