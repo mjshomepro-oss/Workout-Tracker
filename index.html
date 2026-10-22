@@ -1329,6 +1329,7 @@ const LYFTA = {
   'DB skullcrusher':                 'https://www.lyfta.app/exercise/dumbbell-lying-floor-skull-crusher-99c',
   'Hammer curl':                     'https://www.lyfta.app/exercise/hammer-curl-8w',
   'Squeeze push-up':                 'https://www.lyfta.app/exercise/push-up-close-grip-off-dumbbell-6rs',
+  'Decline DB press':                'https://www.lyfta.app/exercise/dumbbell-decline-bench-press-6ht',
   'Barbell hip thrust':              'https://www.lyfta.app/exercise/barbell-hip-thrust--7t5',
   'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-bulgarian-split-squat--7v6',
   'Barbell Romanian deadlift':       'https://www.lyfta.app/exercise/barbell-romanian-deadlift-61t',
@@ -1424,6 +1425,16 @@ const FORM = {
       'Full extension at the bottom — don\'t cut the range short'
     ],
     watchOut: 'Swinging the torso back to help the weight up transfers the load away from the biceps. Keep the upper arms still.'
+  },
+  'Decline DB press': {
+    cues: [
+      'Bench on a slight decline (about 15–30°), feet locked under the pad',
+      'Hold the DBs on your chest as you lie back — never swing them up from the floor',
+      'Lower to the lower chest, elbows ~45° from the body, slight pause at the bottom',
+      'Press up and slightly back over the shoulders; squeeze the chest at the top',
+      'Finisher: push the last set close to failure, but keep every rep clean'
+    ],
+    watchOut: 'Getting out is the risky part for the back: when the set is done, bring the DBs to the chest and lower them to the floor beside you before you sit up. Never sit up holding them.'
   },
   'Close-grip push-up': {
     cues: [
@@ -1911,8 +1922,9 @@ const ROUTINE = [
         detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
       { name: 'Spider curl (back of incline bench)', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Chest against the back of the incline bench, arms hanging straight down; curl with zero swing. Light DBs — the strict angle is the point. Back-friendly (fully supported).' },
-      { name: 'Close-grip push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
-        detail: 'One hard set. Hands narrow, elbows tucked. Add the vest if 15+ reps comes easy.' }
+      // Finisher changed to the decline DB press 10/22/2026 (Michael did it on 10/19 and it felt good)
+      { name: 'Decline DB press', kind: 'finisher', sets: 2, reps: '12–15',
+        detail: 'Slight decline, feet locked in. Moderate DBs; last set close to failure. Lower chest bias. Set the DBs on the floor before you sit up.' }
     ]
   },
   {
@@ -1981,8 +1993,9 @@ const ROUTINE = [
       { name: 'Hammer curl', kind: 'main', sets: 3, reps: '10–12' },
       { name: 'Incline reverse grip DB press', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Bench 30–45°; underhand (supinated) grip; elbows tucked ~45°, not flared. Upper chest bias. Go lighter than normal — wrists need time to adapt to the grip.' },
-      { name: 'Squeeze push-up', kind: 'finisher', sets: 1, reps: 'AMRAP',
-        detail: 'One hard set. Hands close, press them together. Vest optional.' }
+      // Finisher changed to the decline DB press 10/22/2026 (same as Upper A)
+      { name: 'Decline DB press', kind: 'finisher', sets: 2, reps: '12–15',
+        detail: 'Slight decline, feet locked in. Moderate DBs; last set close to failure. Lower chest bias. Set the DBs on the floor before you sit up.' }
     ]
   },
   {
