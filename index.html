@@ -3591,12 +3591,19 @@ function renderSleep() {
     </div>`;
 
   // Night-by-night: each night's stage sequence as a ribbon on a shared
-  // clock axis (9 PM → 10 AM) so bedtimes, wake-ups and stage patterns line up
+  // clock axis (9 PM, or the earliest bedtime shown → 10 AM) so bedtimes, wake-ups and stage patterns line up
+  setRibAxis(slNights.slice(0, 14));
+  const axisTick = (clock, txt) => {
+    const pct = ribMin(clock) / RIB_SPAN * 100;
+    const shift = pct < 3 ? '0' : pct > 97 ? '-100%' : '-50%';
+    return `<span style="position:absolute;left:${pct.toFixed(2)}%;transform:translateX(${shift})">${txt}</span>`;
+  };
+  const startLbl = ((RIB_START / 60 + 11) % 12 + 1) + 'p';
   const axisHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
       <span style="width:64px;flex-shrink:0"></span>
-      <div style="flex:1;display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:monospace">
-        <span>9p</span><span>12a</span><span>3a</span><span>6a</span><span>9a</span>
+      <div style="flex:1;position:relative;height:11px;font-size:9px;color:var(--muted);font-family:monospace">
+        ${axisTick(RIB_START, startLbl)}${axisTick(0, '12a')}${axisTick(180, '3a')}${axisTick(360, '6a')}${axisTick(540, '9a')}
       </div>
       <span style="width:58px;flex-shrink:0"></span>
     </div>`;
@@ -3824,9 +3831,24 @@ function drawSpark(canvasId, pts, color, opts = {}) {
   }
 }
 
-// One night's stages as a thin ribbon on a fixed 9 PM → 10 AM clock axis
-const RIB_START = 21 * 60;   // 9 PM, minutes of day
-const RIB_SPAN  = 13 * 60;   // 13 hours → 10 AM
+// One night's stages as a thin ribbon on a shared clock axis ending at 10 AM.
+// The axis starts at 9 PM, or earlier (whole hour, no earlier than 6 PM) when
+// a night in the list started earlier — e.g. a 7:43 PM bedtime on 11/1/26.
+let RIB_START = 21 * 60;     // minutes of day; set by setRibAxis()
+let RIB_SPAN  = 13 * 60;     // RIB_START → 10 AM
+function setRibAxis(nights) {
+  let start = 21 * 60;
+  for (const t of nights) {
+    if (!t.start_time) continue;
+    const d = new Date(t.start_time);
+    const m = d.getHours() * 60 + d.getMinutes();
+    if (m >= 12 * 60 && m < start) start = Math.floor(m / 60) * 60;
+  }
+  RIB_START = Math.max(start, 18 * 60);
+  RIB_SPAN = 1440 - RIB_START + 10 * 60;
+}
+// minutes from the axis start to a clock minute (before-noon times are the next morning)
+const ribMin = clockMin => (clockMin < 12 * 60 ? clockMin + 1440 : clockMin) - RIB_START;
 function drawRibbon(canvasId, night) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || !night.stages || !night.stages.length) return;
@@ -3842,15 +3864,14 @@ function drawRibbon(canvasId, night) {
   ctx.fillRect(0, 2, W, H - 4);
   ctx.strokeStyle = 'rgba(148,163,184,0.15)';
   ctx.lineWidth = 1;
-  for (let h = 3; h < 13; h += 3) {            // 12a, 3a, 6a, 9a
-    const x = Math.round(h * 60 / RIB_SPAN * W) + 0.5;
+  for (let h = 0; h < 10; h += 3) {            // 12a, 3a, 6a, 9a
+    const x = Math.round(ribMin(h * 60) / RIB_SPAN * W) + 0.5;
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
 
   const start = new Date(night.start_time);
   const startMin = start.getHours() * 60 + start.getMinutes();
-  // minutes since 9 PM (wrap past midnight)
-  const base = ((startMin - RIB_START) + 1440) % 1440;
+  const base = ribMin(startMin);
   const xOf = m => Math.max(0, Math.min(W, m / RIB_SPAN * W));
 
   for (const s of night.stages) {
