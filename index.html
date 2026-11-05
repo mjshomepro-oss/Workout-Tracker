@@ -1310,42 +1310,53 @@ async function applyStapleFraction(frac) {
 }
 
 // ── Lyfta Links ───────────────────────────────────────
+// Lyfta opens the exercise by the code at the END of the link (the words are
+// ignored), so a wrong code shows a different exercise. Every code below was
+// checked against Lyfta's page title on 11/5/2026.
 const LYFTA = {
   'Barbell bench press':             'https://www.lyfta.app/exercise/barbell-bench-press-605',
   'Barbell row':                     'https://www.lyfta.app/exercise/barbell-bent-over-row-607',
-  'Inverted row':                    'https://www.lyfta.app/exercise/suspension-inverted-row-6cw',
-  'Incline DB press':                'https://www.lyfta.app/exercise/barbell-incline-bench-press-60r',
-  'Lateral raise':                   'https://www.lyfta.app/exercise/lateral-raise-96',
-  'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-incline-triceps-extension-6im',
+  'DB bench press':                  'https://www.lyfta.app/exercise/dumbbell-bench-press-6hh',
+  'Single-arm DB row':               'https://www.lyfta.app/exercise/dumbbell-one-arm-bent-over-row-6hk',
+  'Inverted row':                    'https://www.lyfta.app/exercise/inverted-row-6n1',
+  'Incline DB press':                'https://www.lyfta.app/exercise/dumbbell-incline-bench-press-6i6',
+  'Lateral raise':                   'https://www.lyfta.app/exercise/dumbbell-lateral-raise-6iq',
+  'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-seated-triceps-extension-7sh',
   'DB curl':                         'https://www.lyfta.app/exercise/dumbbell-standing-biceps-curl-6ka',
+  'Spider curl (back of incline bench)': 'https://www.lyfta.app/exercise/dumbbell-single-spider-curl-with-chest-support-8ez',
+  'Incline reverse grip DB press':   'https://www.lyfta.app/exercise/incline-reverse-grip-press-q',
   'Close-grip push-up':              'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
   'Barbell back squat':              'https://www.lyfta.app/exercise/barbell-squat--620',
+  'Squat':                           'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
   'DB step-up':                      'https://www.lyfta.app/exercise/dumbbell-step-up--7t0',
   'Bulgarian split squat':           'https://www.lyfta.app/exercise/dumbbell-bulgarian-split-squat--7v6',
   'Single-leg DB Romanian deadlift': 'https://www.lyfta.app/exercise/dumbbell-single-leg-deadlift-7ht',
-  'Standing calf raise':             'https://www.lyfta.app/exercise/standing-leg-calf-raise-63',
+  'Standing calf raise':             'https://www.lyfta.app/exercise/dumbbell-standing-calf-raise-6kb',
   'Dead bug':                        'https://www.lyfta.app/exercise/dead-bug-8au',
   'KB swing':                        'https://www.lyfta.app/exercise/kettlebell-swing-7ba',
-  'Incline DB bench press':          'https://www.lyfta.app/exercise/barbell-incline-bench-press-60r',
+  'Incline DB bench press':          'https://www.lyfta.app/exercise/dumbbell-incline-bench-press-6i6',
   'Chest-supported DB row':          'https://www.lyfta.app/exercise/dumbbell-incline-row-6ij',
   'Single-arm DB pullover':          'https://www.lyfta.app/exercise/dumbbell-pullover-6jv',
   'DB fly':                          'https://www.lyfta.app/exercise/dumbbell-fly-6ha',
   'Arnold press':                    'https://www.lyfta.app/exercise/dumbbell-arnold-press--6hf',
-  'DB skullcrusher':                 'https://www.lyfta.app/exercise/dumbbell-lying-floor-skull-crusher-99c',
+  'DB shoulder circles':             'https://www.lyfta.app/exercise/shoulder-circle-9gi',
+  'DB skullcrusher':                 'https://www.lyfta.app/exercise/dumbbell-lying-triceps-extension-6j7',
   'Hammer curl':                     'https://www.lyfta.app/exercise/hammer-curl-8w',
   'Squeeze push-up':                 'https://www.lyfta.app/exercise/push-up-close-grip-off-dumbbell-6rs',
   'Decline DB press':                'https://www.lyfta.app/exercise/dumbbell-decline-bench-press-6ht',
   'Barbell hip thrust':              'https://www.lyfta.app/exercise/barbell-hip-thrust--7t5',
-  'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-bulgarian-split-squat--7v6',
+  'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-split-squat-front-foot-elevanted-83o',
   'Barbell Romanian deadlift':       'https://www.lyfta.app/exercise/barbell-romanian-deadlift-61t',
+  'DB Romanian deadlift':            'https://www.lyfta.app/exercise/dumbbell-romanian-deadlift--7t1',
   'Goblet squat':                    'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
   'Side plank':                      'https://www.lyfta.app/exercise/side-plank-81c',
+  'Suitcase carry':                  'https://www.lyfta.app/exercise/dumbbell-suitcase-carry-823',
   'Plank shoulder tap':              'https://www.lyfta.app/exercise/shoulder-tap--9mq',
-  'Run intervals':                   'https://www.lyfta.app/exercise/run-and-half-knee-bend--8m7',
-  'Easy run':                        'https://www.lyfta.app/exercise/run-and-half-knee-bend--8m7',
-  'Easy walk':                       'https://www.lyfta.app/exercise/walking-6mf',
-  'Weighted vest ruck':              'https://www.lyfta.app/exercise/walking-6mf',
-  'KB halo':                         'https://www.lyfta.app/exercise/kettlebell-halo-7z5',
+  'Run intervals':                   'https://www.lyfta.app/exercise/run-6sh',
+  'Easy run':                        'https://www.lyfta.app/exercise/run-6sh',
+  'Easy walk':                       'https://www.lyfta.app/exercise/walking-7u1',
+  'Weighted vest ruck':              'https://www.lyfta.app/exercise/walking-7u1',
+  'KB halo':                         'https://www.lyfta.app/exercise/kettlebell-around-head-rotation-836',
 };
 
 // ── Form Guides ───────────────────────────────────────
@@ -1622,6 +1633,16 @@ const FORM = {
       'High-rep at the converter cap — control every inch'
     ],
     watchOut: 'Rounding the lower back to reach more depth is the main injury risk. Your hamstring flexibility sets the depth limit — don\'t chase depth by rounding.'
+  },
+  'DB Romanian deadlift': {
+    cues: [
+      'Squat down to pick the DBs up (never hinge to the floor for them), stand tall',
+      'Soft knees; push the hips back and let the DBs slide down the front of the thighs',
+      'Back flat, chest proud — stop at mid-shin or just before the back wants to round',
+      'Drive the hips forward to stand, squeezing the glutes at the top',
+      'Light and slow; set the DBs down with a squat, not a hinge'
+    ],
+    watchOut: 'Rounding the lower back to reach more depth is the main risk with your disc. Your hamstrings set the depth — when they stop you, that is the bottom.'
   },
   'Goblet squat': {
     cues: [
@@ -2014,17 +2035,18 @@ const ROUTINE = [
       { name: 'Ankle rocks', kind: 'warmup', track: false, detail: '~10 per side.' },
       { name: 'Light ramp sets', kind: 'warmup', track: false, detail: '1 light set of split squats.' },
       { name: 'Barbell hip thrust', kind: 'main', sets: 4, reps: '8–12',
-        detail: 'Converter barbell across the hips (pad it). Shoulders on bench, full lockout squeeze.' },
+        detail: 'Sit on the floor and roll the converter barbell over your legs to the hips (pad it) — never lift it off the floor. Shoulders on bench, full lockout squeeze.' },
       { name: 'Front-foot-elevated split squat', kind: 'main', sets: 4, reps: '8–10/leg',
         detail: 'Front foot on a plate/wedge; DBs or vest; quad-biased, long range.' },
-      { name: 'Barbell Romanian deadlift', kind: 'main', sets: 3, reps: '10–15',
-        detail: 'Back-off hinge. High-rep at the converter cap; long hamstring stretch.' },
+      // Barbell RDL → DB RDL 11/5/2026: no barbell off the floor (back rule)
+      { name: 'DB Romanian deadlift', kind: 'main', sets: 3, reps: '12–15',
+        detail: 'Squat down to pick the DBs up, stand tall, then hinge: hips back, DBs sliding down the thighs, back flat. Stop at mid-shin or where the back wants to round. Light and slow; set the DBs down with a squat.' },
       { name: 'Squat', kind: 'main', sets: 3, reps: '10–12',
         detail: 'Same regular squat as Lower A — bodyweight or DB at the chest, stop above the pelvis-tuck depth, spine neutral.' },
       { name: 'Standing calf raise', kind: 'main', sets: 3, reps: '15–20' },
       { name: 'Side plank', kind: 'core', sets: 3, reps: '20–40s/side' },
       { name: 'Suitcase carry', kind: 'finisher', track: false,
-        detail: 'Heavy DB in one hand, walk 30–45s/side, tall and braced; 2–3 trips/side.' }
+        detail: 'Moderate DB in one hand — squat straight down to pick it up and set it down, never lean sideways for it. Walk 30–45s/side, tall and braced; 2–3 trips/side.' }
     ]
   },
   {
@@ -2074,7 +2096,7 @@ const EXTRA_LIFTS = [
   // Kettlebell
   { name: 'KB Goblet Squat',          cat:'KB',    sets:3, reps:'12–15',      formKey:'Goblet squat', lyfta:'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux' },
   { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://www.lyfta.app/exercise/kettlebell-swing-7ba' },
-  { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://www.lyfta.app/exercise/kettlebell-halo-7z5' },
+  { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://www.lyfta.app/exercise/kettlebell-around-head-rotation-836' },
   { name: 'KB Single-arm Row',        cat:'KB',    sets:3, reps:'10–12 / side', formKey:null,         lyfta:null },
   { name: 'KB Romanian Deadlift',     cat:'KB',    sets:3, reps:'10–12',      formKey:null,           lyfta:null },
   { name: 'KB Clean & Press',         cat:'KB',    sets:3, reps:'6–8 / side', formKey:null,           lyfta:null },
