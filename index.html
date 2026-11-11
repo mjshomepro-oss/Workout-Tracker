@@ -938,7 +938,7 @@ body {
     <div class="form-sheet-subtitle" id="formSubtitle"></div>
     <div id="formBody"></div>
     <div class="form-links">
-      <a class="lyfta-link" id="formLyftaLink" target="_blank">&#9654; View on Lyfta</a>
+      <a class="lyfta-link" id="formLyftaLink" target="_blank">&#9654; Watch video</a>
       <a class="yt-link" id="formYtLink" target="_blank">&#9654; Search YouTube</a>
     </div>
   </div>
@@ -1310,56 +1310,65 @@ async function applyStapleFraction(frac) {
   await saveFood();
 }
 
-// ── Lyfta Links ───────────────────────────────────────
-// Lyfta opens the exercise by the code at the END of the link (the words are
-// ignored), so a wrong code shows a different exercise. Every code below was
-// checked against Lyfta's page title on 11/5/2026; on 11/10 every page was
-// also checked for a VIDEO (some Lyfta pages are a still picture only). No
-// Lyfta video for the incline reverse grip DB press: its form sheet's
-// YouTube button covers it.
+// ── Exercise videos (Lyfta) ───────────────────────────
+// Each link is Lyfta's video FILE, so it plays on the first tap (11/11/2026,
+// Michael: the Lyfta pages "don't play"). The /* code */ after each is the
+// Lyfta page it came from: Lyfta finds an exercise by that code (the words are
+// ignored), and some pages are a still picture with no video. To add one: find
+// the page code in Lyfta's sitemaps, confirm its og:title, take the number in
+// its thumbnails/<id>.jpg and use .../GymvisualMP4/<id>.mp4. No Lyfta video:
+// incline reverse grip DB press (form sheet YouTube button covers it);
+// McGill curl-up uses a YouTube search.
 const LYFTA = {
-  'Barbell bench press':             'https://www.lyfta.app/exercise/barbell-bench-press-605',
-  'Barbell row':                     'https://www.lyfta.app/exercise/barbell-bent-over-row-607',
-  'DB bench press':                  'https://www.lyfta.app/exercise/dumbbell-bench-press-6hh',
-  'Single-arm DB row':               'https://www.lyfta.app/exercise/dumbbell-one-arm-bent-over-row-6hk',
-  'Inverted row':                    'https://www.lyfta.app/exercise/inverted-row-6n1',
-  'Incline DB press':                'https://www.lyfta.app/exercise/dumbbell-incline-bench-press-6i6',
-  'Lateral raise':                   'https://www.lyfta.app/exercise/dumbbell-lateral-raise-6iq',
-  'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-seated-triceps-extension-7sh',
-  'DB curl':                         'https://www.lyfta.app/exercise/dumbbell-standing-biceps-curl-6ka',
-  'Spider curl (back of incline bench)': 'https://www.lyfta.app/exercise/ez-barbell-spider-curl-74v',
-  'Close-grip push-up':              'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
-  'Barbell back squat':              'https://www.lyfta.app/exercise/barbell-squat--620',
-  'Squat':                           'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
-  'DB step-up':                      'https://www.lyfta.app/exercise/dumbbell-step-up--7t0',
-  'Bulgarian split squat':           'https://www.lyfta.app/exercise/dumbbell-bulgarian-split-squat--7v6',
-  'Single-leg DB Romanian deadlift': 'https://www.lyfta.app/exercise/dumbbell-single-leg-deadlift-7ht',
-  'Standing calf raise':             'https://www.lyfta.app/exercise/dumbbell-standing-calf-raise-6kb',
-  'Dead bug':                        'https://www.lyfta.app/exercise/dead-bug-8au',
-  'KB swing':                        'https://www.lyfta.app/exercise/kettlebell-swing-7ba',
-  'Incline DB bench press':          'https://www.lyfta.app/exercise/dumbbell-incline-bench-press-6i6',
-  'Chest-supported DB row':          'https://www.lyfta.app/exercise/dumbbell-incline-row-6ij',
-  'Single-arm DB pullover':          'https://www.lyfta.app/exercise/dumbbell-pullover-6jv',
-  'DB fly':                          'https://www.lyfta.app/exercise/dumbbell-fly-6ha',
-  'Arnold press':                    'https://www.lyfta.app/exercise/dumbbell-arnold-press--6hf',
-  'DB shoulder circles':             'https://www.lyfta.app/exercise/arm-circles-8di',
-  'DB skullcrusher':                 'https://www.lyfta.app/exercise/dumbbell-lying-triceps-extension-6j7',
-  'Hammer curl':                     'https://www.lyfta.app/exercise/hammer-curl-8w',
-  'Squeeze push-up':                 'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
-  'Decline DB press':                'https://www.lyfta.app/exercise/dumbbell-decline-bench-press-6ht',
-  'Barbell hip thrust':              'https://www.lyfta.app/exercise/barbell-hip-thrust--7t5',
-  'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-goblet-split-squat-front-foot-elevanted-83n',
-  'Barbell Romanian deadlift':       'https://www.lyfta.app/exercise/barbell-romanian-deadlift-61t',
-  'DB Romanian deadlift':            'https://www.lyfta.app/exercise/dumbbell-romanian-deadlift--7t1',
-  'Goblet squat':                    'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
-  'Side plank':                      'https://www.lyfta.app/exercise/side-plank-81c',
-  'Suitcase carry':                  'https://www.lyfta.app/exercise/dumbbell-suitcase-carry-823',
-  'Plank shoulder tap':              'https://www.lyfta.app/exercise/shoulder-tap--9mq',
-  'Run intervals':                   'https://www.lyfta.app/exercise/run-6sh',
-  'Easy run':                        'https://www.lyfta.app/exercise/run-6sh',
-  'Easy walk':                       'https://www.lyfta.app/exercise/walking-7u1',
-  'Weighted vest ruck':              'https://www.lyfta.app/exercise/walking-7u1',
-  'KB halo':                         'https://www.lyfta.app/exercise/kettlebell-around-head-rotation-836',
+  'Barbell bench press':             'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/00251201.mp4'  /* barbell-bench-press-605 */,
+  'Barbell row':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/00271201.mp4'  /* barbell-bent-over-row-607 */,
+  'DB bench press':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02891201.mp4'  /* dumbbell-bench-press-6hh */,
+  'Single-arm DB row':               'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02921201.mp4'  /* dumbbell-one-arm-bent-over-row-6hk */,
+  'Inverted row':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/04991201.mp4'  /* inverted-row-6n1 */,
+  'Incline DB press':                'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03141201.mp4'  /* dumbbell-incline-bench-press-6i6 */,
+  'Lateral raise':                   'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03341201.mp4'  /* dumbbell-lateral-raise-6iq */,
+  'DB overhead triceps extension':   'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/21881201.mp4'  /* dumbbell-seated-triceps-extension-7sh */,
+  'DB curl':                         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/04161201.mp4'  /* dumbbell-standing-biceps-curl-6ka */,
+  'Spider curl (back of incline bench)': 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/16281201.mp4'  /* ez-barbell-spider-curl-74v */,
+  'Close-grip push-up':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02591201.mp4'  /* close-grip-push-up-6gn */,
+  'Barbell back squat':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/01021201.mp4'  /* barbell-squat--620 */,
+  'Squat':                           'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22811201.mp4'  /* dumbbell-goblet-squat--7ux */,
+  'DB step-up':                      'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22211201.mp4'  /* dumbbell-step-up--7t0 */,
+  'Bulgarian split squat':           'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22901201.mp4'  /* dumbbell-bulgarian-split-squat--7v6 */,
+  'Single-leg DB Romanian deadlift': 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/17571201.mp4'  /* dumbbell-single-leg-deadlift-7ht */,
+  'Standing calf raise':             'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/04171201.mp4'  /* dumbbell-standing-calf-raise-6kb */,
+  'Dead bug':                        'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/38001201.mp4'  /* dead-bug-8au */,
+  'KB swing':                        'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/25371201.mp4'  /* kettlebell-swing-7ba */,
+  'Incline DB bench press':          'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03141201.mp4'  /* dumbbell-incline-bench-press-6i6 */,
+  'Chest-supported DB row':          'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03271201.mp4'  /* dumbbell-incline-row-6ij */,
+  'Single-arm DB pullover':          'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03751201.mp4'  /* dumbbell-pullover-6jv */,
+  'DB fly':                          'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03081201.mp4'  /* dumbbell-fly-6ha */,
+  'Arnold press':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02871201.mp4'  /* dumbbell-arnold-press--6hf */,
+  'DB shoulder circles':             'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/39051201.mp4'  /* arm-circles-8di */,
+  'DB skullcrusher':                 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03511201.mp4'  /* dumbbell-lying-triceps-extension-6j7 */,
+  'Hammer curl':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03131201.mp4'  /* hammer-curl-8w */,
+  'Squeeze push-up':                 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02591201.mp4'  /* close-grip-push-up-6gn */,
+  'Decline DB press':                'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/03011201.mp4'  /* dumbbell-decline-bench-press-6ht */,
+  'Barbell hip thrust':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22161201.mp4'  /* barbell-hip-thrust--7t5 */,
+  'Front-foot-elevated split squat': 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29561201.mp4'  /* dumbbell-goblet-split-squat-front-foot-elevanted-83n */,
+  'Barbell Romanian deadlift':       'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/00851201.mp4'  /* barbell-romanian-deadlift-61t */,
+  'DB Romanian deadlift':            'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22221201.mp4'  /* dumbbell-romanian-deadlift--7t1 */,
+  'Goblet squat':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22811201.mp4'  /* dumbbell-goblet-squat--7ux */,
+  'Side plank':                      'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/28991201.mp4'  /* side-plank-81c */,
+  'Suitcase carry':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29101201.mp4'  /* dumbbell-suitcase-carry-823 */,
+  'Plank shoulder tap':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/46601201.mp4'  /* shoulder-tap--9mq */,
+  'Run intervals':                   'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/06851201.mp4'  /* run-6sh */,
+  'Easy run':                        'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/06851201.mp4'  /* run-6sh */,
+  'Easy walk':                       'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22581201.mp4'  /* walking-7u1 */,
+  'Weighted vest ruck':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22581201.mp4'  /* walking-7u1 */,
+  'KB halo':                         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29391201.mp4'  /* kettlebell-around-head-rotation-836 */,
+  'McGill curl-up':                  'https://www.youtube.com/results?search_query=mcgill+curl+up+stuart+mcgill',
+  'Bird dog':                        'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/12411201.mp4'  /* bird-dog--76p */,
+  'Body saw plank':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/43841201.mp4'  /* body-saw-plank-9g7 */,
+  'Single-leg glute bridge':         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/42911201.mp4'  /* dumbbell-single-leg-glute-bridge-93m */,
+  'Decline crunch':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/02771201.mp4'  /* decline-crunch-6h5 */,
+  'Weighted crunch':                 'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/42521201.mp4'  /* weighted-crunch--92t */,
+  'Hollow hold':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/12461201.mp4'  /* hollow-hold-76s */,
 };
 
 // ── Form Guides ───────────────────────────────────────
@@ -1666,6 +1675,76 @@ const FORM = {
       '20–40 seconds per side × 3'
     ],
     watchOut: 'Hips sagging down or piking up both reduce the oblique challenge. Keep the body in one long rigid plank. If you can\'t hold form, drop to a knee.'
+  },
+  'McGill curl-up': {
+    cues: [
+      'On your back: one knee bent, the other leg straight; hands palms-down under the small of the back',
+      'Brace lightly — the lower back keeps its natural small arch on your hands',
+      'Lift head and shoulders 1–2 inches as ONE piece — think of the head and neck as a block, no chin tuck',
+      'Hold 10 seconds, breathing; lower, rest a moment, repeat',
+      'Switch which knee is bent each set'
+    ],
+    watchOut: 'This is not a crunch. If the lower back flattens into your hands or the chin drops to the chest, you are curling the spine — keep the movement tiny and the neck still.'
+  },
+  'Bird dog': {
+    cues: [
+      'Hands under shoulders, knees under hips, pad under the knees',
+      'Reach one arm forward and the opposite leg back until both are level with the body',
+      'Hips stay level — imagine a glass of water on the low back',
+      'Make a fist and squeeze everything for the 10-second hold',
+      'Sweep back without touching down, then repeat; light DB in the reaching hand once it is easy'
+    ],
+    watchOut: 'Lifting the leg too high arches the lower back, and letting the hip roll open twists the spine. Reach LONG, not high, and keep the hips square to the floor.'
+  },
+  'Body saw plank': {
+    cues: [
+      'Forearm plank, elbows under the shoulders, body in a straight line',
+      'Push from the toes to rock the whole body back a few inches, then pull forward past the elbows',
+      'Ribs down, glutes squeezed — the abs keep the back from sagging',
+      'Small range first; lengthen it as you get stronger',
+      'Breathe out on the hardest part of each rep'
+    ],
+    watchOut: 'The moment the hips sag or the lower back arches, shorten the range. Rocking further than you can hold flat loads the spine instead of the abs.'
+  },
+  'Single-leg glute bridge': {
+    cues: [
+      'On your back, one foot planted close to the hips, the other leg straight up or bent in the air',
+      'Push through the planted heel and lift the hips until knee, hip and shoulder line up',
+      'Squeeze the glute hard for 2 seconds at the top',
+      'Hips stay level — no dropping or twisting toward the free leg',
+      'Lower slowly; all reps on one side, then switch'
+    ],
+    watchOut: 'If the hamstring cramps, bring the foot closer to the hips. If the low back arches at the top, you are lifting too high — finish with the glute, not the spine.'
+  },
+  'Decline crunch': {
+    cues: [
+      'Mild decline (a notch or two), legs hooked under the pads',
+      'Arms crossed on the chest (later: hold a DB there)',
+      'Curl up only until the shoulder blades clear the bench — about 30°',
+      'Breathe out hard and squeeze the abs at the top',
+      'Lower slowly over 2–3 seconds; no dropping or bouncing'
+    ],
+    watchOut: 'Going all the way up turns it into a hip-flexor sit-up that pulls on the lumbar disc. Keep the range short and stop at once if the low back hurts or feels stiff next morning.'
+  },
+  'Weighted crunch': {
+    cues: [
+      'On the floor, knees bent, feet flat; DB held on the chest',
+      'Curl the ribs toward the pelvis — only the shoulders and upper back leave the floor',
+      'Breathe out on the way up, squeeze 1 second at the top',
+      'Lower slowly under control',
+      'Start at 10 lb; add weight only when 15 clean reps are easy'
+    ],
+    watchOut: 'Pulling with the neck or swinging up uses momentum instead of the abs. Keep the range short — this is for the upper abs, not a sit-up.'
+  },
+  'Hollow hold': {
+    cues: [
+      'On your back, press the lower back flat into the floor',
+      'Lift shoulders and legs a few inches; arms reach toward the feet (overhead is harder)',
+      'Hold, breathing short and steady, ribs pulled down',
+      'Start with knees bent; straighten the legs as you get stronger',
+      '20–30 seconds × 3'
+    ],
+    watchOut: 'The low back lifting off the floor means the hold is too hard — bend the knees or bring the arms in. Never hold it with an arched back.'
   },
   'Plank shoulder tap': {
     cues: [
@@ -1989,7 +2068,21 @@ const ROUTINE = [
       { name: 'Arm circles', kind: 'warmup', detail: '10 each direction.' },
       { name: 'Leg swings', kind: 'warmup', detail: '10 each way per leg.' },
       { name: 'Easy run', kind: 'cardio', formKey: 'Easy run',
-        detail: '20–30 min genuinely EASY run/walk-jog, conversational pace. Treadmill alt: incline walk 30–40 min.' },
+        detail: 'Knee first: brisk or incline walk 30–40 min until the knee is checked out. Otherwise 20–30 min genuinely EASY run/walk-jog, conversational pace.' },
+      // Core block added 11/11/2026 (first done that day): McGill Big 3 for the
+      // disc + upper-ab work. Spine stays still except the short decline crunch.
+      { name: 'McGill curl-up', kind: 'core', formKey: 'McGill curl-up',
+        detail: '3 × 5, 10-sec holds. One knee bent, other leg straight, hands under the low back; head + shoulders rise 1–2" as one piece. Switch legs each set.' },
+      { name: 'Bird dog', kind: 'core', formKey: 'Bird dog',
+        detail: '3 × 8/side, 10-sec holds, 5 lb DB in the reaching hand. Pad under the knees; hips level.' },
+      { name: 'Side plank', kind: 'core', formKey: 'Side plank',
+        detail: '3 × 45–60s/side. When 60s is easy, lift the top leg during the hold.' },
+      { name: 'Body saw plank', kind: 'core', formKey: 'Body saw plank',
+        detail: '3 × 8–10. Forearm plank; rock the whole body forward/back a few inches from the toes. Back never sags. Upper abs.' },
+      { name: 'Single-leg glute bridge', kind: 'core', formKey: 'Single-leg glute bridge',
+        detail: '3 × 10/side, 2-sec squeeze at the top. Push through the planted heel; hips stay level.' },
+      { name: 'Decline crunch', kind: 'core', formKey: 'Decline crunch',
+        detail: '3 × 15–20, no weight yet (11/11: 3 × 20, very hard). Shoulder blades just clear the bench. Add a 10 lb DB once 3 × 20 is manageable.' },
       { name: 'Quad stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Hamstring stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Calf stretch', kind: 'mobility', detail: '~30s per side.' },
@@ -2065,6 +2158,11 @@ const ROUTINE = [
         detail: '10/side × 3; hips quiet, brace hard.' },
       { name: 'Dead bug', kind: 'core', formKey: 'Dead bug',
         detail: '8/side × 3; low back pinned to the floor.' },
+      // Upper-ab work added 11/11/2026; at most two crunch-type moves a session (disc)
+      { name: 'Weighted crunch', kind: 'core', formKey: 'Weighted crunch',
+        detail: '3 × 12–15. On the floor, DB on the chest (start 10 lb); short curl, exhale up, 1-sec squeeze.' },
+      { name: 'Hollow hold', kind: 'core', formKey: 'Hollow hold',
+        detail: '3 × 20–30s. Low back pressed into the floor the whole time; bend the knees if it lifts.' },
       { name: 'KB halo', kind: 'core', formKey: 'KB halo',
         detail: 'Optional: 8/direction × 2; light DB with Kettle Gryp, circle the head.' },
       { name: 'Quad stretch', kind: 'mobility', detail: '~30s per side.' },
@@ -2097,9 +2195,9 @@ const SUPP = {
 // ── Extra Lift Library ────────────────────────────────
 const EXTRA_LIFTS = [
   // Kettlebell
-  { name: 'KB Goblet Squat',          cat:'KB',    sets:3, reps:'12–15',      formKey:'Goblet squat', lyfta:'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux' },
-  { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://www.lyfta.app/exercise/kettlebell-swing-7ba' },
-  { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://www.lyfta.app/exercise/kettlebell-around-head-rotation-836' },
+  { name: 'KB Goblet Squat',          cat:'KB',    sets:3, reps:'12–15',      formKey:'Goblet squat', lyfta:'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22811201.mp4'  /* dumbbell-goblet-squat--7ux */ },
+  { name: 'KB Swing',                 cat:'KB',    sets:3, reps:'20',         formKey:'KB swing',     lyfta:'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/25371201.mp4'  /* kettlebell-swing-7ba */ },
+  { name: 'KB Halo',                  cat:'KB',    sets:2, reps:'8 / dir',    formKey:'KB halo',      lyfta:'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29391201.mp4'  /* kettlebell-around-head-rotation-836 */ },
   { name: 'KB Single-arm Row',        cat:'KB',    sets:3, reps:'10–12 / side', formKey:null,         lyfta:null },
   { name: 'KB Romanian Deadlift',     cat:'KB',    sets:3, reps:'10–12',      formKey:null,           lyfta:null },
   { name: 'KB Clean & Press',         cat:'KB',    sets:3, reps:'6–8 / side', formKey:null,           lyfta:null },
@@ -2111,7 +2209,7 @@ const EXTRA_LIFTS = [
   // Upper
   { name: 'Face Pull',                cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
   { name: 'Band Pull-apart',          cat:'Upper', sets:3, reps:'20',         formKey:null,           lyfta:null },
-  { name: 'Push-up',                  cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:'https://www.lyfta.app/exercise/push-up-1j' },
+  { name: 'Push-up',                  cat:'Upper', sets:3, reps:'max',        formKey:null,           lyfta:'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/06621201.mp4'  /* push-up-1j */ },
   { name: 'Pike Push-up',             cat:'Upper', sets:3, reps:'10–12',      formKey:null,           lyfta:null },
   { name: 'DB Rear-delt Fly',         cat:'Upper', sets:3, reps:'15',         formKey:null,           lyfta:null },
   { name: 'DB Upright Row',           cat:'Upper', sets:3, reps:'12',         formKey:null,           lyfta:null },
@@ -2525,7 +2623,7 @@ function renderItemHTML(r, ei, data) {
       <div class="exercise-header-left">
         <div class="exercise-name">${pill(ex.kind)}${ex.name}</div>
         <div class="exercise-meta">${ex.sets} sets &times; ${ex.reps}
-          ${LYFTA[ex.name] ? `&nbsp;<a href="${LYFTA[ex.name]}" target="_blank" style="color:var(--blue);font-size:10px">Lyfta</a>` : ''}
+          ${LYFTA[ex.name] ? `&nbsp;<a href="${LYFTA[ex.name]}" target="_blank" style="color:var(--blue);font-size:10px">Video</a>` : ''}
           &nbsp;<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise form')}" target="_blank" style="color:var(--red);font-size:10px">YT</a>
         </div>
         ${ex.detail ? `<div class="item-detail">${ex.detail}</div>` : ''}
@@ -2678,7 +2776,7 @@ function renderExtraHTML(extra, xi) {
     <div class="exercise-header-left">
       <div class="exercise-name">${pill('main')}${extra.name}</div>
       <div class="exercise-meta">${extra.sets_data.length} sets &times; ${extra.reps}
-        ${lyftaUrl ? `&nbsp;<a href="${lyftaUrl}" target="_blank" style="color:var(--blue);font-size:10px">Lyfta</a>` : ''}
+        ${lyftaUrl ? `&nbsp;<a href="${lyftaUrl}" target="_blank" style="color:var(--blue);font-size:10px">Video</a>` : ''}
         &nbsp;<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(extra.name+' exercise form')}" target="_blank" style="color:var(--red);font-size:10px">YT</a>
       </div>
     </div>
