@@ -1313,7 +1313,10 @@ async function applyStapleFraction(frac) {
 // ── Lyfta Links ───────────────────────────────────────
 // Lyfta opens the exercise by the code at the END of the link (the words are
 // ignored), so a wrong code shows a different exercise. Every code below was
-// checked against Lyfta's page title on 11/5/2026.
+// checked against Lyfta's page title on 11/5/2026; on 11/10 every page was
+// also checked for a VIDEO (some Lyfta pages are a still picture only). No
+// Lyfta video for the incline reverse grip DB press: its form sheet's
+// YouTube button covers it.
 const LYFTA = {
   'Barbell bench press':             'https://www.lyfta.app/exercise/barbell-bench-press-605',
   'Barbell row':                     'https://www.lyfta.app/exercise/barbell-bent-over-row-607',
@@ -1324,8 +1327,7 @@ const LYFTA = {
   'Lateral raise':                   'https://www.lyfta.app/exercise/dumbbell-lateral-raise-6iq',
   'DB overhead triceps extension':   'https://www.lyfta.app/exercise/dumbbell-seated-triceps-extension-7sh',
   'DB curl':                         'https://www.lyfta.app/exercise/dumbbell-standing-biceps-curl-6ka',
-  'Spider curl (back of incline bench)': 'https://www.lyfta.app/exercise/dumbbell-single-spider-curl-with-chest-support-8ez',
-  'Incline reverse grip DB press':   'https://www.lyfta.app/exercise/incline-reverse-grip-press-q',
+  'Spider curl (back of incline bench)': 'https://www.lyfta.app/exercise/ez-barbell-spider-curl-74v',
   'Close-grip push-up':              'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
   'Barbell back squat':              'https://www.lyfta.app/exercise/barbell-squat--620',
   'Squat':                           'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
@@ -1340,13 +1342,13 @@ const LYFTA = {
   'Single-arm DB pullover':          'https://www.lyfta.app/exercise/dumbbell-pullover-6jv',
   'DB fly':                          'https://www.lyfta.app/exercise/dumbbell-fly-6ha',
   'Arnold press':                    'https://www.lyfta.app/exercise/dumbbell-arnold-press--6hf',
-  'DB shoulder circles':             'https://www.lyfta.app/exercise/shoulder-circle-9gi',
+  'DB shoulder circles':             'https://www.lyfta.app/exercise/arm-circles-8di',
   'DB skullcrusher':                 'https://www.lyfta.app/exercise/dumbbell-lying-triceps-extension-6j7',
   'Hammer curl':                     'https://www.lyfta.app/exercise/hammer-curl-8w',
-  'Squeeze push-up':                 'https://www.lyfta.app/exercise/push-up-close-grip-off-dumbbell-6rs',
+  'Squeeze push-up':                 'https://www.lyfta.app/exercise/close-grip-push-up-6gn',
   'Decline DB press':                'https://www.lyfta.app/exercise/dumbbell-decline-bench-press-6ht',
   'Barbell hip thrust':              'https://www.lyfta.app/exercise/barbell-hip-thrust--7t5',
-  'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-split-squat-front-foot-elevanted-83o',
+  'Front-foot-elevated split squat': 'https://www.lyfta.app/exercise/dumbbell-goblet-split-squat-front-foot-elevanted-83n',
   'Barbell Romanian deadlift':       'https://www.lyfta.app/exercise/barbell-romanian-deadlift-61t',
   'DB Romanian deadlift':            'https://www.lyfta.app/exercise/dumbbell-romanian-deadlift--7t1',
   'Goblet squat':                    'https://www.lyfta.app/exercise/dumbbell-goblet-squat--7ux',
