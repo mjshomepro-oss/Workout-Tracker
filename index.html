@@ -1317,8 +1317,8 @@ async function applyStapleFraction(frac) {
 // ignored), and some pages are a still picture with no video. To add one: find
 // the page code in Lyfta's sitemaps, confirm its og:title, take the number in
 // its thumbnails/<id>.jpg and use .../GymvisualMP4/<id>.mp4. No Lyfta video:
-// incline reverse grip DB press (form sheet YouTube button covers it);
-// McGill curl-up uses a YouTube search.
+// a YouTube search is used instead (incline reverse grip DB press,
+// McGill curl-up, a few warm-ups/stretches).
 const LYFTA = {
   'Barbell bench press':             'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/00251201.mp4'  /* barbell-bench-press-605 */,
   'Barbell row':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/00271201.mp4'  /* barbell-bent-over-row-607 */,
@@ -1363,6 +1363,27 @@ const LYFTA = {
   'Weighted vest ruck':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22581201.mp4'  /* walking-7u1 */,
   'KB halo':                         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29391201.mp4'  /* kettlebell-around-head-rotation-836 */,
   'McGill curl-up':                  'https://www.youtube.com/results?search_query=mcgill+curl+up+stuart+mcgill',
+  // Warm-ups + stretches (11/11/2026). Lyfta files where Lyfta has the move,
+  // a YouTube search where it does not.
+  'Arm circles':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/39051201.mp4'  /* arm-circles-8di */,
+  'Rear-delt raises':                'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22921201.mp4'  /* dumbbell-rear-delt-raise-7v8 */,
+  'External rotations':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/36841201.mp4'  /* dumbbell-external-rotation-8xn */,
+  'Scap push-ups':                   'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/30211201.mp4'  /* scapula-push-up-8fg */,
+  'Bodyweight squats':               'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/07871201.mp4'  /* squat-6v1 */,
+  'Walking lunges':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/14601201.mp4'  /* walking-lunge-fm */,
+  'Glute bridges':                   'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/24711201.mp4'  /* glute-bridge-two-legs-on-floor-7a7 */,
+  'Shoulder pass-through':           'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/46071201.mp4'  /* pvc-pass-through-9lx */,
+  'Quad stretch':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/09401201.mp4'  /* quadriceps-stretch-6zk */,
+  'Hamstring stretch':               'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/15111201.mp4'  /* hamstring-stretch-724 */,
+  'Calf stretch':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/13771201.mp4'  /* calf-stretch-with-hands-against-wall-793 */,
+  'March in place':                  'https://www.youtube.com/results?search_query=march+in+place+warm+up',
+  'Leg swings':                      'https://www.youtube.com/results?search_query=leg+swings+warm+up+front+to+back+side+to+side',
+  'Ankle rocks':                     'https://www.youtube.com/results?search_query=ankle+rocks+knee+to+wall+mobility',
+  'Build-up strides':                'https://www.youtube.com/results?search_query=running+strides+build+ups+how+to',
+  'Deep squat hold':                 'https://www.youtube.com/results?search_query=deep+squat+hold+mobility',
+  "World's greatest stretch":        'https://www.youtube.com/results?search_query=worlds+greatest+stretch+how+to',
+  'Chest/doorway stretch':           'https://www.youtube.com/results?search_query=doorway+chest+stretch',
+  'Incline reverse grip DB press':   'https://www.youtube.com/results?search_query=incline+reverse+grip+dumbbell+press',
   'Bird dog':                        'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/12411201.mp4'  /* bird-dog--76p */,
   'Body saw plank':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/43841201.mp4'  /* body-saw-plank-9g7 */,
   'Single-leg glute bridge':         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/42911201.mp4'  /* dumbbell-single-leg-glute-bridge-93m */,
