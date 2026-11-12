@@ -1,4 +1,4 @@
-﻿const CACHE = 'wt-v95';
+﻿const CACHE = 'wt-v96';
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -12,10 +12,17 @@ self.addEventListener('activate', e => {
   e.waitUntil(self.clients.claim());
 });
 
-// Network-first: always try the network, fall back to cache
+// Network-first: always try the network, fall back to cache.
+// The app's own files are fetched with cache: 'no-cache' so the browser
+// re-checks with GitHub Pages every time; its max-age=600 header otherwise
+// let a reopen show a version up to 10 minutes old (11/11/2026).
 self.addEventListener('fetch', e => {
+  const sameOrigin = new URL(e.request.url).origin === self.location.origin;
+  const net = sameOrigin && e.request.method === 'GET'
+    ? fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+    : fetch(e.request);
   e.respondWith(
-    fetch(e.request)
+    net
       .then(r => {
         const clone = r.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
