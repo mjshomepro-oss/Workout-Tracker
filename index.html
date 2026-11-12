@@ -2616,6 +2616,12 @@ function toggleGroup(id) {
   renderWOContent();
 }
 
+// "▶ Video" link on a warm-up / cardio / core / stretch card, same as the lift cards
+function vidLink(key) {
+  const u = key && LYFTA[key];
+  return u ? `<a href="${u}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);font-size:11px;font-weight:600;margin-left:auto;margin-right:8px;white-space:nowrap;text-decoration:none">&#9654; Video</a>` : '';
+}
+
 // Render a single item
 function renderItemHTML(r, ei, data) {
   const ex = r.items[ei];
@@ -2630,7 +2636,7 @@ function renderItemHTML(r, ei, data) {
         <div class="log-body">
           <div class="log-name-row">
             <div class="log-name" style="margin-bottom:0">${pill(ex.kind)}${ex.name}</div>
-            ${info}
+            ${vidLink(ex.name)}${info}
           </div>
           ${ex.detail ? `<div class="item-detail">${ex.detail}</div>` : ''}
           <input class="log-input" type="text" placeholder="Add notes..." value="${escHtml(exData.log)}" data-note="${ei}">
@@ -2694,7 +2700,7 @@ function renderItemHTML(r, ei, data) {
     <div class="log-body">
       <div class="log-name-row">
         <div class="log-name" style="margin-bottom:0">${pill(ex.kind)}${ex.name}</div>
-        ${ib}
+        ${vidLink(fKey || ex.name)}${ib}
       </div>
       ${ex.detail ? `<div class="item-detail">${ex.detail}</div>` : ''}
       <input class="log-input" type="text" placeholder="Add notes..." value="${escHtml(item.log)}" data-i="${ei}">
