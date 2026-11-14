@@ -242,6 +242,7 @@ body {
 .kp-core     { background: rgba(148,163,184,0.18); color: #cbd5e1; }
 .kp-cardio   { background: rgba(96,165,250,0.18); color: var(--blue); }
 .kp-mobility { background: rgba(148,163,184,0.18); color: #cbd5e1; }
+.kp-kb       { background: var(--acc-d); color: var(--accent); }
 
 /* ── Collapsible Group ───────────────────────────────── */
 .group-header {
@@ -1362,6 +1363,10 @@ const LYFTA = {
   'Easy walk':                       'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22581201.mp4'  /* walking-7u1 */,
   'Weighted vest ruck':              'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/22581201.mp4'  /* walking-7u1 */,
   'KB halo':                         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/29391201.mp4'  /* kettlebell-around-head-rotation-836 */,
+  'KB deadlift':                     'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/33221201.mp4',
+  'One-arm KB row':                  'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/05411201.mp4',
+  'Seated one-arm KB press':         'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/37371201.mp4',
+  'Farmer carry':                    'https://lyftaweb.s3.us-east-2.amazonaws.com/GymvisualMP4/35761201.mp4',
   'McGill curl-up':                  'https://www.youtube.com/results?search_query=mcgill+curl+up+stuart+mcgill',
   // Warm-ups + stretches (11/11/2026). Lyfta files where Lyfta has the move,
   // a YouTube search where it does not.
@@ -1562,7 +1567,7 @@ const FORM = {
       'Hike the KB back between your legs, then snap the hips forward explosively',
       'The arms are just ropes — the power comes entirely from the hip drive',
       'At the top the body is upright and braced — KB floats to chest height',
-      '20 reps; keep the back flat and the core braced throughout'
+      'Sets of 15 at most; when 15 feels crisp, go heavier, not more reps (the low back takes over once the glutes tire)'
     ],
     watchOut: 'Squatting the swing (bending the knees too much) kills the hip hinge mechanics. The swing is NOT a front raise — arms stay relaxed.'
   },
@@ -1777,12 +1782,49 @@ const FORM = {
     ],
     watchOut: 'Rotating the hips to make room for the tap defeats the purpose. The whole challenge is keeping the hips level while one arm is off the ground.'
   },
+  'KB deadlift': {
+    cues: [
+      'Bell between your feet, mid-foot; feet hip-width',
+      'Push the hips back and soften the knees; flat back, chest proud',
+      'Grip the handle, pull the shoulders down, then stand up by driving the floor away',
+      'Squeeze the glutes at the top; stand tall, no leaning back',
+      'Lower it slowly (2 sec) the same way: hips back first'
+    ],
+    watchOut: 'Rounding the low back to reach the bell. If you cannot reach it with a flat back, set it on a plate or step.'
+  },
+  'One-arm KB row': {
+    cues: [
+      'Same-side hand and knee on the bench, other foot on the floor',
+      'Back flat like a table, neck in line',
+      'Pull the bell to your hip, elbow close to the body',
+      'Pause 1 sec at the top, lower under control to a full stretch'
+    ],
+    watchOut: 'Twisting the torso open to heave the weight up. Hips and shoulders stay square to the floor.'
+  },
+  'Seated one-arm KB press': {
+    cues: [
+      'Bench upright, back against the pad, feet flat',
+      'Bell at the shoulder, wrist straight, elbow under the bell',
+      'Ribs down, brace, press straight up until the arm is locked by your ear',
+      'Lower slowly back to the shoulder'
+    ],
+    watchOut: 'Arching the low back off the pad or leaning away from the bell. If you have to arch, the weight is too heavy.'
+  },
+  'Farmer carry': {
+    cues: [
+      'Squat straight down to pick the bells up; never round over to grab them',
+      'Stand tall: shoulders back and down, ribs down, eyes forward',
+      'On the treadmill: flat, about 2 mph, short smooth steps, no holding the rails',
+      'Set them down the same way you picked them up'
+    ],
+    watchOut: 'Shrugging or leaning to one side. Heavier and shorter beats lighter and longer.'
+  },
   'KB halo': {
     cues: [
       'Use the Kettle Gryp on a light DB, or a real KB',
       'Hold it at chest height, elbows in',
       'Circle it slowly around your head one way, then reverse',
-      '8 per direction × 2; keep the torso completely still',
+      '10 per direction; keep the torso completely still',
       'Breathe steadily — the core stays braced throughout'
     ],
     watchOut: 'Moving the torso instead of just the arms kills the core demand. Keep the ribs down and the hips still.'
@@ -2077,7 +2119,7 @@ const ROUTINE = [
       { name: 'DB step-up', kind: 'main', sets: 3, reps: '8–10/leg',
         detail: 'Bench height; drive through the heel, control the lower.' },
       { name: 'Dead bug', kind: 'core', sets: 3, reps: '8/side' },
-      { name: 'KB swing', kind: 'finisher', sets: 3, reps: '20',
+      { name: 'KB swing', kind: 'finisher', sets: 3, reps: '15',
         detail: 'Kettle Gryp on a loaded DB; explosive hip hinge, snap to chest height. Spine rigid-neutral — skip while the back is flaring.' }
     ]
   },
@@ -2167,25 +2209,37 @@ const ROUTINE = [
     ]
   },
   {
-    day: 'Saturday', short: 'Sat', label: 'Intervals + Core', type: 'log',
+    day: 'Saturday', short: 'Sat', label: 'Intervals + Kettlebells + Core', type: 'log',
     fuel: 'Intervals — 5 g creatine anytime, extra water. Whey only if under target.',
     items: [
       { name: 'March in place', kind: 'warmup', detail: 'Build pace over ~2 min.' },
       { name: 'Leg swings', kind: 'warmup', detail: '10 each way per leg.' },
       { name: 'Build-up strides', kind: 'warmup', detail: 'A couple of smooth accelerations to working pace.' },
       { name: 'Run intervals', kind: 'cardio', formKey: 'Run intervals',
-        detail: '1 min faster run + 2 min easy walk × 6–8. Your one harder cardio session.' },
+        detail: '1 min faster run + 2 min easy walk × 6–8. Knee talking? Make the fast minutes a fast incline walk.' },
+      // Kettlebell circuit added 11/14/2026 after his first try. Rule for the disc: heavier, not more reps.
+      // 2 rounds straight through; round 1 lighter, round 2 = the target. ~45 hinge reps (deadlift + swing).
+      { name: 'KB deadlift', kind: 'kb', formKey: 'KB deadlift',
+        detail: '<b>Circuit: 2 rounds, rest 60–90s between rounds.</b> R1: 25 lb × 10. R2: 35 lb × 10–12 (no 35? 30 lb with a slow 3-sec lower). Max 12 a set.' },
+      { name: 'KB swing', kind: 'kb', formKey: 'KB swing',
+        detail: 'R1: 20–25 lb × 12. R2: 25 lb × 15. Never more than 15 a set; when 15 is crisp, go to 30–35 lb.' },
+      { name: 'One-arm KB row', kind: 'kb', formKey: 'One-arm KB row',
+        detail: 'R1: 20 lb × 10/side. R2: 25–30 lb × 10–12/side. 1-sec squeeze at the top.' },
+      { name: 'Seated one-arm KB press', kind: 'kb', formKey: 'Seated one-arm KB press',
+        detail: 'R1: 15 lb × 8/side. R2: 20–25 lb × 8–10/side. Bench upright, back on the pad.' },
+      { name: 'KB halo', kind: 'kb', formKey: 'KB halo',
+        detail: '15 lb × 10 each way, both rounds. Slow; torso still.' },
+      { name: 'Farmer carry', kind: 'kb', formKey: 'Farmer carry',
+        detail: 'Treadmill flat, ~2 mph. R1: 25 lb each hand × 60s. R2: 35 lb each × 60–90s. Heavier and shorter, not 2 min.' },
       { name: 'Plank shoulder tap', kind: 'core', formKey: 'Plank shoulder tap',
-        detail: '10/side × 3; hips quiet, brace hard.' },
+        detail: '3 × 12/side, the harder way: feet together, slow 2-sec tap, hips dead still.' },
       { name: 'Dead bug', kind: 'core', formKey: 'Dead bug',
-        detail: '8/side × 3; low back pinned to the floor.' },
-      // Upper-ab work added 11/11/2026; at most two crunch-type moves a session (disc)
+        detail: '3 × 10/side holding 10 lb DBs. 3-sec reach, legs low (2 in. off the floor), low back pinned.' },
+      // Upper-ab work added 11/11/2026; at most two crunch-type moves a session (disc). Ab check 11/14 normal.
       { name: 'Weighted crunch', kind: 'core', formKey: 'Weighted crunch',
-        detail: '3 × 12–15. On the floor, DB on the chest (start 10 lb); short curl, exhale up, 1-sec squeeze.' },
+        detail: '3 × 12–15 with 15 lb on the chest (~45 reps total, not 90). Short curl, exhale up, 1-sec squeeze.' },
       { name: 'Hollow hold', kind: 'core', formKey: 'Hollow hold',
-        detail: '3 × 20–30s. Low back pressed into the floor the whole time; bend the knees if it lifts.' },
-      { name: 'KB halo', kind: 'core', formKey: 'KB halo',
-        detail: 'Optional: 8/direction × 2; light DB with Kettle Gryp, circle the head.' },
+        detail: '3 × 30s holding an 8 lb DB with arms overhead. Low back pressed down; arms to your sides if it lifts.' },
       { name: 'Quad stretch', kind: 'mobility', detail: '~30s per side.' },
       { name: 'Calf stretch', kind: 'mobility', detail: '~30s per side.' }
     ]
@@ -2607,7 +2661,7 @@ function escHtml(s) {
 }
 function pill(kind) {
   if (!kind || kind === 'main') return '';
-  const labels = {warmup:'Warm-up', finisher:'Finisher', core:'Core', cardio:'Cardio', mobility:'Mobility'};
+  const labels = {warmup:'Warm-up', finisher:'Finisher', core:'Core', cardio:'Cardio', mobility:'Mobility', kb:'Kettlebell'};
   return `<span class="kind-pill kp-${kind}">${labels[kind] || kind}</span>`;
 }
 function groupCollapsed(id) { return localStorage.getItem('wt_grp_' + id) === '1'; }
@@ -3071,7 +3125,7 @@ function openFormGuide(exName) {
   let sub = '';
   if (ex) {
     if (ex.sets) sub = `${ex.sets} sets × ${ex.reps}`;
-    else { const L = {warmup:'Warm-up',finisher:'Finisher',core:'Core',cardio:'Cardio',mobility:'Mobility'}; sub = L[ex.kind] || ''; }
+    else { const L = {warmup:'Warm-up',finisher:'Finisher',core:'Core',cardio:'Cardio',mobility:'Mobility',kb:'Kettlebell circuit'}; sub = L[ex.kind] || ''; }
   }
   document.getElementById('formSubtitle').textContent = sub;
   let body = `<div class="form-section"><div class="form-section-label">Key Form Cues</div><ul class="form-cues">`;
