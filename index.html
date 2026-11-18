@@ -3364,8 +3364,8 @@ function target() { return CAL_TARGET; }
 // Sodium bonus from measured heart-rate effort (sweat proxy):
 // HR zones during exercise sessions + moderate/vigorous active minutes all day.
 // Roughly 500mg/hr moderate, 1000mg/hr vigorous, 1200mg/hr peak; capped +1500.
-function sweatBonus() {
-  const s = ghForDay()?.sweat;
+function sweatBonus() { return sweatMg(ghForDay()?.sweat); }
+function sweatMg(s) {
   if (!s) return 0;
   // Two independent estimates of the same sweat — take the larger, never both
   // (all-day activity levels already include exercise session minutes):
@@ -5155,11 +5155,13 @@ async function loadHistory() {
     // the server returns at most 1,000 rows a request, so page through them
     window._scFoods = [];
     for (let off = 0; off < 10000; off += 1000) {
-      const page = await sbGet('food_log', {select: 'log_date,food_name', log_date: `gte.${scYmd(scFrom)}`, order: 'log_date.desc,id', limit: '1000', offset: String(off)}).catch(() => []);
+      const page = await sbGet('food_log', {select: 'log_date,food_name,sc_produce,sc_red_oz,sc_processed,sc_fish,sc_checked_at', log_date: `gte.${scYmd(scFrom)}`, order: 'log_date.desc,id', limit: '1000', offset: String(off)}).catch(() => []);
       window._scFoods.push(...page);
       if (page.length < 1000) break;
     }
     window._scDaily = {}; noteRows.forEach(r => { window._scDaily[r.log_date] = r; });
+    window._scWeeks = {};
+    (await sbGet('sc_weeks', {order: 'week_start.desc', limit: '30'}).catch(() => [])).forEach(w => { window._scWeeks[w.week_start] = w; });
     window._scSum = {};   rows.forEach(r => { window._scSum[r.log_date] = r; });
     window._histGh = {};
     ghRows.forEach(g => { window._histGh[g.log_date] = g; });
@@ -5176,8 +5178,9 @@ async function loadHistory() {
     // Per-date activity: session calories widen that day's budget
     window._histAct = {};
     actRows.forEach(a => {
-      const m = window._histAct[a.log_date] || (window._histAct[a.log_date] = { cal: 0, runMi: 0, runSec: 0, runs: 0 });
+      const m = window._histAct[a.log_date] || (window._histAct[a.log_date] = { cal: 0, runMi: 0, runSec: 0, runs: 0, modSec: 0, vigSec: 0, peakSec: 0 });
       m.cal += a.calories || 0;
+      m.modSec += a.mod_sec || 0; m.vigSec += a.vig_sec || 0; m.peakSec += a.peak_sec || 0;
       if (a.type === 'RUNNING') {
         m.runs++;
         m.runMi  += (a.distance_mm || 0) / 1609344;
@@ -5253,6 +5256,12 @@ function scBudget(ds) {
   return 2000 + (((window._histAct || {})[ds]?.cal) || 0);
 }
 
+function scNaTarget(ds) {
+  const g = (window._histGh || {})[ds], a = (window._histAct || {})[ds];
+  const sw = g ? { modSec: g.mod_sec, vigSec: g.vig_sec, peakSec: g.peak_sec, levels: g.levels || {} }
+           : a ? { modSec: a.modSec, vigSec: a.vigSec, peakSec: a.peakSec, levels: {} } : null;
+  return 2300 + sweatMg(sw);
+}
 let scMode = (() => { try { return localStorage.getItem('scMode') === 'month' ? 'month' : 'week'; } catch (_) { return 'week'; } })();
 let scOff = 0;      // 0 = this week / this month
 let scOpen = null;  // the row whose 4-month chart is open
@@ -5261,7 +5270,7 @@ let scOpen = null;  // the row whose 4-month chart is open
 function scDays() {
   if (window._scDays) return window._scDays;
   const foodsBy = {};
-  (window._scFoods || []).forEach(f => { (foodsBy[f.log_date] = foodsBy[f.log_date] || []).push(f.food_name); });
+  (window._scFoods || []).forEach(f => { (foodsBy[f.log_date] = foodsBy[f.log_date] || []).push(f); });
   const dl = window._scDaily || {}, sm = window._scSum || {}, act = window._histAct || {}, body = window._histBody || {};
   const sleepBy = {};
   (window._histSleep || []).forEach(s => { if (!s.partial && s.min_asleep) sleepBy[s.log_date] = s.min_asleep; });
@@ -5276,14 +5285,25 @@ function scDays() {
     if (rec.logged) {
       rec.cal = s.total_calories; rec.budget = scBudget(ds);
       rec.prot = parseFloat(s.total_protein_g) || 0; rec.sugar = parseFloat(s.total_added_sugar_g) || 0;
-      rec.na = s.total_sodium_mg || 0; rec.fiber = parseFloat(s.total_fiber_g) || 0;
+      rec.na = s.total_sodium_mg || 0; rec.naTarget = scNaTarget(ds); rec.fiber = parseFloat(s.total_fiber_g) || 0;
     }
-    const fishFood = fl.filter(n => SC.fish.test(n));
+    const fishFood = fl.filter(f => f.sc_fish != null ? f.sc_fish : SC.fish.test(f.food_name)).map(f => f.food_name);
     rec.fish = !!((r && r.omega3_fish) || fishFood.length);
     rec.fishName = fishFood[0] || (rec.fish ? 'Fish (tapped)' : null);
     rec.o3 = (r && r.omega3_am ? 0.6 : 0) + (r && r.omega3_pm ? 0.6 : 0) + (rec.fish ? 1.2 : 0);
     rec.produce = 0; rec.prodLabels = []; rec.red = 0; rec.redNames = []; rec.procNames = [];
-    for (const n of fl) {
+    rec.checked = fl.length > 0 && fl.every(f => f.sc_checked_at);
+    for (const f of fl) {
+      const n = f.food_name;
+      if (f.sc_checked_at) {
+        // checked by Claude: exact numbers for this entry
+        const pn = +f.sc_produce || 0;
+        if (pn) { rec.produce += pn; rec.prodLabels.push(n.length > 34 ? n.slice(0, 32) + '…' : n); }
+        if (f.sc_processed) rec.procNames.push(n);
+        const oz = +f.sc_red_oz || 0;
+        if (oz) { rec.red += oz / 4; rec.redNames.push(`${n} (${Math.round(oz * 10) / 10} oz)`); }
+        continue;
+      }
       const p = scProduce(n); rec.produce += p.n; rec.prodLabels.push(...p.labels);
       if (SC.proc.test(n)) rec.procNames.push(n);
       const m = scRed(n); if (m) { rec.red += m; rec.redNames.push(n); }
@@ -5343,11 +5363,13 @@ function scAgg(days, span) {
 
   // Eating
   const cal = Math.round(mean(lg, r => r.cal)), bud = Math.round(mean(lg, r => r.budget));
-  const deficit = lg.filter(r => r.cal < r.budget).length;
+  // each day against its own budget (2,000 + that day's activity), same as the calorie staircase
+  const deficit = lg.filter(r => r.cal < r.budget).length, overCal = nl - deficit;
+  const calPct = Math.round(mean(lg, r => r.cal / r.budget) * 100);
   add({ k: 'cal', g: 'Eating', icon: '&#128293;', label: 'Calories', disp: none ? '—' : cal.toLocaleString(),
-    target: none ? 'no food logged' : `budget ${bud.toLocaleString()} &middot; deficit ${deficit} of ${nl} days`,
-    st: none ? 'none' : lvl(cal, bud, bud + 200, false), chart: cal, goal: bud,
-    caution: cal > bud ? `Averaging ${(cal - bud).toLocaleString()} cal a day over budget` : null,
+    target: none ? 'no food logged' : `budget ${bud.toLocaleString()} avg (2,000 + activity) &middot; under on ${deficit} of ${nl} days`,
+    st: none ? 'none' : lvl(calPct, 100, 109, false), chart: calPct, goal: 100, unit: '%', chartNote: '% of each day&rsquo;s budget',
+    caution: calPct > 100 ? `Over the day&rsquo;s budget on ${overCal} of ${nl} days, by ${(cal - bud).toLocaleString()} cal a day on average` : null,
     good: !none && deficit === nl && nl >= 3 ? `In a calorie deficit all ${nl} days` : null });
   const prot = Math.round(mean(lg, r => r.prot)), lowP = lg.filter(r => r.prot < 150).length;
   add({ k: 'prot', g: 'Eating', icon: '&#127831;', label: 'Protein', disp: none ? '—' : prot + ' g', target: 'goal 150 g a day',
@@ -5359,10 +5381,14 @@ function scAgg(days, span) {
   add({ k: 'sugar', g: 'Eating', icon: '&#127852;', label: 'Added sugar', disp: none ? '—' : sug.toFixed(0) + ' g', target: `limit 36 g a day &middot; ${overS} day${overS === 1 ? '' : 's'} over`,
     st: sugSt, chart: Math.round(sug), goal: 36,
     caution: overS > Math.ceil(nl / 6) ? `Over the 36 g limit on ${overS} of ${nl} days: sauces, dressings, drinks, snacks` : null });
-  const na = Math.round(mean(lg, r => r.na));
-  add({ k: 'na', g: 'Eating', icon: '&#129474;', label: 'Sodium', disp: none ? '—' : na.toLocaleString(), target: 'baseline 2,300 mg (more on sweaty days)',
-    st: none ? 'none' : lvl(na, 2300, 3200, false), chart: na, goal: 2300,
-    caution: na > 3200 ? 'Sodium running high: soups and salty sides are the usual source' : null });
+  // each day against its own allowance (2,300 + that day's sweat), same as the Nutrition tab
+  const na = Math.round(mean(lg, r => r.na)), naT = Math.round(mean(lg, r => r.naTarget));
+  const overNa = lg.filter(r => r.na > r.naTarget).length;
+  const naPct = Math.round(mean(lg, r => r.na / r.naTarget) * 100);
+  add({ k: 'na', g: 'Eating', icon: '&#129474;', label: 'Sodium', disp: none ? '—' : na.toLocaleString(),
+    target: none ? 'allowance 2,300 + sweat' : `allowance ${naT.toLocaleString()} avg (2,300 + sweat) &middot; ${overNa} day${overNa === 1 ? '' : 's'} over`,
+    st: none ? 'none' : lvl(naPct, 100, 125, false), chart: naPct, goal: 100, unit: '%', chartNote: '% of each day&rsquo;s allowance',
+    caution: naPct > 100 ? `Over the day&rsquo;s allowance on ${overNa} of ${nl} days: soups and salty sides are the usual source` : null });
   const fib = mean(lg, r => r.fiber);
   add({ k: 'fiber', g: 'Eating', icon: '&#127806;', label: 'Fiber', disp: none ? '—' : Math.round(fib) + ' g', target: 'goal 30 g a day',
     st: none ? 'none' : lvl(fib, 30, 22, true), chart: Math.round(fib), goal: 30, hi: true,
@@ -5432,6 +5458,17 @@ function scAgg(days, span) {
   return rows;
 }
 
+// Claude checks the current week's fish / fruit & veg / meat numbers each night; a finished week is checked off
+function scCheckedTxt(P) {
+  if (scMode !== 'week') return '';
+  const w = (window._scWeeks || {})[scYmd(P.start)];
+  if (w && w.final) return ' &middot; <span style="color:var(--accent)">&#10003; checked by Claude</span>';
+  if (w && w.checked_through) {
+    const d = new Date(w.checked_through + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+    return ` &middot; <span style="color:var(--accent)">checked through ${d}</span>`;
+  }
+  return '';
+}
 function scGo(off) { scOff = Math.max(0, Math.min(scMaxOff(scMode), off)); scRerender(); }
 function scShift(dir) { scGo(scOff + dir); }
 function scSetMode(m) { scMode = m; scOff = 0; try { localStorage.setItem('scMode', m); } catch (_) {} scRerender(); }
@@ -5454,7 +5491,8 @@ function scChart(k) {
   const lo = k === 'wt' ? Math.min(...vals) - 2 : 0;
   const h = v => Math.max(3, Math.round((v - lo) / (top - lo) * 76));
   const step = Math.ceil(pts.length / 6);
-  const per = pts[0] && scAgg([]).find(x => x.k === k)?.perWeek ? ' (per week)' : '';
+  const def = scAgg([]).find(x => x.k === k) || {};
+  const per = def.perWeek ? ' (per week)' : def.chartNote ? ` (${def.chartNote})` : '';
   return `
     <div style="padding:8px 0 4px">
       <div style="position:relative;height:84px;display:flex;align-items:flex-end;gap:3px">
@@ -5507,7 +5545,7 @@ function scorecardHTML() {
           ${nav(1, '&lsaquo;', scOff >= max)}
           <div style="flex:1;text-align:center">
             <div style="font-size:13px;font-weight:600">${P.label}</div>
-            <div style="font-size:10px;color:var(--muted)">${P.partial ? 'so far &middot; ' : ''}${P.days.length} day${P.days.length === 1 ? '' : 's'}</div>
+            <div style="font-size:10px;color:var(--muted)">${P.partial ? 'so far &middot; ' : ''}${P.days.length} day${P.days.length === 1 ? '' : 's'}${scCheckedTxt(P)}</div>
           </div>
           ${nav(-1, '&rsaquo;', scOff === 0)}
         </div>
@@ -5517,7 +5555,7 @@ function scorecardHTML() {
           <span style="color:var(--red)">&#10007; ${nBad} off</span>
         </div>
         ${body}
-        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4">Tap a row for its last 4 months. Fish, fruit &amp; veg and meat are read from food names, so they are estimates. Older than 4 months stays saved but is not shown.</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4">Tap a row for its last 4 months. Fish, fruit &amp; veg and meat start as estimates from food names; Claude checks the current week each night and checks off each finished week. Older than 4 months stays saved but is not shown.</div>
       </div>
     </div>`;
 }
@@ -5565,7 +5603,7 @@ function renderHistory(rows) {
     const sugar = parseFloat(r.total_added_sugar_g);
     const hasData = cal > 0;
     const preStart = r.log_date < STATS_START;
-    const calClr   = !hasData || preStart ? 'var(--muted)' : cal > tg + 150 ? 'var(--red)' : cal > tg ? 'var(--yellow)' : 'var(--accent)';
+    const calClr   = !hasData || preStart ? 'var(--muted)' : cal > tg * 1.09 ? 'var(--red)' : cal > tg ? 'var(--yellow)' : 'var(--accent)';  // same rule as the scorecard: up to 9% over = yellow
     const protClr  = !hasData ? 'var(--muted)' : prot >= 150 ? 'var(--accent)' : prot < 130 ? 'var(--red)' : 'var(--yellow)';
     const sugarClr = !hasData ? 'var(--muted)' : sugar > 36 ? 'var(--red)' : 'var(--accent)';
     const mo = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
