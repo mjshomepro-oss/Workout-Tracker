@@ -3315,7 +3315,7 @@ async function load() {
       sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
       ntDayOffset !== 0 ? sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []) : Promise.resolve([]),
     ]);
-    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,workout_done:false};
+    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,multi_taken:false,probiotic_taken:false,workout_done:false};
     foods = fe;
     // Past days render from their own saved Fitbit snapshot, not today's sync
     ghDay = null;
@@ -3746,7 +3746,8 @@ const REC_INFO = {
     sub: 'Estimated oxygen your body can use at full effort, ml/kg/min',
     body: `
       <p>Google estimates it from your heart rate during outdoor runs and your resting heart rate. Higher means a fitter heart and lungs. For men 45&ndash;50, roughly 35&ndash;40 is average, 40&ndash;45 good, and over 45 excellent.</p>
-      <p>It moves slowly &mdash; over weeks of consistent cardio, not day to day. It only fills in after a few runs with enough heart-rate data, so it may stay empty.</p>`,
+      <p>It moves slowly &mdash; over weeks of consistent cardio, not day to day. It only fills in after a few runs with enough heart-rate data, so it may stay empty.</p>
+      <p>Google only makes a new estimate now and then, and none at all if there has been no qualifying run. When the latest night has no reading, the row shows your last one and its date.</p>`,
   },
   hrvcurve: {
     title: 'Overnight HRV',
@@ -3835,7 +3836,8 @@ function renderSleep() {
     </div>`;
 
   // Recovery graph rows, oldest → newest: last 7 nights, or the full history
-  if (slRange === 'all' && !slVitals) ensureSlVitals();
+  // the full history also feeds the VO2 row's "last reading" when the last 7 nights have none
+  if (!slVitals) ensureSlVitals();
   const showAll = slRange === 'all' && slVitals && slVitals.length > 0;
   const wk = showAll ? slVitals : slNights.slice(0, 7).reverse();
   const rangeBtn = (r, txt) => `<button onclick="setSlRange('${r}')" style="background:${slRange===r?'var(--acc-d)':'none'};border:1px solid ${slRange===r?'var(--acc-b)':'var(--border)'};color:${slRange===r?'var(--accent)':'var(--muted)'};border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">${txt}</button>`;
@@ -3851,7 +3853,13 @@ function renderSleep() {
   // skin temperature is shown as °F above/below his own 30-night normal
   const tempF = c => c == null ? null : Math.round(c * 1.8 * 10) / 10;
   const signed = v => v == null ? null : (v > 0 ? '+' : '') + v.toFixed(1);
-  const hasVo2 = wk.some(x => x.vo2_max != null) || n.vo2_max != null;
+  const vo2Hist = (slVitals || wk).filter(x => x.vo2_max != null);   // oldest -> newest
+  const lastVo2 = vo2Hist.length ? vo2Hist[vo2Hist.length - 1] : null;
+  const hasVo2 = !!lastVo2 || n.vo2_max != null;
+  const vo2InWeek = wk.some(x => x.vo2_max != null);
+  const mdShort = d => { const [, m, dd] = d.split('-'); return +m + '/' + +dd; };
+  const vo2Label = 'VO2 Max' + (n.vo2_max == null && lastVo2 ? ` <span style="opacity:.8">(last reading ${mdShort(lastVo2.log_date)})</span>` : '');
+  const vo2Val = n.vo2_max != null ? n.vo2_max : (lastVo2 ? (+lastVo2.vo2_max).toFixed(1) : '—');
   // the selected night has no reading (e.g. a partial night): show "—" but keep the row and its graph
   const orDash = (val, field) => val != null ? val : (wk.some(x => x[field] != null) ? '—' : null);
   const recoveryHTML = (n.resting_hr != null || n.hrv_ms != null || n.resp_rate != null || wk.some(x => x.hrv_ms != null)) ? `
@@ -3866,7 +3874,7 @@ function renderSleep() {
         ${sparkRow('sp-resp', 'Breathing Rate', orDash(n.resp_rate, 'resp_rate'), 'br/min', '#a78bfa', 'resp')}
         ${sparkRow('sp-temp', 'Skin Temp vs Normal', orDash(signed(tempF(n.skin_temp_dev_c)), 'skin_temp_dev_c'), '°F', '#fb923c', 'temp')}
         ${sparkRow('sp-spo2', 'Blood Oxygen', orDash(n.spo2_avg, 'spo2_avg'), '%', '#2dd4bf', 'spo2')}
-        ${hasVo2 ? sparkRow('sp-vo2', 'VO2 Max', n.vo2_max != null ? n.vo2_max : '—', 'ml/kg/min', '#f59e0b', 'vo2') : ''}
+        ${hasVo2 ? sparkRow('sp-vo2', vo2Label, vo2Val, 'ml/kg/min', '#f59e0b', 'vo2') : ''}
       </div>
     </div>` : '';
 
@@ -3942,7 +3950,7 @@ function renderSleep() {
     // blood oxygen only exists from the Fitbit Air on, so its graph starts at the first reading
     const spo2From = wk.findIndex(x => x.spo2_avg != null);
     if (spo2From >= 0) drawSpark('sp-spo2', wk.slice(spo2From).map(x => ({ d: x.log_date, v: num(x.spo2_avg) })), '#2dd4bf');
-    if (hasVo2) drawSpark('sp-vo2', wk.map(x => ({ d: x.log_date, v: num(x.vo2_max) })), '#f59e0b');
+    if (hasVo2) drawSpark('sp-vo2', (vo2InWeek ? wk : vo2Hist.slice(-30)).map(x => ({ d: x.log_date, v: num(x.vo2_max) })), '#f59e0b');
     drawHrvCurve(n);
   }, 0);
 }
@@ -4594,20 +4602,28 @@ function render() {
             <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
             <div style="flex:1">
               <div class="supp-name">Omega-3</div>
-              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'CVS softgel · 500mg / 300mg · with a meal'}</div>
+              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'Nature Made · <b>4 softgels = 1.2 g EPA+DHA</b> · 2 at breakfast, 2 at dinner'}</div>
               <div style="display:flex;gap:6px;margin-top:6px;pointer-events:all">
                 <button onclick="toggleOmega3('pill')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='pill'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='pill'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='pill'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">Softgel</button>
-                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#127925; Fish</button>
+                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#128031; Fish</button>
               </div>
             </div>
           </div>
           <div class="supp ${daily?.d3_k2_taken?'on':''}" onclick="toggleSupp('d3_k2_taken')">
             <div class="supp-box">${daily?.d3_k2_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">Nature Made 1 gummy &middot; 2500 IU D3 / 50mcg K2 &middot; with a meal</div></div>
+            <div><div class="supp-name">D3 + K2</div><div class="supp-desc">Nature Made &middot; <b>1 gummy</b> = 2,500 IU D3 / 50 mcg K2 &middot; with a meal</div></div>
           </div>
           <div class="supp ${daily?.magnesium_taken?'on':''}" onclick="toggleSupp('magnesium_taken')">
             <div class="supp-box">${daily?.magnesium_taken?'&#10003;':''}</div>
-            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc">Nature Made 2 caps &middot; 200mg &middot; before bed</div></div>
+            <div><div class="supp-name">Magnesium Glycinate</div><div class="supp-desc"><b>2 caps</b> before bed &middot; Nature Made 200 mg; next bottle Nature&rsquo;s Bounty 240 mg. Never 3 (the multi adds 75 mg).</div></div>
+          </div>
+          <div class="supp ${daily?.multi_taken?'on':''}" onclick="toggleSupp('multi_taken')">
+            <div class="supp-box">${daily?.multi_taken?'&#10003;':''}</div>
+            <div><div class="supp-name">Multivitamin</div><div class="supp-desc">Centrum Silver Men &middot; <b>1 tablet</b> with breakfast &middot; D3 1,000 IU, Mg 75 mg, K1 60 mcg, no iron</div></div>
+          </div>
+          <div class="supp ${daily?.probiotic_taken?'on':''}" onclick="toggleSupp('probiotic_taken')">
+            <div class="supp-box">${daily?.probiotic_taken?'&#10003;':''}</div>
+            <div><div class="supp-name">Probiotic</div><div class="supp-desc">Align &middot; <b>1 capsule</b> a day</div></div>
           </div>
         </div>
       </div>
@@ -4638,7 +4654,7 @@ function render() {
 
 // Nutrition actions
 const SUPP_FOOD = {
-  omega3_taken:   { food_name:'Fish Oil (1 softgel)',  calories:5,  protein_g:0, added_sugar_g:0, fat_g:0.5, carbs_g:0,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
+  omega3_taken:   { food_name:'Fish Oil (4 softgels)', calories:70, protein_g:0, added_sugar_g:0, fat_g:6,   carbs_g:2,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
   d3_k2_taken:    { food_name:'D3+K2 Gummy (1)',       calories:8,  protein_g:0, added_sugar_g:1, fat_g:0,   carbs_g:1.5, fiber_g:0, sodium_mg:3,  potassium_mg:0  },
 };
 async function toggleSupp(field) {
@@ -5171,6 +5187,7 @@ function renderHistory(rows) {
   const o3Comp    = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
   const d3Comp    = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
   const mgComp    = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
+  const mvComp    = Math.round(recent.filter(r => r.multi_taken).length / n * 100);
   const daysOverSugar = recent.filter(r => parseFloat(r.total_added_sugar_g) > 36).length;
   const daysLowProt   = recent.filter(r => parseFloat(r.total_protein_g) < 150).length;
   const deficitDays   = recent.filter(r => r.total_calories < dayBudget(r.log_date)).length;
@@ -5226,7 +5243,7 @@ function renderHistory(rows) {
           <div class="ins ${insClr(woComp, 75, 50, true)}">
             <div class="ins-val">${woComp}%</div>
             <div class="ins-lbl">Workout Rate</div>
-            <div class="ins-sub">&#937; ${o3Comp}% &middot; D3 ${d3Comp}% &middot; Mg ${mgComp}%</div>
+            <div class="ins-sub">&#937; ${o3Comp}% &middot; D3 ${d3Comp}% &middot; Mg ${mgComp}% &middot; Multi ${mvComp}%</div>
           </div>
           <div class="ins ${avgSleepMin ? insClr(avgSleepMin, 420, 360, true) : ''}">
             <div class="ins-val">${avgSleepMin ? fmtHM(avgSleepMin) : '—'}</div>
@@ -5305,6 +5322,7 @@ function renderHistory(rows) {
           <div class="supp-dot ${r.omega3_taken?'on':''}" title="Omega-3"></div>
           <div class="supp-dot ${r.d3_k2_taken?'on':''}" title="D3+K2"></div>
           <div class="supp-dot ${r.magnesium_taken?'on':''}" title="Magnesium"></div>
+          <div class="supp-dot ${r.multi_taken?'on':''}" title="Multivitamin"></div>
         </div>
       </div>
       ${note ? `<div class="hist-note"><span>${note.replace(/</g,'&lt;')}</span><button class="hist-note-btn" onclick="openNoteOverlay('${r.log_date}',this.closest('.hist-note').querySelector('span').textContent)">&#9998;</button></div>` : ''}
