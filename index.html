@@ -5144,15 +5144,21 @@ const STATS_START = '2026-08-22';
 async function loadHistory() {
   try {
     const [rows, noteRows, actRows, sleepRows, ghRows] = await Promise.all([
-      sbGet('daily_summary', {order: 'log_date.desc', limit: '120'}),
-      sbGet('daily_log',     {order: 'log_date.desc', limit: '120'}),
+      sbGet('daily_summary', {order: 'log_date.desc', limit: '135'}),
+      sbGet('daily_log',     {order: 'log_date.desc', limit: '135'}),
       sbGet('activity_log',  {log_date: `gte.${STATS_START}`, order: 'start_time.desc', limit: '500'}).catch(() => []),
-      sbGet('sleep_log',     {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
-      sbGet('gh_daily',      {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
+      sbGet('sleep_log',     {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '135'}).catch(() => []),
+      sbGet('gh_daily',      {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '135'}).catch(() => []),
     ]);
-    // weekly scorecard: food names for the last 10 weeks
-    const scFrom = new Date(); scFrom.setDate(scFrom.getDate() - 75);
-    window._scFoods = await sbGet('food_log', {select: 'log_date,food_name', log_date: `gte.${scYmd(scFrom)}`, limit: '5000'}).catch(() => []);
+    // scorecard: food names for the last ~4 months (plus the start of the oldest month)
+    const scFrom = new Date(); scFrom.setDate(scFrom.getDate() - 170);
+    // the server returns at most 1,000 rows a request, so page through them
+    window._scFoods = [];
+    for (let off = 0; off < 10000; off += 1000) {
+      const page = await sbGet('food_log', {select: 'log_date,food_name', log_date: `gte.${scYmd(scFrom)}`, order: 'log_date.desc,id', limit: '1000', offset: String(off)}).catch(() => []);
+      window._scFoods.push(...page);
+      if (page.length < 1000) break;
+    }
     window._scDaily = {}; noteRows.forEach(r => { window._scDaily[r.log_date] = r; });
     window._scSum = {};   rows.forEach(r => { window._scSum[r.log_date] = r; });
     window._histGh = {};
@@ -5185,8 +5191,10 @@ async function loadHistory() {
   }
 }
 
-// ── Weekly scorecard (11/17/2026) ─────────────────────
-// Rhonda Patrick's eating pattern, scored Mon-Sun from the food log by name (estimates, not weighed).
+// ── Scorecard (11/17/2026) ────────────────────────────
+// Everything at the top of History in one card: Week / Month, cautions under the rows that are off,
+// tap a row for its last 4 months (older days stay saved but are not shown).
+// Fish / produce / meat are read from food names (Rhonda Patrick's eating pattern), so they are estimates.
 const SC = {
   fish: /salmon|sashimi|mackerel|sardine|trout|herring|anchov/i,
   noProduce: /juice|lager|\bale\b|beer|cider|radler|seltzer/i,
@@ -5207,6 +5215,8 @@ const SC = {
   red: /beef|steak|burger|patty melt|lasagna|meatloaf|taco meat|chili|bolognese|meaty|cheesesteak|stroganoff|barbacoa|pork|\bribs\b|sloppy joe|meatball|\blamb\b|veal/i,
   proc: /hot ?dogs?|\bfranks?\b|sausage|bacon|\bham\b|pepperoni|salami|\bdeli\b|bologna|kielbasa|pastrami|prosciutto|jerky|four meat|supreme/i,
 };
+const SC_DAYS_SHOWN = 122;            // about 4 months
+const SC_MULTI_START = '2026-11-17';  // multivitamin + probiotic started
 function scYmd(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 // produce servings in one food entry: 1 per item named, a big salad 2; vegetables inside a salad
 // are part of that salad (kale/spinach/broccoli still add one); garnish on a sandwich does not count
@@ -5233,94 +5243,281 @@ function scRed(name) {
   if (/few bites|bites taken/i.test(t)) return 0.25;
   return /^(2|3|4|two|three|four)\b/i.test(t.trim()) ? 1.5 : 1;
 }
-function scShift(dir) {
-  window._scOff = Math.min(9, Math.max(0, (window._scOff || 0) + dir));
-  const el = document.getElementById('scorecard');
-  if (el) el.outerHTML = scorecardHTML();
+// same budget math as the calorie staircase
+function scBudget(ds) {
+  const g = (window._histGh || {})[ds];
+  if (g && g.calories) {
+    const sess = (g.run_cal || 0) + (g.walk_cal || 0);
+    return 2000 + sess + Math.max(0, g.calories - 2450 - sess);
+  }
+  return 2000 + (((window._histAct || {})[ds]?.cal) || 0);
 }
-function scorecardHTML() {
-  const off = window._scOff || 0;
-  const today = new Date(); today.setHours(12, 0, 0, 0);
-  const mon = new Date(today); mon.setDate(today.getDate() - ((today.getDay() + 6) % 7) - 7 * off);
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  const days = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate() + i); if (d <= today) days.push(scYmd(d)); }
+
+let scMode = (() => { try { return localStorage.getItem('scMode') === 'month' ? 'month' : 'week'; } catch (_) { return 'week'; } })();
+let scOff = 0;      // 0 = this week / this month
+let scOpen = null;  // the row whose 4-month chart is open
+
+// one record per day from the fresh start (or 4 months back) to today
+function scDays() {
+  if (window._scDays) return window._scDays;
   const foodsBy = {};
   (window._scFoods || []).forEach(f => { (foodsBy[f.log_date] = foodsBy[f.log_date] || []).push(f.food_name); });
-  const dl = window._scDaily || {}, sm = window._scSum || {};
-  const logged = days.filter(d => (foodsBy[d] || []).length);
-  const nl = logged.length || 1;
-  let fishDays = 0, o3 = 0, produce = 0, fiber = 0, red = 0, procDays = 0, wo = 0, rest = 0;
-  const seen = { produce: {}, fish: [], red: [], proc: [] };
-  for (const d of days) {
-    const fl = foodsBy[d] || [], r = dl[d];
+  const dl = window._scDaily || {}, sm = window._scSum || {}, act = window._histAct || {}, body = window._histBody || {};
+  const sleepBy = {};
+  (window._histSleep || []).forEach(s => { if (!s.partial && s.min_asleep) sleepBy[s.log_date] = s.min_asleep; });
+  const R = {};
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const first = new Date(today); first.setDate(today.getDate() - SC_DAYS_SHOWN - 40);
+  for (const d = new Date(first); d <= today; d.setDate(d.getDate() + 1)) {
+    const ds = scYmd(d);
+    if (ds < STATS_START) continue;
+    const fl = foodsBy[ds] || [], r = dl[ds], s = sm[ds], a = act[ds];
+    const rec = { d: ds, dow: d.getDay(), logged: !!(s && s.total_calories > 0), row: !!r };
+    if (rec.logged) {
+      rec.cal = s.total_calories; rec.budget = scBudget(ds);
+      rec.prot = parseFloat(s.total_protein_g) || 0; rec.sugar = parseFloat(s.total_added_sugar_g) || 0;
+      rec.na = s.total_sodium_mg || 0; rec.fiber = parseFloat(s.total_fiber_g) || 0;
+    }
     const fishFood = fl.filter(n => SC.fish.test(n));
-    const fishDay = !!((r && r.omega3_fish) || fishFood.length);
-    if (fishDay) { fishDays++; seen.fish.push(fishFood[0] || 'Fish (tapped)'); }
-    if (r) {
-      o3 += (r.omega3_am ? 0.6 : 0) + (r.omega3_pm ? 0.6 : 0);
-      if (r.workout_done) wo++; else if (r.rest_day) rest++;
-    }
-    if (fishDay) o3 += 1.2;
-    if (fl.length) fiber += parseFloat(sm[d]?.total_fiber_g || 0);
-    let proc = false;
+    rec.fish = !!((r && r.omega3_fish) || fishFood.length);
+    rec.fishName = fishFood[0] || (rec.fish ? 'Fish (tapped)' : null);
+    rec.o3 = (r && r.omega3_am ? 0.6 : 0) + (r && r.omega3_pm ? 0.6 : 0) + (rec.fish ? 1.2 : 0);
+    rec.produce = 0; rec.prodLabels = []; rec.red = 0; rec.redNames = []; rec.procNames = [];
     for (const n of fl) {
-      const p = scProduce(n);
-      produce += p.n;
-      p.labels.forEach(l => { seen.produce[l] = (seen.produce[l] || 0) + 1; });
-      if (SC.proc.test(n)) { proc = true; seen.proc.push(n); }
-      const m = scRed(n);
-      if (m) { red += m; seen.red.push(n); }
+      const p = scProduce(n); rec.produce += p.n; rec.prodLabels.push(...p.labels);
+      if (SC.proc.test(n)) rec.procNames.push(n);
+      const m = scRed(n); if (m) { rec.red += m; rec.redNames.push(n); }
     }
-    if (proc) procDays++;
+    rec.wo = !!(r && r.workout_done); rec.rest = !!(r && r.rest_day && !r.workout_done);
+    rec.supp = r ? { o3: !!r.omega3_taken, d3: !!r.d3_k2_taken, mg: !!r.magnesium_taken, mv: !!r.multi_taken } : null;
+    rec.sleep = sleepBy[ds] || null;
+    rec.weight = body[ds]?.w ? parseFloat(body[ds].w) : null; rec.waist = body[ds]?.waist ? parseFloat(body[ds].waist) : null;
+    rec.runs = a?.runs || 0; rec.runMi = a?.runMi || 0; rec.runSec = a?.runSec || 0;
+    R[ds] = rec;
   }
-  const partial = off === 0;
-  const o3avg = days.length ? o3 / days.length : 0;
-  const prodAvg = produce / nl, fibAvg = fiber / nl, redOz = Math.round(red * 4);
-  const C = { ok: 'var(--accent)', warn: 'var(--yellow)', bad: 'var(--red)' };
-  const row = (icon, label, val, target, st) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
-        <span style="width:22px;text-align:center">${icon}</span>
-        <span style="flex:1;font-size:13px">${label}<div style="font-size:10px;color:var(--muted)">${target}</div></span>
-        <span style="font-family:monospace;font-size:14px;font-weight:700;color:${C[st]}">${val}</span>
-        <span style="width:8px;height:8px;border-radius:50%;background:${C[st]};flex:none"></span>
-      </div>`;
-  const fishSt = fishDays >= 2 ? 'ok' : (partial || fishDays === 1) ? 'warn' : 'bad';
+  return (window._scDays = R);
+}
+
+// the dates in one week or month (only days that have happened, from the fresh start on)
+function scPeriod(mode, off) {
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  let start, end, label;
   const fmt = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const list = arr => {
-    const c = {}; arr.forEach(x => { c[x] = (c[x] || 0) + 1; });
-    return Object.entries(c).map(([k, v]) => `${k.replace(/</g, '&lt;')}${v > 1 ? ' &times;' + v : ''}`).join(' &middot; ') || 'none';
-  };
-  const prodList = Object.entries(seen.produce).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}${v > 1 ? ' &times;' + v : ''}`).join(' &middot; ') || 'none';
-  const navBtn = (dir, txt, dis) => `<button onclick="scShift(${dir})" ${dis ? 'disabled' : ''} style="background:none;border:1px solid var(--border);color:${dis ? 'var(--surface2)' : 'var(--muted)'};border-radius:6px;padding:2px 9px;font-size:13px;cursor:${dis ? 'default' : 'pointer'}">${txt}</button>`;
-  const woGoal = partial ? Math.max(0, Math.min(days.length, 6) - rest) : Math.max(0, 6 - rest);
+  if (mode === 'month') {
+    start = new Date(today.getFullYear(), today.getMonth() - off, 1, 12);
+    end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 12);
+    label = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  } else {
+    start = new Date(today); start.setDate(today.getDate() - ((today.getDay() + 6) % 7) - 7 * off);
+    end = new Date(start); end.setDate(start.getDate() + 6);
+    label = `${fmt(start)} – ${fmt(end)}`;
+  }
+  const days = [];
+  for (const d = new Date(start); d <= end && d <= today; d.setDate(d.getDate() + 1)) {
+    const ds = scYmd(d); if (ds >= STATS_START) days.push(ds);
+  }
+  return { start, end, label, days, span: Math.round((end - start) / 86400000) + 1, partial: off === 0, short: mode === 'month' ? start.toLocaleDateString('en-US', { month: 'short' }) : `${start.getMonth() + 1}/${start.getDate()}` };
+}
+function scMaxOff(mode) {
+  const oldest = new Date(); oldest.setDate(oldest.getDate() - SC_DAYS_SHOWN);
+  const limit = scYmd(oldest) > STATS_START ? scYmd(oldest) : STATS_START;
+  let off = 0;
+  while (off < 40 && scYmd(scPeriod(mode, off + 1).end) >= limit) off++;
+  return off;
+}
+
+// all the scorecard rows for one period: value, goal, status (ok / warn / bad / info), caution or good note,
+// and the number its 4-month chart plots
+function scAgg(days, span) {
+  const R = scDays();
+  const L = days.map(d => R[d]).filter(Boolean);
+  const el = L.length, wk = Math.max(el, 1) / 7;
+  // limits (red meat, processed) are for the whole week or month, not just the days so far
+  const spanWk = Math.max(span || el, 1) / 7;
+  const lg = L.filter(r => r.logged), nl = lg.length;
+  const mean = (arr, f) => arr.length ? arr.reduce((s, r) => s + f(r), 0) / arr.length : 0;
+  const lvl = (v, ok, warn, hi) => hi ? (v >= ok ? 'ok' : v >= warn ? 'warn' : 'bad') : (v <= ok ? 'ok' : v <= warn ? 'warn' : 'bad');
+  const rows = [];
+  const add = o => rows.push(o);
+  const none = nl === 0;
+
+  // Eating
+  const cal = Math.round(mean(lg, r => r.cal)), bud = Math.round(mean(lg, r => r.budget));
+  const deficit = lg.filter(r => r.cal < r.budget).length;
+  add({ k: 'cal', g: 'Eating', icon: '&#128293;', label: 'Calories', disp: none ? '—' : cal.toLocaleString(),
+    target: none ? 'no food logged' : `budget ${bud.toLocaleString()} &middot; deficit ${deficit} of ${nl} days`,
+    st: none ? 'none' : lvl(cal, bud, bud + 200, false), chart: cal, goal: bud,
+    caution: cal > bud ? `Averaging ${(cal - bud).toLocaleString()} cal a day over budget` : null,
+    good: !none && deficit === nl && nl >= 3 ? `In a calorie deficit all ${nl} days` : null });
+  const prot = Math.round(mean(lg, r => r.prot)), lowP = lg.filter(r => r.prot < 150).length;
+  add({ k: 'prot', g: 'Eating', icon: '&#127831;', label: 'Protein', disp: none ? '—' : prot + ' g', target: 'goal 150 g a day',
+    st: none ? 'none' : lvl(prot, 150, 130, true), chart: prot, goal: 150, hi: true,
+    caution: lowP > Math.ceil(nl / 4) ? `Under 150 g on ${lowP} of ${nl} days: protein at every meal` : null });
+  const sug = mean(lg, r => r.sugar), overS = lg.filter(r => r.sugar > 36).length;
+  let sugSt = none ? 'none' : lvl(sug, 25, 36, false);
+  if (sugSt === 'ok' && overS > Math.ceil(nl / 6)) sugSt = 'warn';
+  add({ k: 'sugar', g: 'Eating', icon: '&#127852;', label: 'Added sugar', disp: none ? '—' : sug.toFixed(0) + ' g', target: `limit 36 g a day &middot; ${overS} day${overS === 1 ? '' : 's'} over`,
+    st: sugSt, chart: Math.round(sug), goal: 36,
+    caution: overS > Math.ceil(nl / 6) ? `Over the 36 g limit on ${overS} of ${nl} days: sauces, dressings, drinks, snacks` : null });
+  const na = Math.round(mean(lg, r => r.na));
+  add({ k: 'na', g: 'Eating', icon: '&#129474;', label: 'Sodium', disp: none ? '—' : na.toLocaleString(), target: 'baseline 2,300 mg (more on sweaty days)',
+    st: none ? 'none' : lvl(na, 2300, 3200, false), chart: na, goal: 2300,
+    caution: na > 3200 ? 'Sodium running high: soups and salty sides are the usual source' : null });
+  const fib = mean(lg, r => r.fiber);
+  add({ k: 'fiber', g: 'Eating', icon: '&#127806;', label: 'Fiber', disp: none ? '—' : Math.round(fib) + ' g', target: 'goal 30 g a day',
+    st: none ? 'none' : lvl(fib, 30, 22, true), chart: Math.round(fib), goal: 30, hi: true,
+    caution: !none && fib < 22 ? 'Fiber low: greens, berries, beans, whole grains' : null });
+  const prod = mean(lg, r => r.produce);
+  const prodC = {}; lg.forEach(r => r.prodLabels.forEach(l => { prodC[l] = (prodC[l] || 0) + 1; }));
+  add({ k: 'prod', g: 'Eating', icon: '&#129388;', label: 'Fruit &amp; veg', disp: none ? '—' : '&asymp;' + prod.toFixed(1), target: 'goal 5 servings a day',
+    st: none ? 'none' : lvl(prod, 5, 3, true), chart: +prod.toFixed(1), goal: 5, hi: true,
+    caution: !none && prod < 3 ? `About ${prod.toFixed(1)} servings a day: the kale &amp; blueberry salad adds 3` : null,
+    counted: Object.entries(prodC).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + (v > 1 ? ' &times;' + v : '')).join(' &middot; ') });
+
+  // Fish & meat (Rhonda Patrick's pattern)
+  const fish = L.filter(r => r.fish).length, fishGoal = 2 * wk;
+  add({ k: 'fish', g: 'Fish &amp; meat', icon: '&#128031;', label: 'Fatty fish', disp: `${fish} day${fish === 1 ? '' : 's'}`,
+    target: `goal 2 a week${el > 8 ? ` (&asymp;${Math.round(fishGoal)} here)` : ''}`,
+    st: fish >= fishGoal - 0.01 ? 'ok' : fish >= fishGoal / 2 || el < 4 ? 'warn' : 'bad', chart: +(fish / wk).toFixed(1), goal: 2, hi: true, perWeek: true,
+    caution: fish < fishGoal / 2 && el >= 4 ? 'Not much fatty fish: a can of salmon counts' : null,
+    counted: L.filter(r => r.fish).map(r => r.fishName).join(' &middot; ') });
+  const o3 = mean(L, r => r.o3);
+  add({ k: 'o3', g: 'Fish &amp; meat', icon: '&#937;', label: 'Omega-3', disp: o3.toFixed(1) + ' g', target: 'goal 1.5&ndash;2 g a day (EPA+DHA)',
+    st: lvl(o3, 1.5, 1, true), chart: +o3.toFixed(1), goal: 1.5, hi: true,
+    caution: o3 < 1 ? 'Omega-3 low: 2 softgels every morning, 2 at dinner unless salmon' : null });
+  const redOz = Math.round(L.reduce((s, r) => s + r.red, 0) * 4), redLim = 18 * spanWk;
+  add({ k: 'red', g: 'Fish &amp; meat', icon: '&#129385;', label: 'Red meat', disp: '&asymp;' + redOz + ' oz',
+    target: `at most 18 oz a week${spanWk > 1.5 ? ` (&asymp;${Math.round(redLim)} here)` : ''}`,
+    st: lvl(redOz, redLim, redLim * 4 / 3, false), chart: Math.round(redOz / wk), goal: 18, perWeek: true,
+    caution: redOz - redLim >= 1 ? `About ${Math.round(redOz - redLim)} oz over: swap a beef meal for fish or chicken` : null,
+    counted: L.flatMap(r => r.redNames).map(n => n.replace(/</g, '&lt;')).join(' &middot; ') });
+  const procDays = L.filter(r => r.procNames.length).length, procLim = Math.ceil(spanWk);
+  add({ k: 'proc', g: 'Fish &amp; meat', icon: '&#127789;', label: 'Processed meat', disp: `${procDays} day${procDays === 1 ? '' : 's'}`, target: 'goal none (hot dogs, sausage, bacon, deli)',
+    st: procDays === 0 ? 'ok' : procDays <= procLim ? 'warn' : 'bad', chart: +(procDays / wk).toFixed(1), goal: 0, perWeek: true,
+    caution: procDays > procLim ? `Processed meat on ${procDays} days` : null,
+    counted: L.flatMap(r => r.procNames).map(n => n.replace(/</g, '&lt;')).join(' &middot; ') });
+
+  // Habits & body
+  const done = L.filter(r => r.wo).length, rest = L.filter(r => r.rest).length;
+  const expected = Math.max(1, L.filter(r => r.dow !== 0 && !r.rest).length);
+  const rate = Math.min(100, Math.round(done / expected * 100));
+  add({ k: 'wo', g: 'Habits &amp; body', icon: '&#128170;', label: 'Workouts', disp: `${done} &middot; ${rate}%`,
+    target: `${rest ? rest + ' rest day' + (rest === 1 ? '' : 's') + ' (not counted) &middot; ' : ''}Sundays off`,
+    st: el ? lvl(rate, 80, 60, true) : 'none', chart: rate, goal: 80, hi: true, unit: '%',
+    caution: el && rate < 60 ? `${expected - done} workout${expected - done === 1 ? '' : 's'} missed` : null,
+    good: el >= 5 && rate >= 80 ? 'Strong workout consistency: keep it up' : null });
+  const sd = L.filter(r => r.row), sn = Math.max(sd.length, 1);
+  const pct = f => Math.round(sd.filter(f).length / sn * 100);
+  const mvDays = sd.filter(r => r.d >= SC_MULTI_START);
+  const sp = [['Omega-3', pct(r => r.supp.o3)], ['D3', pct(r => r.supp.d3)], ['Mg', pct(r => r.supp.mg)]];
+  if (mvDays.length) sp.push(['Multi', Math.round(mvDays.filter(r => r.supp.mv).length / mvDays.length * 100)]);
+  const spMin = Math.min(...sp.map(x => x[1])), spAvg = Math.round(sp.reduce((s, x) => s + x[1], 0) / sp.length);
+  const lowSp = sp.filter(x => x[1] < 60).map(x => x[0]);
+  add({ k: 'supp', g: 'Habits &amp; body', icon: '&#128138;', label: 'Supplements', disp: sd.length ? spAvg + '%' : '—',
+    target: sp.map(x => `${x[0]} ${x[1]}%`).join(' &middot; '),
+    st: sd.length ? lvl(spMin, 80, 60, true) : 'none', chart: spAvg, goal: 80, hi: true, unit: '%',
+    caution: sd.length >= 5 && lowSp.length ? `${lowSp.join(', ')} under 60% of days${lowSp.includes('Mg') ? ': magnesium helps sleep and recovery' : ''}` : null });
+  const nights = L.filter(r => r.sleep), slp = Math.round(mean(nights, r => r.sleep));
+  add({ k: 'sleep', g: 'Habits &amp; body', icon: '&#128564;', label: 'Sleep', disp: nights.length ? fmtHM(slp) : '—', target: 'goal 7 h a night',
+    st: nights.length ? lvl(slp, 420, 390, true) : 'none', chart: +(slp / 60).toFixed(1), goal: 7, hi: true, unit: 'h',
+    caution: nights.length && slp < 390 ? 'Averaging under 6.5 h: recovery suffers first' : null });
+  const ws = L.filter(r => r.weight), wa = L.filter(r => r.waist);
+  const wLast = ws.length ? ws[ws.length - 1].weight : null, wDelta = ws.length > 1 ? Math.round((wLast - ws[0].weight) * 10) / 10 : null;
+  add({ k: 'wt', g: 'Habits &amp; body', icon: '&#9878;&#65039;', label: 'Weight', disp: wLast != null ? wLast + ' lb' : '—',
+    target: `${!ws.length ? 'no weigh-ins' : wDelta == null ? 'one weigh-in' : wDelta === 0 ? 'no change' : (wDelta > 0 ? '+' : '') + wDelta + ' lb this period'}${wa.length ? ` &middot; waist ${wa[wa.length - 1].waist}"` : ''}`,
+    st: wLast != null ? 'info' : 'none', chart: wLast, goal: null, unit: ' lb' });
+  const runs = L.reduce((s, r) => s + r.runs, 0), mi = L.reduce((s, r) => s + r.runMi, 0), sec = L.reduce((s, r) => s + r.runSec, 0);
+  add({ k: 'run', g: 'Habits &amp; body', icon: '&#127939;', label: 'Runs', disp: runs ? `${runs} &middot; ${mi.toFixed(1)} mi` : '0',
+    target: runs && mi > 0.1 ? `avg ${fmtPace(sec, mi)}` : 'none recorded as a Run', st: 'info', chart: +(mi / wk).toFixed(1), goal: null, perWeek: true, unit: ' mi' });
+  return rows;
+}
+
+function scGo(off) { scOff = Math.max(0, Math.min(scMaxOff(scMode), off)); scRerender(); }
+function scShift(dir) { scGo(scOff + dir); }
+function scSetMode(m) { scMode = m; scOff = 0; try { localStorage.setItem('scMode', m); } catch (_) {} scRerender(); }
+function scToggle(k) { scOpen = scOpen === k ? null : k; scRerender(); }
+function scRerender() { const el = document.getElementById('scorecard'); if (el) el.outerHTML = scorecardHTML(); }
+
+// last 4 months of one row: weekly bars (Week) or monthly bars (Month); tap a bar to go there
+function scChart(k) {
+  const C = { ok: 'var(--accent)', warn: 'var(--yellow)', bad: 'var(--red)', info: '#60a5fa', none: 'var(--surface2)' };
+  const max = scMaxOff(scMode), pts = [];
+  for (let off = max; off >= 0; off--) {
+    const p = scPeriod(scMode, off);
+    const m = scAgg(p.days, p.span).find(x => x.k === k);
+    pts.push({ off, short: p.short, v: m && m.st !== 'none' ? m.chart : null, st: m ? m.st : 'none', goal: m ? m.goal : null, unit: m && m.unit || '' });
+  }
+  const goal = pts.find(p => p.goal != null)?.goal ?? null;
+  const vals = pts.map(p => p.v).filter(v => v != null);
+  if (!vals.length) return '<div style="font-size:11px;color:var(--muted);padding:8px 0">No data yet.</div>';
+  const top = Math.max(...vals, goal || 0) * 1.12 || 1;
+  const lo = k === 'wt' ? Math.min(...vals) - 2 : 0;
+  const h = v => Math.max(3, Math.round((v - lo) / (top - lo) * 76));
+  const step = Math.ceil(pts.length / 6);
+  const per = pts[0] && scAgg([]).find(x => x.k === k)?.perWeek ? ' (per week)' : '';
+  return `
+    <div style="padding:8px 0 4px">
+      <div style="position:relative;height:84px;display:flex;align-items:flex-end;gap:3px">
+        ${goal != null && goal > lo ? `<div style="position:absolute;left:0;right:0;bottom:${h(goal)}px;border-top:1px dashed var(--muted);opacity:.6"></div>` : ''}
+        ${pts.map(p => `<div onclick="event.stopPropagation();scGo(${p.off})" title="${p.short}: ${p.v == null ? 'no data' : p.v + p.unit}" style="flex:1;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+          <div style="height:${p.v == null ? 2 : h(p.v)}px;background:${p.v == null ? 'var(--surface2)' : C[p.st]};border-radius:3px 3px 0 0;opacity:${p.off === scOff ? 1 : .55};${p.off === scOff ? 'outline:1.5px solid var(--text, #e5e7eb)' : ''}"></div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:3px;margin-top:3px">
+        ${pts.map((p, i) => `<div style="flex:1;font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;overflow:visible">${(pts.length - 1 - i) % step === 0 ? p.short : ''}</div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">${scMode === 'month' ? 'By month' : 'By week'}, last 4 months${per}${goal != null ? ' &middot; dashed line = goal' : ''} &middot; tap a bar to view it</div>
+    </div>`;
+}
+
+function scorecardHTML() {
+  const max = scMaxOff(scMode);
+  if (scOff > max) scOff = max;
+  const P = scPeriod(scMode, scOff);
+  const rows = scAgg(P.days, P.span);
+  const C = { ok: 'var(--accent)', warn: 'var(--yellow)', bad: 'var(--red)', info: 'var(--text, #e5e7eb)', none: 'var(--muted)' };
+  const nOk = rows.filter(r => r.st === 'ok').length, nWarn = rows.filter(r => r.st === 'warn').length, nBad = rows.filter(r => r.st === 'bad').length;
+  const seg = (m, t) => `<button onclick="scSetMode('${m}')" style="border:none;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;background:${scMode === m ? 'var(--acc-d)' : 'none'};color:${scMode === m ? 'var(--accent)' : 'var(--muted)'}">${t}</button>`;
+  const nav = (dir, txt, dis) => `<button onclick="scShift(${dir})" ${dis ? 'disabled' : ''} style="background:none;border:1px solid var(--border);color:${dis ? 'var(--surface2)' : 'var(--muted)'};border-radius:6px;padding:2px 10px;font-size:14px;cursor:${dis ? 'default' : 'pointer'}">${txt}</button>`;
+  let lastG = null, body = '';
+  for (const r of rows) {
+    if (r.g !== lastG) { lastG = r.g; body += `<div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px">${r.g}</div>`; }
+    const open = scOpen === r.k;
+    const note = r.st !== 'ok' && r.caution ? { t: r.caution, c: C[r.st === 'bad' ? 'bad' : 'warn'], i: '&#9888;' } : r.good ? { t: r.good, c: C.ok, i: '&#10003;' } : null;
+    body += `
+      <div onclick="scToggle('${r.k}')" style="cursor:pointer;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:22px;text-align:center">${r.icon}</span>
+          <span style="flex:1;min-width:0;font-size:13px">${r.label}<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.target}</div></span>
+          <span style="font-family:monospace;font-size:14px;font-weight:700;color:${C[r.st]};white-space:nowrap">${r.disp}</span>
+          <span style="font-size:10px;color:var(--muted);width:10px;text-align:center">${open ? '&#9662;' : '&#9656;'}</span>
+        </div>
+        ${note ? `<div style="font-size:11px;color:${note.c};margin:3px 0 0 32px;line-height:1.35">${note.i} ${note.t}</div>` : ''}
+        ${open ? scChart(r.k) + (r.counted ? `<div style="font-size:10px;color:var(--muted);line-height:1.45;padding-bottom:4px"><b>Counted:</b> ${r.counted}</div>` : '') : ''}
+      </div>`;
+  }
   return `
     <div class="card" id="scorecard">
       <div class="card-lbl-row">
-        <div class="card-lbl">Weekly Scorecard</div>
-        <div style="display:flex;gap:5px;align-items:center">
-          ${navBtn(1, '&lsaquo;', off >= 9)}
-          <span style="font-size:11px;color:var(--muted);min-width:92px;text-align:center">${fmt(mon)} &ndash; ${fmt(sun)}</span>
-          ${navBtn(-1, '&rsaquo;', off === 0)}
-        </div>
+        <div class="card-lbl">Scorecard</div>
+        <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:2px">${seg('week', 'Week')}${seg('month', 'Month')}</div>
       </div>
-      <div class="card-body" style="padding-top:0">
-        ${partial ? `<div style="font-size:11px;color:var(--muted);margin:2px 0 4px">This week so far &middot; ${days.length} day${days.length === 1 ? '' : 's'}</div>` : ''}
-        ${row('&#128031;', 'Fatty fish', fishDays + (fishDays === 1 ? ' day' : ' days'), 'goal 2+ a week', fishSt)}
-        ${row('&#937;', 'Omega-3 (EPA+DHA)', o3avg.toFixed(1) + ' g', 'goal 1.5&ndash;2 g a day, average', o3avg >= 1.5 ? 'ok' : o3avg >= 1 ? 'warn' : 'bad')}
-        ${row('&#129388;', 'Fruit &amp; veg', '&asymp;' + prodAvg.toFixed(1), 'goal 5 servings a day, average', prodAvg >= 5 ? 'ok' : prodAvg >= 3 ? 'warn' : 'bad')}
-        ${row('&#127806;', 'Fiber', Math.round(fibAvg) + ' g', 'goal 30 g a day, average', fibAvg >= 30 ? 'ok' : fibAvg >= 22 ? 'warn' : 'bad')}
-        ${row('&#129385;', 'Red meat', '&asymp;' + redOz + ' oz', 'goal 18 oz a week at most', redOz <= 18 ? 'ok' : redOz <= 24 ? 'warn' : 'bad')}
-        ${row('&#127789;', 'Processed meat', procDays + (procDays === 1 ? ' day' : ' days'), 'goal none', procDays === 0 ? 'ok' : procDays === 1 ? 'warn' : 'bad')}
-        ${row('&#128170;', 'Workouts', wo + (rest ? ` &middot; &#128164;${rest}` : ''), 'done &middot; rest days', wo >= woGoal ? 'ok' : 'warn')}
-        <details style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">
-          <summary style="cursor:pointer">What counted</summary>
-          <div style="margin-top:4px"><b>Fish:</b> ${list(seen.fish)}</div>
-          <div><b>Fruit &amp; veg:</b> ${prodList}</div>
-          <div><b>Red meat:</b> ${list(seen.red)}</div>
-          <div><b>Processed:</b> ${list(seen.proc)}</div>
-          <div style="margin-top:4px">Counted from food names, so these are estimates. Omega-3: 0.6 g per 2 softgels, about 1.2 g on a fish day.</div>
-        </details>
+      <div class="card-body" style="padding-top:2px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${nav(1, '&lsaquo;', scOff >= max)}
+          <div style="flex:1;text-align:center">
+            <div style="font-size:13px;font-weight:600">${P.label}</div>
+            <div style="font-size:10px;color:var(--muted)">${P.partial ? 'so far &middot; ' : ''}${P.days.length} day${P.days.length === 1 ? '' : 's'}</div>
+          </div>
+          ${nav(-1, '&rsaquo;', scOff === 0)}
+        </div>
+        <div style="display:flex;justify-content:center;gap:14px;font-size:11px;margin-top:8px">
+          <span style="color:var(--accent)">&#10003; ${nOk} on track</span>
+          <span style="color:var(--yellow)">&#9888; ${nWarn} to watch</span>
+          <span style="color:var(--red)">&#10007; ${nBad} off</span>
+        </div>
+        ${body}
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4">Tap a row for its last 4 months. Fish, fruit &amp; veg and meat are read from food names, so they are estimates. Older than 4 months stays saved but is not shown.</div>
       </div>
     </div>`;
 }
@@ -5345,123 +5542,9 @@ function renderHistory(rows) {
     document.getElementById('history-root').innerHTML = '<div class="food-empty">No history yet.</div>';
     return;
   }
-  // Stats window: fresh-start days with food logged
-  const recent = rows.filter(r => r.log_date >= STATS_START && r.total_calories > 0);
-  const n = recent.length || 1;
-  const avg = key => (recent.reduce((s,r) => s + parseFloat(r[key]||0), 0) / n);
-  const act = window._histAct || {};
-  const ghd = window._histGh || {};
-  // Same math as the staircase: sessions earn in full, "other" is burn above a
-  // normal no-exercise day (2,450). Falls back to session calories when no snapshot.
-  const dayBudget = ds => {
-    const g = ghd[ds];
-    if (g && g.calories) {
-      const sess = (g.run_cal || 0) + (g.walk_cal || 0);
-      return 2000 + sess + Math.max(0, g.calories - 2450 - sess);
-    }
-    return 2000 + ((act[ds]?.cal) || 0);
-  };
-  const avgCal    = Math.round(avg('total_calories'));
-  const avgBudget = Math.round(recent.reduce((s,r) => s + dayBudget(r.log_date), 0) / n);
-  const avgProt   = avg('total_protein_g').toFixed(0);
-  const avgSugar  = avg('total_added_sugar_g').toFixed(1);
-  const avgNa     = Math.round(avg('total_sodium_mg'));
-  // rest days are a choice, not a miss: they leave the workout rate alone
-  const restDays  = recent.filter(r => r.rest_day && !r.workout_done).length;
-  const woComp    = Math.round(recent.filter(r => r.workout_done).length / Math.max(1, n - restDays) * 100);
-  const o3Comp    = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
-  const d3Comp    = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
-  const mgComp    = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
-  const mvComp    = Math.round(recent.filter(r => r.multi_taken).length / n * 100);
-  const daysOverSugar = recent.filter(r => parseFloat(r.total_added_sugar_g) > 36).length;
-  const daysLowProt   = recent.filter(r => parseFloat(r.total_protein_g) < 150).length;
-  const deficitDays   = recent.filter(r => r.total_calories < dayBudget(r.log_date)).length;
-
-  // Running + sleep totals since fresh start
-  let runs = 0, runMi = 0, runSec = 0;
-  Object.values(act).forEach(m => { runs += m.runs; runMi += m.runMi; runSec += m.runSec; });
-  const runPace = runMi > 0.1 ? fmtPace(runSec, runMi) : '';
-  const sleepRows2 = window._histSleep || [];
-  const avgSleepMin = sleepRows2.length ? Math.round(sleepRows2.reduce((s,x) => s + x.min_asleep, 0) / sleepRows2.length) : 0;
-
-  const flags = [];
-  if (deficitDays === n && n >= 3)      flags.push(`&#10003; In a calorie deficit all ${n} tracked days`);
-  if (parseFloat(avgProt)  < 140)       flags.push('&#9888; Avg protein below 150g — prioritize protein at each meal');
-  if (parseFloat(avgSugar) > 30)        flags.push('&#9888; Avg added sugar trending high — watch sauces, dressings, drinks');
-  if (daysOverSugar > Math.ceil(n/6))   flags.push(`&#9888; Sugar limit exceeded ${daysOverSugar} of ${n} days`);
-  if (daysLowProt   > Math.ceil(n/4))   flags.push(`&#9888; Protein under target ${daysLowProt} of ${n} days`);
-  if (mgComp < 60 && n >= 5)            flags.push('&#9888; Magnesium compliance low — affects sleep and recovery');
-  if (o3Comp < 60 && n >= 5)            flags.push('&#9888; Omega-3 compliance low — take with any meal');
-  if (woComp >= 80 && n >= 5)           flags.push('&#10003; Strong workout consistency — keep it up');
-  if (avgSleepMin && avgSleepMin < 390) flags.push('&#9888; Avg sleep under 6.5h — recovery suffers first');
-
-  const insClr = (val, good, bad, higher) =>
-    higher ? (val >= good ? 'ok' : val >= bad ? 'warn' : 'bad')
-           : (val <= good ? 'ok' : val <= bad ? 'warn' : 'bad');
-
-  const startLbl = new Date(STATS_START + 'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const dayBudget = scBudget;
+  window._scDays = null;   // rebuilt from the freshly loaded data
   let html = `
-    <div class="card">
-      <div class="card-lbl">Since ${startLbl} &middot; ${n} day${n===1?'':'s'} tracked</div>
-      <div class="card-body">
-        <div class="insight-grid">
-          <div class="ins ${insClr(avgCal, avgBudget, avgBudget + 200, false)}">
-            <div class="ins-val">${avgCal.toLocaleString()}</div>
-            <div class="ins-lbl">Avg Calories</div>
-            <div class="ins-sub">avg budget ${avgBudget.toLocaleString()} &middot; ${deficitDays}/${n} deficit</div>
-          </div>
-          <div class="ins ${insClr(parseFloat(avgProt), 150, 130, true)}">
-            <div class="ins-val">${avgProt}g</div>
-            <div class="ins-lbl">Avg Protein</div>
-            <div class="ins-sub">target &#8805; 150g</div>
-          </div>
-          <div class="ins ${insClr(parseFloat(avgSugar), 25, 36, false)}">
-            <div class="ins-val">${avgSugar}g</div>
-            <div class="ins-lbl">Avg Added Sugar</div>
-            <div class="ins-sub">limit 36g &middot; ${daysOverSugar} days over</div>
-          </div>
-          <div class="ins ${insClr(avgNa, 2300, 3200, false)}">
-            <div class="ins-val">${avgNa.toLocaleString()}</div>
-            <div class="ins-lbl">Avg Sodium (mg)</div>
-            <div class="ins-sub">baseline 2,300</div>
-          </div>
-          <div class="ins ${insClr(woComp, 75, 50, true)}">
-            <div class="ins-val">${woComp}%</div>
-            <div class="ins-lbl">Workout Rate${restDays ? ` <span style="font-weight:400">&middot; &#128164; ${restDays}</span>` : ''}</div>
-            <div class="ins-sub">&#937; ${o3Comp}% &middot; D3 ${d3Comp}% &middot; Mg ${mgComp}% &middot; Multi ${mvComp}%</div>
-          </div>
-          <div class="ins ${avgSleepMin ? insClr(avgSleepMin, 420, 360, true) : ''}">
-            <div class="ins-val">${avgSleepMin ? fmtHM(avgSleepMin) : '—'}</div>
-            <div class="ins-lbl">Avg Sleep</div>
-            <div class="ins-sub">goal 7h+</div>
-          </div>
-          ${(() => {
-            const body = window._histBody || {};
-            const entries = Object.entries(body).filter(([d]) => d >= STATS_START).sort((a,b) => a[0].localeCompare(b[0]));
-            const withW = entries.filter(([,v]) => v.w);
-            if (!withW.length) return '';
-            const first = withW[0][1].w, last = withW[withW.length-1][1].w;
-            const delta = Math.round((last - first) * 10) / 10;
-            const waists = entries.filter(([,v]) => v.waist);
-            const waistTxt = waists.length ? ` · waist ${waists[waists.length-1][1].waist}"` : '';
-            return `
-          <div class="ins">
-            <div class="ins-val">${last}</div>
-            <div class="ins-lbl">Weight (lbs)</div>
-            <div class="ins-sub">${delta === 0 ? 'no change' : (delta < 0 ? delta : '+'+delta) + ' lbs'}${waistTxt}</div>
-          </div>`;
-          })()}
-        </div>
-        ${runs ? `<div style="margin-top:10px;background:var(--surface2);border-radius:8px;padding:9px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline">
-          <span style="font-size:12px">🏃 <b>${runs}</b> run${runs===1?'':'s'}</span>
-          <span style="font-family:monospace;font-size:12px;color:var(--accent)">${runMi.toFixed(1)} mi</span>
-          ${runPace ? `<span style="font-family:monospace;font-size:12px;color:var(--muted)">avg ${runPace}</span>` : ''}
-        </div>` : ''}
-        ${flags.length ? `<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
-          ${flags.map(f => `<div style="font-size:12px;color:${f.startsWith('&#10003;')?'var(--accent)':'var(--yellow)'};line-height:1.4">${f}</div>`).join('')}
-        </div>` : ''}
-      </div>
-    </div>
     ${scorecardHTML()}
     <div class="card" style="margin-bottom:16px">
       <div class="card-lbl">Daily Log</div>
