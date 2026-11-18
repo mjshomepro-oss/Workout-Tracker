@@ -5332,8 +5332,9 @@ function scPeriod(mode, off) {
     end = new Date(start); end.setDate(start.getDate() + 6);
     label = `${fmt(start)} – ${fmt(end)}`;
   }
+  // finished days only: today counts starting tomorrow (a half-eaten day skews the averages)
   const days = [];
-  for (const d = new Date(start); d <= end && d <= today; d.setDate(d.getDate() + 1)) {
+  for (const d = new Date(start); d <= end && d < today; d.setDate(d.getDate() + 1)) {
     const ds = scYmd(d); if (ds >= STATS_START) days.push(ds);
   }
   return { start, end, label, days, span: Math.round((end - start) / 86400000) + 1, partial: off === 0, short: mode === 'month' ? start.toLocaleDateString('en-US', { month: 'short' }) : `${start.getMonth() + 1}/${start.getDate()}` };
@@ -5545,7 +5546,7 @@ function scorecardHTML() {
           ${nav(1, '&lsaquo;', scOff >= max)}
           <div style="flex:1;text-align:center">
             <div style="font-size:13px;font-weight:600">${P.label}</div>
-            <div style="font-size:10px;color:var(--muted)">${P.partial ? 'so far &middot; ' : ''}${P.days.length} day${P.days.length === 1 ? '' : 's'}${scCheckedTxt(P)}</div>
+            <div style="font-size:10px;color:var(--muted)">${P.partial ? (P.days.length ? `through yesterday &middot; ${P.days.length} day${P.days.length === 1 ? '' : 's'}` : 'no finished days yet: today counts tomorrow') : `${P.days.length} day${P.days.length === 1 ? '' : 's'}`}${scCheckedTxt(P)}</div>
           </div>
           ${nav(-1, '&rsaquo;', scOff === 0)}
         </div>
@@ -5555,7 +5556,7 @@ function scorecardHTML() {
           <span style="color:var(--red)">&#10007; ${nBad} off</span>
         </div>
         ${body}
-        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4">Tap a row for its last 4 months. Fish, fruit &amp; veg and meat start as estimates from food names; Claude checks the current week each night and checks off each finished week. Older than 4 months stays saved but is not shown.</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4">Today is added tomorrow, once the day is done. Tap a row for its last 4 months. Fish, fruit &amp; veg and meat start as estimates from food names; Claude checks the current week each night and checks off each finished week. Older than 4 months stays saved but is not shown.</div>
       </div>
     </div>`;
 }
