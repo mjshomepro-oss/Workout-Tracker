@@ -917,9 +917,13 @@ body {
   <div class="form-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title" style="margin-bottom:4px">&#129367; Kale salad</div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:12px">Base: kale 2 handfuls (60 g), goat cheese 1.5 oz, walnuts 1 tbsp, olive oil 1 tsp, honey 1 tsp, lemon juice 1 tbsp, pinch of salt</div>
-    <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Add fruit</div>
-    <div id="salad-adds" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:12px">Base: kale 2 handfuls (60 g), goat cheese 1.5 oz, olive oil 1 tsp, honey 1 tsp, lemon juice 1 tbsp, pinch of salt</div>
+    <div style="max-height:52vh;overflow-y:auto;padding-right:6px">
+      <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Fruit: tap to pick an amount</div>
+      <div id="salad-fruits" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px">Nuts</div>
+      <div id="salad-nuts"></div>
+    </div>
     <div id="salad-total" style="margin:14px 0 12px;padding:10px;border-radius:10px;background:var(--surface2);font-size:12px;line-height:1.5"></div>
     <button class="tbtn primary" style="width:100%" onclick="logSalad()">Log salad</button>
     <button class="overlay-close" onclick="document.getElementById('saladOverlay').classList.remove('show')">Cancel</button>
@@ -1207,42 +1211,84 @@ let pendingStaple = null;
 
 // ── Kale salad builder (11/18/2026) ──────────────────────
 // Every number checked ingredient by ingredient against USDA (Michael: double check every staple).
-// Base: kale 60 g 29 cal/2.6P/5.3C/2.2Fb/0.6F/23Na/295K; goat cheese 1.5 oz 112/7.8P/9F/195Na;
-// walnuts 1 tbsp 49/1.1P/1.0C/0.5Fb/4.9F/33K; olive oil 1 tsp 40/4.5F; honey 1 tsp 21/5.7C (5.8 g added sugar);
-// lemon juice 1 tbsp 3/1C/15K; salt pinch ~145 Na. Base = 2 fruit & veg servings (2 cups raw kale).
-const SALAD_BASE = { cal: 254, prot: 11.5, carbs: 13.0, fiber: 2.7, fat: 19.0, sugar: 5.8, sodium: 363, potassium: 357, prod: 2 };
-const SALAD_ADDS = [
-  { k: 'bb1', label: 'Blueberries 1 cup', short: 'blueberries 1 cup', cal: 84, prot: 1.1, carbs: 21.5, fiber: 3.6, fat: 0.5, sodium: 1, potassium: 114, prod: 2, group: 'bb' },
-  { k: 'bb5', label: 'Blueberries &frac12; cup', short: 'blueberries 1/2 cup', cal: 42, prot: 0.5, carbs: 10.7, fiber: 1.8, fat: 0.2, sodium: 1, potassium: 57, prod: 1, group: 'bb' },
-  { k: 'bk5', label: 'Blackberries &frac12; cup', short: 'blackberries 1/2 cup', cal: 31, prot: 1.0, carbs: 6.9, fiber: 3.8, fat: 0.4, sodium: 1, potassium: 117, prod: 1 },
-  { k: 'gr5', label: 'Grapes &frac12; cup (~15)', short: 'grapes 1/2 cup', cal: 52, prot: 0.5, carbs: 13.6, fiber: 0.7, fat: 0.1, sodium: 2, potassium: 144, prod: 1 },
+// Base: kale 60 g 29 cal/2.6P/5.3C/2.2Fb/0.6F/23Na/295K; goat cheese 1.5 oz 112/7.8P/9F/195Na/10K;
+// olive oil 1 tsp 40/4.5F; honey 1 tsp 21/5.7C (5.8 g added sugar)/4K; lemon juice 1 tbsp 3/1C/15K; salt pinch ~145 Na.
+// Base = 2 fruit & veg servings (2 cups raw kale). Walnuts and fruit are picked with amounts.
+const SALAD_BASE = { cal: 205, prot: 10.4, carbs: 12.0, fiber: 2.2, fat: 14.1, sugar: 5.8, sodium: 363, potassium: 324, prod: 2 };
+// fruit per 1 cup (USDA SR Legacy); 1/2 cup = 1 fruit serving
+const SALAD_FRUITS = [
+  { k: 'bb', name: 'Blueberries',      cal: 84,  prot: 1.1, carbs: 21.5, fiber: 3.6, fat: 0.5, sodium: 1, potassium: 114 }, // 148 g
+  { k: 'bk', name: 'Blackberries',     cal: 62,  prot: 2.0, carbs: 13.8, fiber: 7.6, fat: 0.7, sodium: 1, potassium: 233 }, // 144 g
+  { k: 'gr', name: 'Grapes',           cal: 104, prot: 1.1, carbs: 27.3, fiber: 1.4, fat: 0.2, sodium: 3, potassium: 288 }, // 151 g, ~30 grapes
+  { k: 'st', name: 'Strawberries',     cal: 49,  prot: 1.0, carbs: 11.7, fiber: 3.0, fat: 0.5, sodium: 2, potassium: 233 }, // 152 g halves
+  { k: 'rs', name: 'Raspberries',      cal: 64,  prot: 1.5, carbs: 14.7, fiber: 8.0, fat: 0.8, sodium: 1, potassium: 186 }, // 123 g
+  { k: 'kw', name: 'Kiwi',             cal: 110, prot: 2.1, carbs: 26.4, fiber: 5.4, fat: 0.9, sodium: 5, potassium: 562 }, // 180 g sliced, ~2.5 kiwis
+  { k: 'md', name: 'Mandarin oranges', cal: 103, prot: 1.6, carbs: 26.0, fiber: 3.5, fat: 0.6, sodium: 4, potassium: 322 }, // 195 g sections
 ];
-let saladPick = new Set(['bb1']);
+// walnuts per 1 tbsp chopped (7.5 g)
+const SALAD_WALNUT = { cal: 49, prot: 1.1, carbs: 1.0, fiber: 0.5, fat: 4.9, sodium: 0, potassium: 33 };
+const CUP_AMTS = [[0.125, '&#8539;'], [0.25, '&frac14;'], [1 / 3, '&#8531;'], [0.5, '&frac12;'], [2 / 3, '&#8532;'], [0.75, '&frac34;'], [1, '1']];
+const CUP_TXT = { 0.125: '1/8', 0.25: '1/4', 0.5: '1/2', 0.75: '3/4', 1: '1' };
+const cupTxt = c => CUP_TXT[c] || (Math.abs(c - 1 / 3) < 0.01 ? '1/3' : Math.abs(c - 2 / 3) < 0.01 ? '2/3' : String(c));
+const cupHtml = c => (CUP_AMTS.find(a => Math.abs(a[0] - c) < 0.01) || [c, cupTxt(c)])[1];
+const NUT_AMTS = [[0.5, '&frac12;'], [1, '1'], [1.5, '1&frac12;'], [2, '2']];
+let saladSel = { fruit: { bb: 1 }, walnut: 1 };   // cups per fruit; tbsp walnuts
+let saladPicking = null;                            // fruit key or 'walnut' while the amount picker is open
 function openSalad() {
-  try { const last = JSON.parse(localStorage.getItem('saladPick') || 'null'); if (Array.isArray(last)) saladPick = new Set(last); } catch (_) {}
+  try {
+    const last = JSON.parse(localStorage.getItem('saladSel') || 'null');
+    if (last && typeof last === 'object' && last.fruit) saladSel = last;
+  } catch (_) {}
+  saladPicking = null;
   renderSalad();
   document.getElementById('saladOverlay').classList.add('show');
 }
-function toggleSaladAdd(k) {
-  const a = SALAD_ADDS.find(x => x.k === k);
-  if (saladPick.has(k)) saladPick.delete(k);
-  else { if (a.group) SALAD_ADDS.filter(x => x.group === a.group).forEach(x => saladPick.delete(x.k)); saladPick.add(k); }
+function pickSalad(k) { saladPicking = saladPicking === k ? null : k; renderSalad(); }
+function setSaladAmt(k, v) {
+  if (k === 'walnut') saladSel.walnut = v;
+  else if (v) saladSel.fruit[k] = v; else delete saladSel.fruit[k];
+  saladPicking = null;
   renderSalad();
 }
 function saladTotal() {
   const t = { ...SALAD_BASE };
-  SALAD_ADDS.filter(a => saladPick.has(a.k)).forEach(a => {
-    ['cal', 'prot', 'carbs', 'fiber', 'fat', 'sodium', 'potassium', 'prod'].forEach(f => { t[f] += a[f]; });
-  });
+  const add = (src, mult) => ['cal', 'prot', 'carbs', 'fiber', 'fat', 'sodium', 'potassium'].forEach(f => { t[f] += src[f] * mult; });
+  for (const [k, cups] of Object.entries(saladSel.fruit)) {
+    const f = SALAD_FRUITS.find(x => x.k === k); if (!f) continue;
+    add(f, cups); t.prod += cups * 2;
+  }
+  if (saladSel.walnut) add(SALAD_WALNUT, saladSel.walnut);
   ['prot', 'carbs', 'fiber', 'fat'].forEach(f => { t[f] = Math.round(t[f] * 10) / 10; });
   t.cal = Math.round(t.cal); t.sodium = Math.round(t.sodium); t.potassium = Math.round(t.potassium);
+  t.prod = Math.round(t.prod * 4) / 4;
   return t;
 }
 function renderSalad() {
-  document.getElementById('salad-adds').innerHTML = SALAD_ADDS.map(a => {
-    const on = saladPick.has(a.k);
-    return `<button onclick="toggleSaladAdd('${a.k}')" style="padding:9px 6px;border-radius:9px;border:1.5px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'var(--acc-d)' : 'var(--surface2)'};color:${on ? 'var(--accent)' : 'var(--text)'};font-size:12px;font-weight:600;cursor:pointer">${on ? '&#10003; ' : ''}${a.label}<div style="font-size:10px;font-weight:400;color:var(--muted)">+${a.cal} cal &middot; +${a.prod} fruit</div></button>`;
-  }).join('');
+  const amtBtn = (k, v, lbl, on) => `<button onclick="setSaladAmt('${k}', ${v})" style="padding:8px 0;border-radius:8px;border:1.5px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'var(--acc-d)' : 'var(--surface)'};color:${on ? 'var(--accent)' : 'var(--text)'};font-size:14px;font-weight:700;cursor:pointer">${lbl}</button>`;
+  const row = (k, name, amtTxt, sub, picker) => `
+    <div onclick="pickSalad('${k}')" style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:${amtTxt ? 'var(--acc-d)' : 'var(--surface2)'};border:1.5px solid ${amtTxt ? 'var(--acc-b)' : 'transparent'};cursor:pointer">
+      <span style="flex:1;font-size:13px;font-weight:600;color:${amtTxt ? 'var(--accent)' : 'var(--text)'}">${amtTxt ? '&#10003; ' : ''}${name}</span>
+      <span style="font-size:12px;color:${amtTxt ? 'var(--accent)' : 'var(--muted)'}">${amtTxt || sub}</span>
+    </div>${picker}`;
+  let html = '';
+  for (const f of SALAD_FRUITS) {
+    const cups = saladSel.fruit[f.k];
+    const picker = saladPicking === f.k ? `
+      <div style="padding:8px 2px 4px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${f.name}: how much? (cups)</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">${CUP_AMTS.map(([v, l]) => amtBtn(f.k, v, l, cups && Math.abs(cups - v) < 0.01)).join('')}</div>
+        ${cups ? `<button onclick="setSaladAmt('${f.k}', 0)" style="margin-top:6px;width:100%;padding:6px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--red);font-size:12px;cursor:pointer">Remove ${f.name.toLowerCase()}</button>` : ''}
+      </div>` : '';
+    html += row(f.k, f.name, cups ? `${cupHtml(cups)} cup &middot; +${Math.round(f.cal * cups)} cal` : '', `${f.cal} cal / cup`, picker);
+  }
+  document.getElementById('salad-fruits').innerHTML = html;
+  const w = saladSel.walnut || 0;
+  const wPicker = saladPicking === 'walnut' ? `
+      <div style="padding:8px 2px 4px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Walnuts: how much? (tablespoons)</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">${amtBtn('walnut', 0, 'none', !w)}${NUT_AMTS.map(([v, l]) => amtBtn('walnut', v, l, Math.abs(w - v) < 0.01)).join('')}</div>
+      </div>` : '';
+  document.getElementById('salad-nuts').innerHTML = row('walnut', 'Walnuts', w ? `${(NUT_AMTS.find(a => a[0] === w) || [w, w])[1]} tbsp &middot; +${Math.round(SALAD_WALNUT.cal * w)} cal` : '', `${SALAD_WALNUT.cal} cal / tbsp`, wPicker);
   const t = saladTotal();
   document.getElementById('salad-total').innerHTML =
     `<b style="font-size:14px">${t.cal} cal</b> &middot; ${t.prot} g protein &middot; ${t.fiber} g fiber &middot; ${t.fat} g fat<br>
@@ -1251,10 +1297,11 @@ function renderSalad() {
 }
 async function logSalad() {
   document.getElementById('saladOverlay').classList.remove('show');
-  try { localStorage.setItem('saladPick', JSON.stringify([...saladPick])); } catch (_) {}
+  try { localStorage.setItem('saladSel', JSON.stringify(saladSel)); } catch (_) {}
   const t = saladTotal();
-  const adds = SALAD_ADDS.filter(a => saladPick.has(a.k)).map(a => a.short);
-  const name = 'Kale Salad (goat cheese, walnuts, honey)' + (adds.length ? ' + ' + adds.join(', ') : '');
+  const parts = SALAD_FRUITS.filter(f => saladSel.fruit[f.k]).map(f => `${f.name.toLowerCase()} ${cupTxt(saladSel.fruit[f.k])} cup`);
+  if (saladSel.walnut) parts.push(`walnuts ${saladSel.walnut} tbsp`);
+  const name = 'Kale Salad (goat cheese, honey, lemon)' + (parts.length ? ' + ' + parts.join(', ') : '');
   const h = new Date().getHours();
   const meal = h < 11 ? 'Morning' : h < 15 ? 'Lunch' : h < 18 ? 'Afternoon' : 'Evening';
   // exact fruit & veg servings go in with it, so the Scorecard doesn't have to guess
