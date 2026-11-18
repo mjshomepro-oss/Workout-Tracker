@@ -4346,6 +4346,127 @@ function drawNaStaircase(sodium, laborBonus) {
 }
 
 // Render nutrition today view
+// ── Fill Out the Day (11/18/2026) ─────────────────────
+// What's still to go today, the room left, this week's fish / meat, and 2-3 foods that fit.
+// Fruit & veg and meat use Claude's checked numbers when an entry has them, else the name estimate.
+const FILL_IDEAS = [
+  // name, what it adds; produce = servings; fish = fatty fish; gentle = easy on his gut
+  { n: 'Kale &amp; blueberry salad', cal: 395, prot: 10, fiber: 7, prod: 4, k: 410, na: 445, sugar: 0 },
+  { n: 'Can of Wild Planet salmon', cal: 180, prot: 36, fiber: 0, prod: 0, k: 658, na: 170, sugar: 0, fish: true },
+  { n: 'WO shake (2% milk)', cal: 330, prot: 38, fiber: 0, prod: 0, k: 500, na: 230, sugar: 2 },
+  { n: 'Quest bar', cal: 190, prot: 21, fiber: 14, prod: 0, k: 100, na: 270, sugar: 1, quest: true },
+  { n: 'Orange', cal: 86, prot: 2, fiber: 4, prod: 1, k: 330, na: 0, sugar: 0 },
+  { n: '2 kiwis', cal: 85, prot: 2, fiber: 4, prod: 2, k: 430, na: 0, sugar: 0 },
+  { n: '1 cup blueberries', cal: 85, prot: 1, fiber: 4, prod: 2, k: 115, na: 0, sugar: 0 },
+  { n: 'Raw carrots + broccoli', cal: 60, prot: 3, fiber: 4, prod: 2, k: 450, na: 60, sugar: 0 },
+  { n: 'Sweet potato with olive oil', cal: 220, prot: 3, fiber: 5, prod: 1, k: 540, na: 70, sugar: 0 },
+];
+let fillWeek = null;          // { key, foods, daily } for this week before the viewed day
+let fillWeekLoading = false;
+async function ensureFillWeek(ds) {
+  if (fillWeekLoading || (fillWeek && fillWeek.key === ds)) return;
+  fillWeekLoading = true;
+  try {
+    const d = new Date(ds + 'T12:00:00');
+    const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const m = scYmd(mon);
+    const [wf, wd] = m === ds ? [[], []] : await Promise.all([
+      sbGet('food_log', { select: 'log_date,food_name,sc_produce,sc_red_oz,sc_processed,sc_fish,sc_checked_at', and: `(log_date.gte.${m},log_date.lt.${ds})`, limit: '1000' }),
+      sbGet('daily_log', { select: 'log_date,omega3_fish', and: `(log_date.gte.${m},log_date.lt.${ds})` }),
+    ]);
+    fillWeek = { key: ds, foods: wf || [], daily: wd || [] };
+    if (activeTab === 'nutrition') render();
+  } catch (_) {}
+  fillWeekLoading = false;
+}
+// one food entry -> produce servings, red meat oz, processed?, fatty fish? (checked numbers win)
+function fillScore(f) {
+  if (f.sc_checked_at) return { prod: +f.sc_produce || 0, red: +f.sc_red_oz || 0, proc: !!f.sc_processed, fish: !!f.sc_fish };
+  return { prod: scProduce(f.food_name).n, red: scRed(f.food_name) * 4, proc: SC.proc.test(f.food_name), fish: SC.fish.test(f.food_name) };
+}
+function fillCardHTML(t, calLeft) {
+  if (ntDayOffset !== 0) return '';
+  const ds = ntDateStr();
+  ensureFillWeek(ds);
+  const today = foods.map(fillScore);
+  const prod = today.reduce((s, x) => s + x.prod, 0);
+  const fishToday = today.some(x => x.fish) || !!daily?.omega3_fish;
+  // this week: earlier days + today
+  const wk = fillWeek && fillWeek.key === ds ? fillWeek : null;
+  let fishDays = 0, redOz = 0, procDays = 0;
+  if (wk) {
+    const by = {};
+    wk.foods.forEach(f => { const s = fillScore(f); const b = by[f.log_date] = by[f.log_date] || { fish: false, proc: false }; b.fish = b.fish || s.fish; b.proc = b.proc || s.proc; redOz += s.red; });
+    wk.daily.forEach(r => { if (r.omega3_fish) (by[r.log_date] = by[r.log_date] || { fish: false, proc: false }).fish = true; });
+    Object.values(by).forEach(b => { if (b.fish) fishDays++; if (b.proc) procDays++; });
+  }
+  fishDays += fishToday ? 1 : 0;
+  redOz += today.reduce((s, x) => s + x.red, 0);
+  if (today.some(x => x.proc)) procDays++;
+  redOz = Math.round(redOz * 2) / 2;
+
+  const need = { prot: Math.max(0, 150 - t.prot), fiber: Math.max(0, 30 - t.fiber), prod: Math.max(0, 5 - prod), k: Math.max(0, 3500 - t.potassium) };
+  const room = { cal: calLeft, sugar: 36 - t.sugar, na: sodiumTarget() - t.sodium };
+  const C = { ok: 'var(--accent)', warn: 'var(--yellow)', bad: 'var(--red)', mute: 'var(--muted)' };
+  const chip = (label, val, st) => `<div style="flex:1 1 0;min-width:0;background:var(--surface2);border-radius:8px;padding:6px 7px">
+      <div style="font-size:10px;color:var(--muted)">${label}</div>
+      <div style="font-family:monospace;font-size:12px;font-weight:700;color:${C[st]};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val}</div></div>`;
+  const toGo = (v, unit, fmt) => { const r = fmt ? fmt(v) : Math.round(v); return r <= 0 ? ['&#10003; done', 'ok'] : [`+${r.toLocaleString()}${unit}`, 'mute']; };
+  const left = (v, unit, warnAt) => v < 0 ? [`${Math.abs(Math.round(v)).toLocaleString()}${unit} over`, 'bad'] : [`${Math.round(v).toLocaleString()}${unit}`, v < warnAt ? 'warn' : 'ok'];
+  const [pv, ps] = toGo(need.prot, ' g'), [fv, fs] = toGo(need.fiber, ' g'), [vv, vs] = toGo(need.prod, '', v => Math.round(v * 2) / 2), [kv, ks] = toGo(need.k, ' mg', v => Math.round(v / 50) * 50);
+  const [cv, cs] = left(room.cal, '', 300), [sv, ss] = left(room.sugar, ' g', 8), [nv, ns] = left(room.na, ' mg', 400);
+
+  // ideas: greedy pick of up to 3 that fit the calories left and close the biggest gaps
+  const ideas = [];
+  const g = { ...need }, cal = { left: room.cal }, sug = { left: room.sugar }, na = { left: room.na };
+  const questToday = foods.some(f => /quest/i.test(f.food_name));
+  const hr = new Date().getHours();
+  for (let i = 0; i < 3; i++) {
+    let best = null, bestScore = 0;
+    for (const it of FILL_IDEAS) {
+      if (ideas.includes(it)) continue;
+      if (it.quest && questToday) continue;                 // one Quest bar a day (his gut plan)
+      if (it.cal > Math.max(cal.left, 0) + 60) continue;
+      if (it.sugar > Math.max(sug.left, 0)) continue;
+      if (it.na > Math.max(na.left, 0) + 100) continue;
+      let sc = Math.min(it.prot, g.prot) / 10 + Math.min(it.fiber, g.fiber) / 3 + Math.min(it.prod, g.prod) * 1.2 + Math.min(it.k, g.k) / 600;
+      if (it.fish && !fishToday && fishDays < 2) sc += 2;     // 2 fish days a week
+      if (it.fish && fishToday) sc -= 3;
+      sc -= it.cal / 400;                                     // lighter is better late in the day
+      if (sc > bestScore) { best = it; bestScore = sc; }
+    }
+    if (!best || bestScore < 0.6) break;
+    ideas.push(best);
+    g.prot = Math.max(0, g.prot - best.prot); g.fiber = Math.max(0, g.fiber - best.fiber); g.prod = Math.max(0, g.prod - best.prod); g.k = Math.max(0, g.k - best.k);
+    cal.left -= best.cal; sug.left -= best.sugar; na.left -= best.na;
+  }
+  const adds = it => [it.prot >= 5 ? `+${it.prot} g protein` : '', it.prod ? `+${it.prod} fruit &amp; veg` : '', it.fiber >= 3 ? `+${it.fiber} g fiber` : '', it.fish ? 'fish day' : ''].filter(Boolean).join(', ');
+  const o3 = !daily?.omega3_am ? '2 fish-oil softgels this morning' : (!daily?.omega3_pm && !daily?.omega3_fish && hr >= 15) ? '2 fish-oil softgels at dinner (or salmon)' : '';
+  const allDone = need.prot <= 0 && need.fiber <= 0 && need.prod <= 0;
+  const wkTxt = wk ? `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;margin-top:8px;align-items:baseline">
+      <span style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">This week</span>
+      <span style="color:${fishDays >= 2 ? C.ok : C.mute}">&#128031; fish ${fishDays}/2 days</span>
+      <span style="color:${redOz > 18 ? C.bad : redOz > 13 ? C.warn : C.mute}">&#129385; red meat ${redOz}/18 oz</span>
+      <span style="color:${procDays ? C.warn : C.mute}">&#127789; processed ${procDays} day${procDays === 1 ? '' : 's'}</span>
+</div>` : '';
+  return `
+    <div class="card">
+      <div class="card-lbl">Fill Out the Day</div>
+      <div class="card-body" style="padding-top:2px">
+        <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Still to go</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${chip('Protein', pv, ps)}${chip('Fiber', fv, fs)}${chip('Fruit &amp; veg', vv, vs)}${chip('Potassium', kv, ks)}</div>
+        <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px">Room left</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${chip('Calories', cv, cs)}${chip('Added sugar', sv, ss)}${chip('Sodium', nv, ns)}</div>
+        ${wkTxt}
+        ${o3 || ideas.length ? `<div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px">To fill it out</div>` : ''}
+        ${o3 ? `<div style="font-size:12px;padding:3px 0">&#937; ${o3}</div>` : ''}
+        ${ideas.map(it => `<div style="font-size:12px;padding:3px 0;display:flex;gap:8px"><span style="flex:1">&#8226; ${it.n} <span style="color:var(--muted)">&middot; ${adds(it)}</span></span><span style="font-family:monospace;color:var(--muted);white-space:nowrap">${it.cal} cal</span></div>`).join('')}
+        ${allDone ? `<div style="font-size:12px;color:var(--accent);margin-top:8px">&#10003; Protein, fiber and fruit &amp; veg all hit today.</div>`
+          : !ideas.length && room.cal < 100 ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">Little room left today: if you're still hungry, raw veg or fruit is the lightest way to close the gaps.</div>` : ''}
+      </div>
+    </div>`;
+}
+
 function render() {
   const t  = totals();
   const tg = target();
@@ -4478,6 +4599,7 @@ function render() {
         </div>
       </div>
     </div>
+    ${fillCardHTML(t, remaining)}
     <div class="card">
       <div class="card-lbl">Day Notes</div>
       <div class="card-body">
