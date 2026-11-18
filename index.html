@@ -3315,7 +3315,7 @@ async function load() {
       sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
       ntDayOffset !== 0 ? sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []) : Promise.resolve([]),
     ]);
-    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,multi_taken:false,probiotic_taken:false,workout_done:false};
+    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,multi_taken:false,probiotic_taken:false,omega3_am:false,omega3_pm:false,omega3_fish:false,workout_done:false};
     foods = fe;
     // Past days render from their own saved Fitbit snapshot, not today's sync
     ghDay = null;
@@ -4602,10 +4602,9 @@ function render() {
             <div class="supp-box">${daily?.omega3_taken?'&#10003;':''}</div>
             <div style="flex:1">
               <div class="supp-name">Omega-3</div>
-              <div class="supp-desc">${daily?.omega3_source==='fish'?'From fish — counted':'Nature Made · <b>4 softgels = 1.2 g EPA+DHA</b> · 2 at breakfast, 2 at dinner'}</div>
+              <div class="supp-desc">Nature Made fish oil &middot; <b>2 softgels every morning</b>; <b>2 more at dinner</b>, or skip them on a salmon day &middot; today &asymp; <b>${o3Grams(daily)} g</b> EPA+DHA</div>
               <div style="display:flex;gap:6px;margin-top:6px;pointer-events:all">
-                <button onclick="toggleOmega3('pill')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='pill'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='pill'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='pill'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">Softgel</button>
-                <button onclick="toggleOmega3('fish')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${daily?.omega3_source==='fish'?'var(--accent)':'var(--border)'};background:${daily?.omega3_source==='fish'?'var(--accent)':'var(--surface2)'};color:${daily?.omega3_source==='fish'?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">&#128031; Fish</button>
+                ${o3Btn('am', 'AM &middot; 2')}${o3Btn('pm', 'PM &middot; 2')}${o3Btn('fish', '&#128031; Salmon')}
               </div>
             </div>
           </div>
@@ -4654,7 +4653,6 @@ function render() {
 
 // Nutrition actions
 const SUPP_FOOD = {
-  omega3_taken:   { food_name:'Fish Oil (4 softgels)', calories:70, protein_g:0, added_sugar_g:0, fat_g:6,   carbs_g:2,   fiber_g:0, sodium_mg:0,  potassium_mg:0  },
   d3_k2_taken:    { food_name:'D3+K2 Gummy (1)',       calories:8,  protein_g:0, added_sugar_g:1, fat_g:0,   carbs_g:1.5, fiber_g:0, sodium_mg:3,  potassium_mg:0  },
 };
 async function toggleSupp(field) {
@@ -4667,21 +4665,46 @@ async function toggleSupp(field) {
     render();
   }
 }
-async function toggleOmega3(source) {
-  // tapping active source turns it off; tapping inactive source switches to it
-  const alreadyOn = daily?.omega3_taken && daily?.omega3_source === source;
-  const newVal = !alreadyOn;
-  const newSource = newVal ? source : null;
-  if (daily) { daily.omega3_taken = newVal; daily.omega3_source = newSource; }
+// Omega-3 (11/17/2026): 2 softgels every morning; 2 more at dinner, or none on a day with salmon.
+// Each softgel button logs its own food entry (label: 2 softgels = 35 cal, 3 g fat, 1 g carb);
+// Salmon only marks the day (the salmon itself is already in the food log).
+const O3_FOOD = {
+  am: { food_name:'Fish Oil (2 softgels, AM)', meal_time:'Morning', calories:35, protein_g:0, added_sugar_g:0, fat_g:3, carbs_g:1, fiber_g:0, sodium_mg:0, potassium_mg:0 },
+  pm: { food_name:'Fish Oil (2 softgels, PM)', meal_time:'Evening', calories:35, protein_g:0, added_sugar_g:0, fat_g:3, carbs_g:1, fiber_g:0, sodium_mg:0, potassium_mg:0 },
+};
+// rough EPA+DHA: 0.6 g per 2 softgels, ~1.2 g for a can of salmon
+function o3Grams(d) {
+  if (!d) return '0';
+  const g = (d.omega3_am ? 0.6 : 0) + (d.omega3_pm ? 0.6 : 0) + (d.omega3_fish ? 1.2 : 0);
+  return g ? g.toFixed(1) : '0';
+}
+function o3Btn(slot, label) {
+  const on = !!daily?.['omega3_' + slot];
+  return `<button onclick="toggleOmega3('${slot}')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'var(--surface2)'};color:${on?'#000':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
+}
+async function toggleOmega3(slot) {
+  if (!daily) return;
+  const col = 'omega3_' + slot;
+  const v = !daily[col];
+  daily[col] = v;
+  // the day counts as done with morning + evening softgels, or with salmon
+  const taken = !!((daily.omega3_am && daily.omega3_pm) || daily.omega3_fish);
+  const src = daily.omega3_fish ? 'fish' : (daily.omega3_am || daily.omega3_pm) ? 'pill' : null;
+  daily.omega3_taken = taken; daily.omega3_source = src;
   render();
-  await sbPatch('daily_log', {log_date: ntDateStr()}, {omega3_taken: newVal, omega3_source: newSource});
-  // only log a food entry for the pill, not for fish (already in food log via salmon)
-  if (newVal && source === 'pill') {
-    const row = await sbPost('food_log', { log_date: ntDateStr(), meal_time: 'Morning', ...SUPP_FOOD['omega3_taken'] });
+  await sbPatch('daily_log', {log_date: ntDateStr()}, {[col]: v, omega3_taken: taken, omega3_source: src});
+  const f = O3_FOOD[slot];
+  if (!f) return;
+  if (v) {
+    const row = await sbPost('food_log', { log_date: ntDateStr(), ...f });
     if (Array.isArray(row) && row[0]) foods.push(row[0]);
     else foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'});
-    render();
+  } else {
+    // un-tapping takes that dose's food entry back out
+    const hit = [...foods].reverse().find(x => x.food_name === f.food_name);
+    if (hit) { await sbDelete('food_log', {id: hit.id}); foods = foods.filter(x => x.id !== hit.id); }
   }
+  render();
 }
 async function toggleWo() {
   const v = !daily.workout_done; daily.workout_done = v; render();
