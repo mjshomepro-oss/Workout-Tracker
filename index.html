@@ -3315,7 +3315,7 @@ async function load() {
       sbGet('food_log',  {'log_date': `eq.${dateStr}`, 'order': 'created_at'}),
       ntDayOffset !== 0 ? sbGet('gh_daily', {'log_date': `eq.${dateStr}`}).catch(() => []) : Promise.resolve([]),
     ]);
-    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,multi_taken:false,probiotic_taken:false,omega3_am:false,omega3_pm:false,omega3_fish:false,workout_done:false};
+    daily = dl[0] || {labor_level:'light',omega3_taken:false,omega3_source:null,d3_k2_taken:false,magnesium_taken:false,multi_taken:false,probiotic_taken:false,omega3_am:false,omega3_pm:false,omega3_fish:false,rest_day:false,workout_done:false};
     foods = fe;
     // Past days render from their own saved Fitbit snapshot, not today's sync
     ghDay = null;
@@ -4492,9 +4492,14 @@ function render() {
           <span style="font-size:13px;color:var(--muted);flex:1">${daily?.session_type || SESSIONS[ntDateObj().getDay()]}</span>
           <button class="meal-badge" onclick="openSessionPicker()" title="Change session" style="opacity:0.7;font-size:13px">&#9998;</button>
         </div>
-        <button class="wo-btn ${daily?.workout_done?'on':''}" onclick="toggleWo()">
-          ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : 'Mark Done'}
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="wo-btn ${daily?.workout_done?'on':''}" style="flex:2" onclick="toggleWo()">
+            ${daily?.workout_done ? '&#10003; &nbsp;Workout Complete' : 'Mark Done'}
+          </button>
+          <button class="wo-btn ${daily?.rest_day?'on':''}" style="flex:1" onclick="toggleRest()" title="A planned or needed day off, not a missed workout">
+            &#128164; ${daily?.rest_day ? 'Rest Day' : 'Rest'}
+          </button>
+        </div>
       </div>
     </div>
     ${(daily?.session_type || SESSIONS[ntDateObj().getDay()]) === 'Running' ? `
@@ -4707,8 +4712,17 @@ async function toggleOmega3(slot) {
   render();
 }
 async function toggleWo() {
-  const v = !daily.workout_done; daily.workout_done = v; render();
-  await sbPatch('daily_log', {log_date: ntDateStr()}, {workout_done: v});
+  const v = !daily.workout_done; daily.workout_done = v;
+  if (v) daily.rest_day = false;
+  render();
+  await sbPatch('daily_log', {log_date: ntDateStr()}, v ? {workout_done: true, rest_day: false} : {workout_done: false});
+}
+// Rest day (11/17/2026): a day off on purpose shows as rest in History, not as a missed workout
+async function toggleRest() {
+  const v = !daily.rest_day; daily.rest_day = v;
+  if (v) daily.workout_done = false;
+  render();
+  await sbPatch('daily_log', {log_date: ntDateStr()}, v ? {rest_day: true, workout_done: false} : {rest_day: false});
 }
 let _notesSaveTimer = null;
 function scheduleNotesSave() {
@@ -5007,6 +5021,7 @@ async function saveFood() {
   });
   if (Array.isArray(rows) && rows[0]) { foods.push(rows[0]); }
   else { foods = await sbGet('food_log', {log_date:`eq.${ntDateStr()}`, order:'created_at'}); }
+  if (/salmon/i.test(name) && daily) { daily.omega3_fish = true; daily.omega3_taken = true; daily.omega3_source = 'fish'; }
   render();
 }
 
@@ -5135,6 +5150,11 @@ async function loadHistory() {
       sbGet('sleep_log',     {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
       sbGet('gh_daily',      {log_date: `gte.${STATS_START}`, order: 'log_date.desc', limit: '120'}).catch(() => []),
     ]);
+    // weekly scorecard: food names for the last 10 weeks
+    const scFrom = new Date(); scFrom.setDate(scFrom.getDate() - 75);
+    window._scFoods = await sbGet('food_log', {select: 'log_date,food_name', log_date: `gte.${scYmd(scFrom)}`, limit: '5000'}).catch(() => []);
+    window._scDaily = {}; noteRows.forEach(r => { window._scDaily[r.log_date] = r; });
+    window._scSum = {};   rows.forEach(r => { window._scSum[r.log_date] = r; });
     window._histGh = {};
     ghRows.forEach(g => { window._histGh[g.log_date] = g; });
     window._histNotes = {};
@@ -5163,6 +5183,146 @@ async function loadHistory() {
   } catch(e) {
     document.getElementById('history-root').innerHTML = `<div class="s-err">&#9888; ${e.message}</div>`;
   }
+}
+
+// ── Weekly scorecard (11/17/2026) ─────────────────────
+// Rhonda Patrick's eating pattern, scored Mon-Sun from the food log by name (estimates, not weighed).
+const SC = {
+  fish: /salmon|sashimi|mackerel|sardine|trout|herring|anchov/i,
+  noProduce: /juice|lager|\bale\b|beer|cider|radler|seltzer/i,
+  scrub: /apple cinnamon|triple berry|berry (jelly|jam)|jelly|\bjam\b|veggie straws|corn cake|avocado (lime )?ranch|(potato|salmon|egg|tuna|chicken) salad( sandwich| kit)?|beef broth/gi,
+  produce: [
+    [/banana/i, 'Banana', 'f'], [/\bapples?\b/i, 'Apple', 'f'], [/\boranges?\b|navel/i, 'Orange', 'f'],
+    [/\bgrapes?\b(?! tomato)/i, 'Grapes', 'f'], [/blueberr/i, 'Blueberries', 'f'], [/blackberr/i, 'Blackberries', 'f'],
+    [/strawberr/i, 'Strawberries', 'f'], [/raspberr/i, 'Raspberries', 'f'], [/melon|cantaloupe/i, 'Melon', 'f'],
+    [/\bpears?\b|peach|plum|kiwi|mango|pineapple/i, 'Other fruit', 'f'], [/avocado|guac/i, 'Avocado', 'g'],
+    [/\bkale\b/i, 'Kale', 'k'], [/spinach/i, 'Spinach', 'k'], [/broccoli/i, 'Broccoli', 'k'],
+    [/cauliflower/i, 'Cauliflower', 'v'], [/green beans/i, 'Green beans', 'v'], [/brussels/i, 'Brussels sprouts', 'v'],
+    [/carrots?/i, 'Carrots', 'v'], [/\bpeas\b/i, 'Peas', 'v'], [/\bbeets?\b/i, 'Beets', 'v'],
+    [/lima beans|black beans/i, 'Beans', 'v'], [/\bcorn\b/i, 'Corn', 'v'], [/sweet potato|\byams?\b/i, 'Sweet potato', 'v'],
+    [/zucchini|squash|asparagus|cucumber|celery|cabbage|slaw/i, 'Other veg', 'v'],
+    [/fajita|veggies|vegetables?|veggie/i, 'Mixed veg', 'v'], [/tomato/i, 'Tomatoes', 'g'], [/salad/i, 'Salad', 's'],
+  ],
+  garnish: /sandwich|wrap|burger|taco|burrito|\bsub\b|roll\b|bun\b|melt|slider|nugget/i,
+  red: /beef|steak|burger|patty melt|lasagna|meatloaf|taco meat|chili|bolognese|meaty|cheesesteak|stroganoff|barbacoa|pork|\bribs\b|sloppy joe|meatball|\blamb\b|veal/i,
+  proc: /hot ?dogs?|\bfranks?\b|sausage|bacon|\bham\b|pepperoni|salami|\bdeli\b|bologna|kielbasa|pastrami|prosciutto|jerky|four meat|supreme/i,
+};
+function scYmd(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// produce servings in one food entry: 1 per item named, a big salad 2; vegetables inside a salad
+// are part of that salad (kale/spinach/broccoli still add one); garnish on a sandwich does not count
+function scProduce(name) {
+  if (SC.noProduce.test(name)) return { n: 0, labels: [] };
+  const t = name.replace(SC.scrub, ' ');
+  const hits = SC.produce.filter(([re]) => re.test(t));
+  const salad = hits.some(h => h[2] === 's');
+  const garnish = SC.garnish.test(t);
+  let n = 0; const labels = [];
+  for (const [, label, kind] of hits) {
+    if (kind === 'g' && garnish) continue;
+    if (kind === 'v' && salad) continue;
+    if (kind === 'g' && salad && label === 'Tomatoes') continue;
+    n += kind === 's' && /\b(xl|large|giant|big)\b[^,]*salad/i.test(t) ? 2 : 1;
+    labels.push(label);
+  }
+  return { n: Math.min(n, 4), labels };
+}
+// red meat meals (about 4 oz each); processed meat is counted on its own
+function scRed(name) {
+  const t = name.replace(/(angus |hebrew |nathan's )?beef franks?|beef broth/gi, ' ');
+  if (!SC.red.test(t)) return 0;
+  if (/few bites|bites taken/i.test(t)) return 0.25;
+  return /^(2|3|4|two|three|four)\b/i.test(t.trim()) ? 1.5 : 1;
+}
+function scShift(dir) {
+  window._scOff = Math.min(9, Math.max(0, (window._scOff || 0) + dir));
+  const el = document.getElementById('scorecard');
+  if (el) el.outerHTML = scorecardHTML();
+}
+function scorecardHTML() {
+  const off = window._scOff || 0;
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const mon = new Date(today); mon.setDate(today.getDate() - ((today.getDay() + 6) % 7) - 7 * off);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const days = [];
+  for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate() + i); if (d <= today) days.push(scYmd(d)); }
+  const foodsBy = {};
+  (window._scFoods || []).forEach(f => { (foodsBy[f.log_date] = foodsBy[f.log_date] || []).push(f.food_name); });
+  const dl = window._scDaily || {}, sm = window._scSum || {};
+  const logged = days.filter(d => (foodsBy[d] || []).length);
+  const nl = logged.length || 1;
+  let fishDays = 0, o3 = 0, produce = 0, fiber = 0, red = 0, procDays = 0, wo = 0, rest = 0;
+  const seen = { produce: {}, fish: [], red: [], proc: [] };
+  for (const d of days) {
+    const fl = foodsBy[d] || [], r = dl[d];
+    const fishFood = fl.filter(n => SC.fish.test(n));
+    const fishDay = !!((r && r.omega3_fish) || fishFood.length);
+    if (fishDay) { fishDays++; seen.fish.push(fishFood[0] || 'Fish (tapped)'); }
+    if (r) {
+      o3 += (r.omega3_am ? 0.6 : 0) + (r.omega3_pm ? 0.6 : 0);
+      if (r.workout_done) wo++; else if (r.rest_day) rest++;
+    }
+    if (fishDay) o3 += 1.2;
+    if (fl.length) fiber += parseFloat(sm[d]?.total_fiber_g || 0);
+    let proc = false;
+    for (const n of fl) {
+      const p = scProduce(n);
+      produce += p.n;
+      p.labels.forEach(l => { seen.produce[l] = (seen.produce[l] || 0) + 1; });
+      if (SC.proc.test(n)) { proc = true; seen.proc.push(n); }
+      const m = scRed(n);
+      if (m) { red += m; seen.red.push(n); }
+    }
+    if (proc) procDays++;
+  }
+  const partial = off === 0;
+  const o3avg = days.length ? o3 / days.length : 0;
+  const prodAvg = produce / nl, fibAvg = fiber / nl, redOz = Math.round(red * 4);
+  const C = { ok: 'var(--accent)', warn: 'var(--yellow)', bad: 'var(--red)' };
+  const row = (icon, label, val, target, st) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="width:22px;text-align:center">${icon}</span>
+        <span style="flex:1;font-size:13px">${label}<div style="font-size:10px;color:var(--muted)">${target}</div></span>
+        <span style="font-family:monospace;font-size:14px;font-weight:700;color:${C[st]}">${val}</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${C[st]};flex:none"></span>
+      </div>`;
+  const fishSt = fishDays >= 2 ? 'ok' : (partial || fishDays === 1) ? 'warn' : 'bad';
+  const fmt = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const list = arr => {
+    const c = {}; arr.forEach(x => { c[x] = (c[x] || 0) + 1; });
+    return Object.entries(c).map(([k, v]) => `${k.replace(/</g, '&lt;')}${v > 1 ? ' &times;' + v : ''}`).join(' &middot; ') || 'none';
+  };
+  const prodList = Object.entries(seen.produce).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}${v > 1 ? ' &times;' + v : ''}`).join(' &middot; ') || 'none';
+  const navBtn = (dir, txt, dis) => `<button onclick="scShift(${dir})" ${dis ? 'disabled' : ''} style="background:none;border:1px solid var(--border);color:${dis ? 'var(--surface2)' : 'var(--muted)'};border-radius:6px;padding:2px 9px;font-size:13px;cursor:${dis ? 'default' : 'pointer'}">${txt}</button>`;
+  const woGoal = partial ? Math.max(0, Math.min(days.length, 6) - rest) : Math.max(0, 6 - rest);
+  return `
+    <div class="card" id="scorecard">
+      <div class="card-lbl-row">
+        <div class="card-lbl">Weekly Scorecard</div>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${navBtn(1, '&lsaquo;', off >= 9)}
+          <span style="font-size:11px;color:var(--muted);min-width:92px;text-align:center">${fmt(mon)} &ndash; ${fmt(sun)}</span>
+          ${navBtn(-1, '&rsaquo;', off === 0)}
+        </div>
+      </div>
+      <div class="card-body" style="padding-top:0">
+        ${partial ? `<div style="font-size:11px;color:var(--muted);margin:2px 0 4px">This week so far &middot; ${days.length} day${days.length === 1 ? '' : 's'}</div>` : ''}
+        ${row('&#128031;', 'Fatty fish', fishDays + (fishDays === 1 ? ' day' : ' days'), 'goal 2+ a week', fishSt)}
+        ${row('&#937;', 'Omega-3 (EPA+DHA)', o3avg.toFixed(1) + ' g', 'goal 1.5&ndash;2 g a day, average', o3avg >= 1.5 ? 'ok' : o3avg >= 1 ? 'warn' : 'bad')}
+        ${row('&#129388;', 'Fruit &amp; veg', '&asymp;' + prodAvg.toFixed(1), 'goal 5 servings a day, average', prodAvg >= 5 ? 'ok' : prodAvg >= 3 ? 'warn' : 'bad')}
+        ${row('&#127806;', 'Fiber', Math.round(fibAvg) + ' g', 'goal 30 g a day, average', fibAvg >= 30 ? 'ok' : fibAvg >= 22 ? 'warn' : 'bad')}
+        ${row('&#129385;', 'Red meat', '&asymp;' + redOz + ' oz', 'goal 18 oz a week at most', redOz <= 18 ? 'ok' : redOz <= 24 ? 'warn' : 'bad')}
+        ${row('&#127789;', 'Processed meat', procDays + (procDays === 1 ? ' day' : ' days'), 'goal none', procDays === 0 ? 'ok' : procDays === 1 ? 'warn' : 'bad')}
+        ${row('&#128170;', 'Workouts', wo + (rest ? ` &middot; &#128164;${rest}` : ''), 'done &middot; rest days', wo >= woGoal ? 'ok' : 'warn')}
+        <details style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">
+          <summary style="cursor:pointer">What counted</summary>
+          <div style="margin-top:4px"><b>Fish:</b> ${list(seen.fish)}</div>
+          <div><b>Fruit &amp; veg:</b> ${prodList}</div>
+          <div><b>Red meat:</b> ${list(seen.red)}</div>
+          <div><b>Processed:</b> ${list(seen.proc)}</div>
+          <div style="margin-top:4px">Counted from food names, so these are estimates. Omega-3: 0.6 g per 2 softgels, about 1.2 g on a fish day.</div>
+        </details>
+      </div>
+    </div>`;
 }
 
 function isoWeek(dateStr) {
@@ -5206,7 +5366,9 @@ function renderHistory(rows) {
   const avgProt   = avg('total_protein_g').toFixed(0);
   const avgSugar  = avg('total_added_sugar_g').toFixed(1);
   const avgNa     = Math.round(avg('total_sodium_mg'));
-  const woComp    = Math.round(recent.filter(r => r.workout_done).length / n * 100);
+  // rest days are a choice, not a miss: they leave the workout rate alone
+  const restDays  = recent.filter(r => r.rest_day && !r.workout_done).length;
+  const woComp    = Math.round(recent.filter(r => r.workout_done).length / Math.max(1, n - restDays) * 100);
   const o3Comp    = Math.round(recent.filter(r => r.omega3_taken).length / n * 100);
   const d3Comp    = Math.round(recent.filter(r => r.d3_k2_taken).length / n * 100);
   const mgComp    = Math.round(recent.filter(r => r.magnesium_taken).length / n * 100);
@@ -5265,7 +5427,7 @@ function renderHistory(rows) {
           </div>
           <div class="ins ${insClr(woComp, 75, 50, true)}">
             <div class="ins-val">${woComp}%</div>
-            <div class="ins-lbl">Workout Rate</div>
+            <div class="ins-lbl">Workout Rate${restDays ? ` <span style="font-weight:400">&middot; &#128164; ${restDays}</span>` : ''}</div>
             <div class="ins-sub">&#937; ${o3Comp}% &middot; D3 ${d3Comp}% &middot; Mg ${mgComp}% &middot; Multi ${mvComp}%</div>
           </div>
           <div class="ins ${avgSleepMin ? insClr(avgSleepMin, 420, 360, true) : ''}">
@@ -5300,6 +5462,7 @@ function renderHistory(rows) {
         </div>` : ''}
       </div>
     </div>
+    ${scorecardHTML()}
     <div class="card" style="margin-bottom:16px">
       <div class="card-lbl">Daily Log</div>
       <div class="hist-hdr">
@@ -5340,7 +5503,7 @@ function renderHistory(rows) {
         <div class="hr-cal" style="color:${calClr}">${hasData ? cal.toLocaleString() : '—'}</div>
         <div class="hr-prot" style="color:${protClr}">${hasData ? prot.toFixed(0)+'g' : '—'}</div>
         <div class="hr-sugar" style="color:${sugarClr}">${hasData ? sugar.toFixed(0)+'g' : '—'}</div>
-        <div class="hr-wo">${r.workout_done ? '&#10003;' : ''}</div>
+        <div class="hr-wo">${r.workout_done ? '&#10003;' : r.rest_day ? '<span title="Rest day" style="font-size:12px">&#128164;</span>' : ''}</div>
         <div class="hr-supps">
           <div class="supp-dot ${r.omega3_taken?'on':''}" title="Omega-3"></div>
           <div class="supp-dot ${r.d3_k2_taken?'on':''}" title="D3+K2"></div>
