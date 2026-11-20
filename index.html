@@ -1177,6 +1177,11 @@ const SB_URL = 'https://jfqzgkiuqfrgubclesaa.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmcXpna2l1cWZyZ3ViY2xlc2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2OTczMjIsImV4cCI6MjEwMTI3MzMyMn0.iVjNamifQWd6K6CpZMOMdHHf7CkvYowpm0QUWSwNAJk';
 const FN_URL = `${SB_URL}/functions/v1/analyze-food`;
 const CAL_TARGET  = 2000;
+// Calorie base by date (activity is earned on top). 11/20/2026, Michael: lean-gain mode. His intake held his
+// weight flat at ~2,600/day (maintenance), so the old 2,000 base read "over" every day; 2,400 + ~300 activity
+// = a gentle ~+100/day surplus. Recheck after 4 weeks (weekly avg weight + waist); next step up would be 2,450.
+const CAL_BASES = [ ['2026-11-20', 2400] ];   // [from date, base], newest last; before the first = CAL_TARGET
+function calBase(ds) { let b = CAL_TARGET; for (const [from, v] of CAL_BASES) if (ds >= from) b = v; return b; }
 // Burn on a normal NO-exercise day (resting + everyday movement). The 2,000
 // target already assumes this much activity, so only burn ABOVE it is "earned".
 // Calibrate after a few weeks: average Fitbit total burn on days with no sessions.
@@ -3489,7 +3494,7 @@ function totals() {
     potassium: a.potassium + (parseInt(e.potassium_mg)||0),
   }), {cal:0, prot:0, sugar:0, fat:0, carbs:0, fiber:0, sodium:0, potassium:0});
 }
-function target() { return CAL_TARGET; }
+function target() { return calBase(ntDateStr()); }
 // Sodium bonus from measured heart-rate effort (sweat proxy):
 // HR zones during exercise sessions + moderate/vigorous active minutes all day.
 // Roughly 500mg/hr moderate, 1000mg/hr vigorous, 1200mg/hr peak; capped +1500.
@@ -5343,7 +5348,7 @@ async function loadMealItems() {
     if (!items.length) { root.innerHTML = '<div class="food-empty">No meals logged yet.</div>'; return; }
 
     const targetByDate = {};
-    summaries.forEach(s => { targetByDate[s.log_date] = s.calorie_target || 2000; });
+    summaries.forEach(s => { targetByDate[s.log_date] = calBase(s.log_date); });
 
     const byDate = {};
     items.forEach(i => { (byDate[i.log_date] = byDate[i.log_date] || []).push(i); });
@@ -5502,9 +5507,9 @@ function scBudget(ds) {
   const g = (window._histGh || {})[ds];
   if (g && g.calories) {
     const sess = (g.run_cal || 0) + (g.walk_cal || 0);
-    return 2000 + sess + Math.max(0, g.calories - 2450 - sess);
+    return calBase(ds) + sess + Math.max(0, g.calories - 2450 - sess);
   }
-  return 2000 + (((window._histAct || {})[ds]?.cal) || 0);
+  return calBase(ds) + (((window._histAct || {})[ds]?.cal) || 0);
 }
 
 function scNaTarget(ds) {
@@ -5615,11 +5620,11 @@ function scAgg(days, span) {
 
   // Eating
   const cal = Math.round(mean(lg, r => r.cal)), bud = Math.round(mean(lg, r => r.budget));
-  // each day against its own budget (2,000 + that day's activity), same as the calorie staircase
+  // each day against its own budget (that day's base + activity), same as the calorie staircase
   const deficit = lg.filter(r => r.cal < r.budget).length, overCal = nl - deficit;
   const calPct = Math.round(mean(lg, r => r.cal / r.budget) * 100);
   add({ k: 'cal', g: 'Eating', icon: '&#128293;', label: 'Calories', disp: none ? '—' : cal.toLocaleString(),
-    target: none ? 'no food logged' : `budget ${bud.toLocaleString()} avg (2,000 + activity) &middot; under on ${deficit} of ${nl} days`,
+    target: none ? 'no food logged' : `budget ${bud.toLocaleString()} avg (base + activity) &middot; under on ${deficit} of ${nl} days`,
     st: none ? 'none' : lvl(calPct, 100, 109, false), chart: calPct, goal: 100, unit: '%', chartNote: '% of each day&rsquo;s budget',
     caution: calPct > 100 ? `Over the day&rsquo;s budget on ${overCal} of ${nl} days, by ${(cal - bud).toLocaleString()} cal a day on average` : null,
     good: !none && deficit === nl && nl >= 3 ? `In a calorie deficit all ${nl} days` : null });
@@ -5850,7 +5855,7 @@ function renderHistory(rows) {
     if (wk !== lastWeek) { lastWeek = wk; html += `<div class="week-hd">${weekLabel(r.log_date)}</div>`; }
     const d     = new Date(r.log_date + 'T12:00:00');
     const cal   = r.total_calories;
-    const tg    = dayBudget(r.log_date); // 2000 + that day's tracked activity
+    const tg    = dayBudget(r.log_date); // that day's base + tracked activity
     const prot  = parseFloat(r.total_protein_g);
     const sugar = parseFloat(r.total_added_sugar_g);
     const hasData = cal > 0;
