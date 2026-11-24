@@ -930,6 +930,33 @@ body {
   </div>
 </div>
 
+<!-- Band left at home: estimate (11/24/2026) -->
+<div class="overlay" id="estOverlay" style="z-index:400">
+  <div class="form-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="margin-bottom:4px">&#8986; Estimate steps</div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:10px">For hours the band wasn't on. Kept apart from the real Fitbit numbers.</div>
+    <div id="est-tabs" style="display:flex;gap:2px;background:var(--surface2);border-radius:9px;padding:2px;margin-bottom:12px"></div>
+    <div id="est-hours">
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <label style="flex:1;font-size:11px;color:var(--muted)">From<input class="fi" id="est-from" type="time" oninput="renderEstimate()" style="margin-top:4px"></label>
+        <label style="flex:1;font-size:11px;color:var(--muted)">To<input class="fi" id="est-to" type="time" oninput="renderEstimate()" style="margin-top:4px"></label>
+      </div>
+      <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">What kind of time</div>
+      <div id="est-kinds" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"></div>
+    </div>
+    <div id="est-steps-box" style="display:none">
+      <label style="font-size:11px;color:var(--muted)">Steps for the time without the band<input class="fi" id="est-steps" type="number" inputmode="numeric" placeholder="e.g. 6000" oninput="renderEstimate()" style="margin-top:4px"></label>
+    </div>
+    <div id="est-result" style="margin:14px 0 12px;padding:10px;border-radius:10px;background:var(--surface2);font-size:12px;line-height:1.5"></div>
+    <button class="tbtn primary" style="width:100%" onclick="saveEstimate(false)">Save estimate</button>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <button class="overlay-close" onclick="saveEstimate(true)" style="color:var(--red)">Remove estimate</button>
+      <button class="overlay-close" onclick="document.getElementById('estOverlay').classList.remove('show')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Rest Timer -->
 <div class="overlay" id="timerOverlay">
   <div class="form-sheet" style="text-align:center">
@@ -3481,7 +3508,7 @@ async function load() {
     if (ntDayOffset !== 0) {
       if (snap[0]) {
         const s = snap[0];
-        ghDay = { steps: s.steps, calories: s.calories, activeMinutes: s.active_minutes, restingHR: s.resting_hr,
+        ghDay = { steps: s.steps, calories: s.calories, activeMinutes: s.active_minutes, restingHR: s.resting_hr, gaps: s.gaps || [],
                   runCal: s.run_cal, walkCal: s.walk_cal,
                   sweat: { modSec: s.mod_sec, vigSec: s.vig_sec, peakSec: s.peak_sec, levels: s.levels || {} } };
       } else {
@@ -3523,6 +3550,88 @@ function target() { return calBase(ntDateStr()); }
 // Sodium bonus from measured heart-rate effort (sweat proxy):
 // HR zones during exercise sessions + moderate/vigorous active minutes all day.
 // Roughly 500mg/hr moderate, 1000mg/hr vigorous, 1200mg/hr peak; capped +1500.
+// ── Band left at home: step + calorie estimate (11/24/2026) ──────────────
+// The Google sync reports daytime gaps with no band data (gh.gaps). He estimates those hours
+// (or types a step number); it is kept apart from the real Fitbit numbers and counts 75% toward
+// the calorie budget so a generous guess doesn't turn into overeating.
+// Rates fit to his own Fitbit history (typical day ~11,500 steps / ~2,750 cal burned; ~66 kg):
+// calories are ABOVE rest (the band already counts resting burn for the off hours).
+const EST_KINDS = {
+  light: { label: 'Light',    sub: 'office, errands, driving, house', stepsHr: 400,  calHr: 45 },
+  job:   { label: 'Job site', sub: 'carpentry, on your feet',          stepsHr: 800,  calHr: 110 },
+  heavy: { label: 'Heavy',    sub: 'demo, hauling, stairs',            stepsHr: 1100, calHr: 200 },
+};
+const EST_CREDIT = 0.75;
+const EST_CAL_PER_STEP = 0.045;   // typed step counts (walking, ~66 kg, above rest)
+let estMode = 'hours', estKind = 'job';
+function estCredit(d) { return d && d.est_cal ? Math.round(d.est_cal * EST_CREDIT) : 0; }
+const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+const fromHHMM = v => { const [h, m] = String(v || '').split(':').map(Number); return isNaN(h) ? null : h * 60 + (m || 0); };
+const clock12 = min => { const h = Math.floor(min / 60), m = min % 60; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+function openEstimate() {
+  const g = (ghForDay()?.gaps || [])[0];
+  const fromEl = document.getElementById('est-from'), toEl = document.getElementById('est-to');
+  fromEl.value = g ? hhmm(g.fromMin) : '08:00';
+  toEl.value = g ? hhmm(g.toMin) : '17:00';
+  document.getElementById('est-steps').value = daily?.est_steps && /steps typed/.test(daily?.est_note || '') ? daily.est_steps : '';
+  estMode = /steps typed/.test(daily?.est_note || '') ? 'steps' : 'hours';
+  const k = Object.keys(EST_KINDS).find(k => (daily?.est_note || '').includes(EST_KINDS[k].label.toLowerCase()));
+  if (k) estKind = k;
+  renderEstimate();
+  document.getElementById('estOverlay').classList.add('show');
+}
+function setEstMode(m) { estMode = m; renderEstimate(); }
+function setEstKind(k) { estKind = k; renderEstimate(); }
+function estCalc() {
+  if (estMode === 'steps') {
+    const steps = Math.max(0, parseInt(document.getElementById('est-steps').value, 10) || 0);
+    return { steps, cal: Math.round(steps * EST_CAL_PER_STEP), note: `${steps.toLocaleString()} steps typed` };
+  }
+  const a = fromHHMM(document.getElementById('est-from').value), b = fromHHMM(document.getElementById('est-to').value);
+  const mins = a != null && b != null ? Math.max(0, b - a) : 0;
+  const k = EST_KINDS[estKind];
+  return { steps: Math.round(k.stepsHr * mins / 60 / 50) * 50, cal: Math.round(k.calHr * mins / 60), mins,
+           note: `${a != null ? clock12(a) : '?'}-${b != null ? clock12(b) : '?'}, ${k.label.toLowerCase()}` };
+}
+function renderEstimate() {
+  const tab = (m, t) => `<button onclick="setEstMode('${m}')" style="flex:1;border:none;border-radius:7px;padding:6px;font-size:12px;font-weight:600;cursor:pointer;background:${estMode === m ? 'var(--acc-d)' : 'none'};color:${estMode === m ? 'var(--accent)' : 'var(--muted)'}">${t}</button>`;
+  document.getElementById('est-tabs').innerHTML = tab('hours', 'By hours') + tab('steps', 'By steps');
+  document.getElementById('est-hours').style.display = estMode === 'hours' ? '' : 'none';
+  document.getElementById('est-steps-box').style.display = estMode === 'steps' ? '' : 'none';
+  document.getElementById('est-kinds').innerHTML = Object.entries(EST_KINDS).map(([k, v]) => {
+    const on = estKind === k;
+    return `<button onclick="setEstKind('${k}')" style="padding:8px 4px;border-radius:9px;border:1.5px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'var(--acc-d)' : 'var(--surface2)'};color:${on ? 'var(--accent)' : 'var(--text)'};font-size:12px;font-weight:700;cursor:pointer">${v.label}<div style="font-size:9.5px;font-weight:400;color:var(--muted);line-height:1.25;margin-top:2px">${v.sub}</div></button>`;
+  }).join('');
+  const r = estCalc();
+  document.getElementById('est-result').innerHTML = r.steps || r.cal
+    ? `<b style="font-size:14px">~${r.steps.toLocaleString()} steps</b> &middot; +${r.cal} cal burned<br><span style="color:var(--muted)">counts ${Math.round(r.cal * EST_CREDIT)} cal toward today&rsquo;s budget (75%, to stay on the safe side)</span>`
+    : '<span style="color:var(--muted)">Pick the hours (or type steps) to see the estimate</span>';
+}
+async function saveEstimate(remove) {
+  document.getElementById('estOverlay').classList.remove('show');
+  const r = remove ? { steps: null, cal: null, note: null } : estCalc();
+  if (!remove && !r.steps && !r.cal) return;
+  if (daily) { daily.est_steps = r.steps; daily.est_cal = r.cal; daily.est_note = r.note; }
+  render();
+  await sbPatch('daily_log', { log_date: ntDateStr() }, { est_steps: r.steps, est_cal: r.cal, est_note: r.note });
+}
+function estBannerHTML(gh) {
+  const g = (gh?.gaps || []).filter(x => x.minutes >= 45);
+  const btn = (t, fn) => `<button onclick="${fn}" style="background:var(--acc-d);border:1px solid var(--acc-b);color:var(--accent);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">${t}</button>`;
+  if (daily?.est_steps || daily?.est_cal) {
+    return `<div style="margin-top:10px;padding:9px 10px;border-radius:9px;background:var(--surface2);display:flex;align-items:center;gap:8px">
+      <span style="flex:1;font-size:12px;line-height:1.4">&#8986; Estimate added: <b>~${(daily.est_steps || 0).toLocaleString()} steps</b> &middot; +${daily.est_cal || 0} cal<br><span style="color:var(--muted)">${daily.est_note || ''} &middot; ${estCredit(daily)} cal counted</span></span>
+      ${btn('Edit', 'openEstimate()')}</div>`;
+  }
+  if (g.length) {
+    const mins = g.reduce((s, x) => s + x.minutes, 0);
+    return `<div style="margin-top:10px;padding:9px 10px;border-radius:9px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);display:flex;align-items:center;gap:8px">
+      <span style="flex:1;font-size:12px;line-height:1.4;color:var(--yellow)">&#8986; Band off ${g.map(x => `${x.from} &ndash; ${x.to}`).join(', ')}<br><span style="color:var(--muted)">${Math.floor(mins / 60)} h ${mins % 60} m with no steps counted</span></span>
+      ${btn('+ Estimate', 'openEstimate()')}</div>`;
+  }
+  return `<div style="margin-top:8px;text-align:right"><button onclick="openEstimate()" style="background:none;border:none;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer">Forgot the band? + Estimate steps</button></div>`;
+}
+
 function sweatBonus() { return sweatMg(ghForDay()?.sweat); }
 function sweatMg(s) {
   if (!s) return 0;
@@ -4643,7 +4752,8 @@ function render() {
   const runSeg      = gh ? runCal  : 0;
   const walkSeg     = gh ? walkCal : 0;
   // partial snapshots (rebuilt from sessions only) have no total burn → no "other"
-  const otherCal    = gh && !gh.partial ? Math.max(0, Math.round(gh.calories - baseSoFar) - runSeg - walkSeg) : 0;
+  // a band-off estimate adds its activity calories (75% credit) to the band's total burn
+  const otherCal    = gh && !gh.partial ? Math.max(0, Math.round(gh.calories + estCredit(daily) - baseSoFar) - runSeg - walkSeg) : 0;
   const burnBonus   = runSeg + walkSeg + otherCal;
   // Carb refill earned: ~55% of activity calories came from glycogen, 4 cal/g
   const carbG       = c => Math.round(c * 0.55 / 4 / 5) * 5;
@@ -4821,8 +4931,8 @@ function render() {
           ${gh && !gh.partial ? `
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.steps.toLocaleString()}</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.steps.toLocaleString()}${daily?.est_steps ? `<span style="font-size:12px;color:var(--yellow);font-weight:600"> +~${daily.est_steps.toLocaleString()}</span>` : ''}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">Steps${daily?.est_steps ? ' (+ est.)' : ''}</div>
               </div>
               <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
                 <div style="font-size:20px;font-weight:700;color:var(--accent)">${gh.calories}</div>
@@ -4837,6 +4947,7 @@ function render() {
                 <div style="font-size:11px;color:var(--muted);margin-top:2px">Resting HR</div>
               </div>
             </div>
+            ${estBannerHTML(gh)}
           ` : ntDayOffset !== 0 ? `<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px 0">${gh?.partial ? 'Only tracked sessions available for this day' : 'No Fitbit snapshot saved for this day'}</div>` : ''}
         ` : `
           <div style="text-align:center;padding:8px 0">
@@ -5532,7 +5643,7 @@ function scBudget(ds) {
   const g = (window._histGh || {})[ds];
   if (g && g.calories) {
     const sess = (g.run_cal || 0) + (g.walk_cal || 0);
-    return calBase(ds) + sess + Math.max(0, g.calories - 2450 - sess);
+    return calBase(ds) + sess + Math.max(0, g.calories + estCredit((window._scDaily || {})[ds]) - 2450 - sess);
   }
   return calBase(ds) + (((window._histAct || {})[ds]?.cal) || 0);
 }
